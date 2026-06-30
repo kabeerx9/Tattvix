@@ -11,7 +11,7 @@
     "rootDirs": ["."],
     "paths": {
       "@/*": ["./src/*"],
-      "@app-starter/ui/*": ["../../packages/ui/src/*"]
+      "@hotel-app/ui/*": ["../../packages/ui/src/*"]
     }
   }
 }

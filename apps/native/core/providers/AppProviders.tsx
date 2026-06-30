@@ -1,4 +1,4 @@
-import { env } from "@app-starter/env/native";
+import { env } from "@hotel-app/env/native";
 import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";

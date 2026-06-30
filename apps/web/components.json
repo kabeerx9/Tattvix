@@ -13,8 +13,8 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "utils": "@app-starter/ui/lib/utils",
-    "ui": "@app-starter/ui/components",
+    "utils": "@hotel-app/ui/lib/utils",
+    "ui": "@hotel-app/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

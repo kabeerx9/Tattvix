@@ -1,6 +1,6 @@
-# Fullstack Monorepo Starter
+# Hotel App
 
-A reusable starter for web, native, and API projects.
+A full-stack hotel app monorepo for web, native, and API development.
 
 ## Included
 
@@ -80,7 +80,7 @@ cp apps/web/.env.example apps/web/.env
 cp apps/native/.env.example apps/native/.env
 ```
 
-Then rename the root package, `@app-starter/*` workspace scope, Expo metadata,
+Then rename the root package, `@hotel-app/*` workspace scope, Expo metadata,
 and visible branding yourself.
 
 Create a new Clerk application for each project. Add a PostgreSQL database when
@@ -145,10 +145,13 @@ Expo Go.
 
 Configure these values:
 
+- Server: `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SIGNING_SECRET`
 - Web: `VITE_CLERK_PUBLISHABLE_KEY`
 - Native: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
 
-The Django API scaffold does not implement Clerk server-side auth yet.
+The Django API uses Clerk's Python backend SDK for request authentication and
+Svix verification for Clerk webhooks. Local Clerk sync models are defined, but
+their migrations are intentionally deferred until the database setup is ready.
 
 For web Google OAuth, allow:
 

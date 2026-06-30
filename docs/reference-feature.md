@@ -10,7 +10,7 @@ reference code rather than a complete end-to-end backend flow.
 - A Prisma model previously owned by the local `User` record synced from Clerk
 - Shared Zod contracts for request and response validation
 - Typed client patterns for owner-scoped API calls
-- Typed web and native API clients built on `@app-starter/contracts`
+- Typed web and native API clients built on `@hotel-app/contracts`
 - Dashboard UI panels with list, create, edit, delete, loading, empty, and error states
 
 ## Authorization invariant

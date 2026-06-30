@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "App Starter",
-    "slug": "fullstack-monorepo-starter",
+    "name": "Hotel App",
+    "slug": "hotel-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "app-starter",
+    "scheme": "hotel-app",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.appstarter"
+      "bundleIdentifier": "com.hotel.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.appstarter"
+      "package": "com.hotel.app"
     },
     "web": {
       "output": "static",

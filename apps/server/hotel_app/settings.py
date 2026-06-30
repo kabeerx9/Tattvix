@@ -42,7 +42,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls"
+ROOT_URLCONF = "hotel_app.urls"
 
 TEMPLATES = [
     {
@@ -59,7 +59,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = "hotel_app.wsgi.application"
 
 DATABASES = {
     "default": {
@@ -82,7 +82,16 @@ CORS_ALLOWED_ORIGINS = env_list(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
+CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")
+CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
+CLERK_JWT_AUDIENCE = env_list("CLERK_JWT_AUDIENCE", "")
+CLERK_JWT_KEY = os.environ.get("CLERK_JWT_KEY", "")
+
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "api.authentication.ClerkAuthentication",
+    ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",

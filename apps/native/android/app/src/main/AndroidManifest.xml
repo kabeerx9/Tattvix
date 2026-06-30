@@ -24,8 +24,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="app-starter"/>
-        <data android:scheme="exp+fullstack-monorepo-starter"/>
+        <data android:scheme="hotel-app"/>
+        <data android:scheme="exp+hotel-app"/>
       </intent-filter>
     </activity>
   </application>

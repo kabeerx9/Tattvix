@@ -10,7 +10,7 @@ export default function Header() {
     <div>
       <div className="flex flex-row items-center justify-between px-4 py-2">
         <Link to="/" className="text-lg font-semibold">
-          App Starter
+          Hotel App
         </Link>
         <div className="flex items-center gap-4">
           {isSignedIn ? (

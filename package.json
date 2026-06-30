@@ -1,5 +1,5 @@
 {
-  "name": "fullstack-monorepo-starter",
+  "name": "hotel-app",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -17,18 +17,18 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
-    "db:push": "turbo -F @app-starter/db db:push",
-    "db:studio": "turbo -F @app-starter/db db:studio",
-    "db:generate": "turbo -F @app-starter/db db:generate",
-    "db:migrate": "turbo -F @app-starter/db db:migrate"
+    "db:push": "turbo -F @hotel-app/db db:push",
+    "db:studio": "turbo -F @hotel-app/db db:studio",
+    "db:generate": "turbo -F @hotel-app/db db:generate",
+    "db:migrate": "turbo -F @hotel-app/db db:migrate"
   },
   "dependencies": {
-    "@app-starter/env": "workspace:*",
+    "@hotel-app/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@app-starter/config": "workspace:*",
+    "@hotel-app/config": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "^4.20.5",
     "turbo": "^2.9.16",

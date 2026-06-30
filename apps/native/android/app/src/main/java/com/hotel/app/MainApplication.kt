@@ -1,4 +1,4 @@
-package com.example.appstarter
+package com.hotel.app
 
 import android.app.Application
 import android.content.res.Configuration

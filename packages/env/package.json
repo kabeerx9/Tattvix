@@ -1,5 +1,5 @@
 {
-  "name": "@app-starter/env",
+  "name": "@hotel-app/env",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@app-starter/config": "workspace:*",
+    "@hotel-app/config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
   }

@@ -18,7 +18,7 @@ export function OnboardingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>First run</Text>
-        <Text style={styles.title}>Welcome to App Starter</Text>
+        <Text style={styles.title}>Welcome to Hotel App</Text>
         <Text style={styles.subtitle}>
           Finish the light setup step and jump into the authenticated workspace.
         </Text>

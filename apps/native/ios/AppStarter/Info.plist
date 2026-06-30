@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>App Starter</string>
+	<string>Hotel App</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Hotel App</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,14 +27,14 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-starter</string>
-				<string>com.example.appstarter</string>
+				<string>hotel-app</string>
+				<string>com.hotel.app</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>exp+fullstack-monorepo-starter</string>
+				<string>exp+hotel-app</string>
 			</array>
 		</dict>
 	</array>

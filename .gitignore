@@ -1,5 +1,6 @@
 # Dependencies
 node_modules
+.pnpm-store
 .pnp
 .pnp.js
 
@@ -10,6 +11,8 @@ build
 
 # Generated files
 apps/web/src/routeTree.gen.ts
+__pycache__/
+*.py[cod]
 
 # Environment variables
 .env

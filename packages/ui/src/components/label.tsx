@@ -1,4 +1,4 @@
-import { cn } from "@app-starter/ui/lib/utils";
+import { cn } from "@hotel-app/ui/lib/utils";
 import * as React from "react";
 
 function Label({ className, ...props }: React.ComponentProps<"label">) {

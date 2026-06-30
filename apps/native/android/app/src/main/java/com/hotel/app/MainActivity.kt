@@ -1,4 +1,4 @@
-package com.example.appstarter
+package com.hotel.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

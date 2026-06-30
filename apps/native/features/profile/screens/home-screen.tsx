@@ -35,7 +35,7 @@ export function HomeScreen() {
               Workspace
             </Pill>
             <View style={styles.titleGroup}>
-              <AppText variant="heading">App Starter</AppText>
+              <AppText variant="heading">Hotel App</AppText>
               <AppText variant="body" tone="secondary">
                 Welcome, {name}
               </AppText>

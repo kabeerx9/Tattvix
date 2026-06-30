@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "@app-starter/ui/components/button";
+import { Button } from "@hotel-app/ui/components/button";
 import {
   Card,
   CardContent,
@@ -8,10 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@app-starter/ui/components/card";
-import { Input } from "@app-starter/ui/components/input";
-import { Label } from "@app-starter/ui/components/label";
-import type { ExampleProject } from "@app-starter/contracts";
+} from "@hotel-app/ui/components/card";
+import { Input } from "@hotel-app/ui/components/input";
+import { Label } from "@hotel-app/ui/components/label";
+import type { ExampleProject } from "@hotel-app/contracts";
 
 import {
   ApiError,

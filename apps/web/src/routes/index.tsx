@@ -18,7 +18,7 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-2xl font-semibold">App Starter</h1>
+      <h1 className="text-2xl font-semibold">Hotel App</h1>
       <SignIn
         routing="path"
         path="/"

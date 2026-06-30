@@ -1,4 +1,4 @@
-import type { ExampleProject } from "@app-starter/contracts";
+import type { ExampleProject } from "@hotel-app/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
