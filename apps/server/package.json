@@ -1,0 +1,12 @@
+{
+  "name": "server",
+  "scripts": {
+    "setup": "python3 -m venv .venv && .venv/bin/python -m pip install --upgrade pip && .venv/bin/python -m pip install -r requirements.txt",
+    "dev": "sh scripts/manage.sh runserver 0.0.0.0:3000",
+    "start": "sh scripts/manage.sh runserver 0.0.0.0:3000",
+    "build": "sh scripts/manage.sh check",
+    "check-types": "sh scripts/manage.sh check",
+    "test": "sh scripts/manage.sh test",
+    "migrate": "sh scripts/manage.sh migrate"
+  }
+}
