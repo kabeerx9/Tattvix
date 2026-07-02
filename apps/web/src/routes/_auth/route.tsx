@@ -1,6 +1,8 @@
 import { useAuth } from "@clerk/react";
 import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
 
+import { AppShell } from "@/components/app-shell";
+
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
 });
@@ -13,8 +15,12 @@ function AuthLayout() {
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/" />;
+    return <Navigate to="/login" />;
   }
 
-  return <Outlet />;
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }

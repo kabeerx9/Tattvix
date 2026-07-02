@@ -1,4 +1,3 @@
-import { UserButton } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -30,26 +29,52 @@ function DashboardPage() {
     "there";
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Hotel App</h1>
-        <UserButton />
+    <div className="mx-auto grid max-w-5xl gap-6">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          Dashboard
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold">Overview</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Your authenticated dashboard shell is wired to Clerk and Django. Product
+          workflows can now be added behind this layout.
+        </p>
       </div>
-      <p className="text-muted-foreground">Welcome, {displayName}</p>
-      <div className="rounded-lg border p-6">
-        <p className="text-sm text-muted-foreground">Signed-in account</p>
-        {me ? (
-          <div className="mt-4 grid gap-3 text-sm">
-            <AccountDetail label="Name" value={displayName} />
-            <AccountDetail label="Email" value={me.email} />
-            <AccountDetail label="Username" value={me.username} />
-            <AccountDetail label="Clerk ID" value={me.clerkId} />
-            <AccountDetail label="Local ID" value={String(me.id)} />
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <section className="border bg-card p-6">
+          <h2 className="text-sm font-medium">Workspace status</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <StatusTile label="Reservations" value="Empty" />
+            <StatusTile label="Rooms" value="Empty" />
+            <StatusTile label="Guests" value="Empty" />
           </div>
-        ) : (
-          <p className="mt-1 font-medium">{error ?? "Loading..."}</p>
-        )}
+        </section>
+
+        <section className="border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Signed-in account</p>
+          {me ? (
+            <div className="mt-4 grid gap-3 text-sm">
+              <AccountDetail label="Name" value={displayName} />
+              <AccountDetail label="Email" value={me.email} />
+              <AccountDetail label="Username" value={me.username} />
+              <AccountDetail label="Clerk ID" value={me.clerkId} />
+              <AccountDetail label="Local ID" value={String(me.id)} />
+            </div>
+          ) : (
+            <p className="mt-1 font-medium">{error ?? "Loading..."}</p>
+          )}
+        </section>
       </div>
+    </div>
+  );
+}
+
+function StatusTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border bg-background p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm font-medium">{value}</p>
     </div>
   );
 }

@@ -22,7 +22,7 @@ function SignUpPage() {
       <SignUp
         routing="path"
         path="/sign-up"
-        signInUrl="/"
+        signInUrl="/login"
         fallbackRedirectUrl="/dashboard"
       />
     </div>
