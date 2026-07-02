@@ -7,7 +7,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo -F server -F web dev",
+    "dev": "turbo -F server -F web -F native dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "test": "node --import tsx --test scripts/*.test.ts && turbo test",
