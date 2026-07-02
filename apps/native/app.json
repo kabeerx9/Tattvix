@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Hotel App",
-    "slug": "hotel-app",
+    "name": "Tattvix",
+    "slug": "tattvix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hotel-app",
+    "scheme": "tattvix",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hotel.app"
+      "bundleIdentifier": "com.tattvix.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.hotel.app"
+      "package": "com.tattvix.app"
     },
     "web": {
       "output": "static",

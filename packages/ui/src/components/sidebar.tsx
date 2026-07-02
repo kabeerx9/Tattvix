@@ -5,24 +5,24 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { useIsMobile } from "@hotel-app/ui/hooks/use-mobile"
-import { cn } from "@hotel-app/ui/lib/utils"
-import { Button } from "@hotel-app/ui/components/button"
-import { Input } from "@hotel-app/ui/components/input"
-import { Separator } from "@hotel-app/ui/components/separator"
+import { useIsMobile } from "@tattvix/ui/hooks/use-mobile"
+import { cn } from "@tattvix/ui/lib/utils"
+import { Button } from "@tattvix/ui/components/button"
+import { Input } from "@tattvix/ui/components/input"
+import { Separator } from "@tattvix/ui/components/separator"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@hotel-app/ui/components/sheet"
-import { Skeleton } from "@hotel-app/ui/components/skeleton"
+} from "@tattvix/ui/components/sheet"
+import { Skeleton } from "@tattvix/ui/components/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@hotel-app/ui/components/tooltip"
+} from "@tattvix/ui/components/tooltip"
 import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"

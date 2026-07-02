@@ -3,8 +3,8 @@ import {
   createApiClient,
   meResponseSchema,
   type MeResponse,
-} from "@hotel-app/contracts";
-import { env } from "@hotel-app/env/web";
+} from "@tattvix/contracts";
+import { env } from "@tattvix/env/web";
 
 import { getClerkAuthToken } from "@/utils/clerk-auth";
 

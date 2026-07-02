@@ -58,7 +58,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "hotel_app.urls"
+ROOT_URLCONF = "tattvix.urls"
 
 TEMPLATES = [
     {
@@ -75,7 +75,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "hotel_app.wsgi.application"
+WSGI_APPLICATION = "tattvix.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.parse(

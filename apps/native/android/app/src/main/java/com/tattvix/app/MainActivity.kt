@@ -1,4 +1,4 @@
-package com.hotel.app
+package com.tattvix.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -37,7 +37,7 @@ function HomePage() {
     <div className="min-h-svh bg-background">
       <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 text-white">
         <Link to="/" className="text-sm font-semibold tracking-wide">
-          Hotel App
+          Tattvix
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link to="/login" className="text-white/80 hover:text-white">
@@ -66,7 +66,7 @@ function HomePage() {
               Hotel operations workspace
             </p>
             <h1 className="text-5xl font-semibold leading-tight sm:text-6xl">
-              Hotel App
+              Tattvix
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/78">
               A focused dashboard for managing reservations, rooms, guests, and the

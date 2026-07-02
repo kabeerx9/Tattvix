@@ -25,9 +25,9 @@ import {
   SidebarRail,
   SidebarTrigger,
   useSidebar,
-} from "@hotel-app/ui/components/sidebar";
-import { TooltipProvider } from "@hotel-app/ui/components/tooltip";
-import { cn } from "@hotel-app/ui/lib/utils";
+} from "@tattvix/ui/components/sidebar";
+import { TooltipProvider } from "@tattvix/ui/components/tooltip";
+import { cn } from "@tattvix/ui/lib/utils";
 
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger />
               <div>
-                <p className="text-sm font-medium">Hotel App</p>
+                <p className="text-sm font-medium">Tattvix</p>
                 <p className="text-xs text-muted-foreground">Operations dashboard</p>
               </div>
             </div>
@@ -90,7 +90,7 @@ function AppSidebar() {
             <Hotel className="size-5" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">Hotel App</span>
+            <span className="block truncate text-sm font-semibold">Tattvix</span>
             <span className="block truncate text-xs text-sidebar-foreground/55">
               Front desk workspace
             </span>

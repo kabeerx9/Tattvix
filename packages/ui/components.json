@@ -12,11 +12,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@hotel-app/ui/components",
-    "utils": "@hotel-app/ui/lib/utils",
-    "hooks": "@hotel-app/ui/hooks",
-    "lib": "@hotel-app/ui/lib",
-    "ui": "@hotel-app/ui/components"
+    "components": "@tattvix/ui/components",
+    "utils": "@tattvix/ui/lib/utils",
+    "hooks": "@tattvix/ui/hooks",
+    "lib": "@tattvix/ui/lib",
+    "ui": "@tattvix/ui/components"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

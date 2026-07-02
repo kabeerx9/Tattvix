@@ -13,8 +13,8 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "utils": "@hotel-app/ui/lib/utils",
-    "ui": "@hotel-app/ui/components",
+    "utils": "@tattvix/ui/lib/utils",
+    "ui": "@tattvix/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

@@ -1,4 +1,4 @@
-import { env } from "@hotel-app/env/web";
+import { env } from "@tattvix/env/web";
 import { ClerkProvider } from "@clerk/react";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";

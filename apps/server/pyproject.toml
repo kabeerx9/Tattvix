@@ -1,7 +1,7 @@
 [project]
-name = "hotel-app-server"
+name = "tattvix-server"
 version = "0.1.0"
-description = "Django REST Framework backend for Hotel App."
+description = "Django REST Framework backend for Tattvix."
 requires-python = ">=3.12"
 dependencies = [
   "Django>=5.2,<6.0",

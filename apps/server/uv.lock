@@ -251,7 +251,7 @@ wheels = [
 ]
 
 [[package]]
-name = "hotel-app-server"
+name = "tattvix-server"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

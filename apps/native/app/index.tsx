@@ -7,7 +7,7 @@ export default function HomeRoute() {
       <StatusBar style="dark" />
       <View style={styles.panel}>
         <Text style={styles.eyebrow}>Development Build</Text>
-        <Text style={styles.title}>Hotel App</Text>
+        <Text style={styles.title}>Tattvix</Text>
         <Text style={styles.copy}>
           Native shell is running without auth wiring. Add the product flows here when the shape is
           settled.

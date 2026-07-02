@@ -11,9 +11,9 @@
     "check-types": "vite build && tsc --noEmit"
   },
   "dependencies": {
-    "@hotel-app/contracts": "workspace:*",
-    "@hotel-app/env": "workspace:*",
-    "@hotel-app/ui": "workspace:*",
+    "@tattvix/contracts": "workspace:*",
+    "@tattvix/env": "workspace:*",
+    "@tattvix/ui": "workspace:*",
     "@clerk/react": "^6.1.1",
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.2.2",
@@ -27,7 +27,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@hotel-app/config": "workspace:*",
+    "@tattvix/config": "workspace:*",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/router-plugin": "^1.167.22",
     "@types/node": "catalog:",

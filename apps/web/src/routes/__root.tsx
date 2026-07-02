@@ -1,4 +1,4 @@
-import { Toaster } from "@hotel-app/ui/components/sonner";
+import { Toaster } from "@tattvix/ui/components/sonner";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
@@ -13,7 +13,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "Hotel App",
+        title: "Tattvix",
       },
       {
         name: "description",

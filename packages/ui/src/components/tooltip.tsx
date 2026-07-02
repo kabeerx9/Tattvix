@@ -2,7 +2,7 @@
 
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
-import { cn } from "@hotel-app/ui/lib/utils"
+import { cn } from "@tattvix/ui/lib/utils"
 
 function TooltipProvider({
   delay = 0,

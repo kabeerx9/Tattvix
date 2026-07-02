@@ -1,8 +1,8 @@
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 
-import { cn } from "@hotel-app/ui/lib/utils"
-import { Button } from "@hotel-app/ui/components/button"
+import { cn } from "@tattvix/ui/lib/utils"
+import { Button } from "@tattvix/ui/components/button"
 import { XIcon } from "lucide-react"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {

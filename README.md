@@ -1,6 +1,6 @@
-# Hotel App
+# Tattvix
 
-A monorepo for the hotel app:
+A monorepo for Tattvix:
 
 - `apps/web`: React, TanStack Router, Clerk, and shadcn/ui-style components
 - `apps/server`: Django REST Framework API using PostgreSQL only

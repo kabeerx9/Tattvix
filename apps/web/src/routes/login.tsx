@@ -20,7 +20,7 @@ function LoginPage() {
     <div className="grid min-h-svh place-items-center bg-muted/30 p-6">
       <div className="grid gap-6">
         <div className="text-center">
-          <p className="text-sm font-semibold">Hotel App</p>
+          <p className="text-sm font-semibold">Tattvix</p>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your workspace.</p>
         </div>
         <SignIn

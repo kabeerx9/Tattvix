@@ -1,4 +1,4 @@
-package com.hotel.app
+package com.tattvix.app
 
 import android.app.Application
 import android.content.res.Configuration

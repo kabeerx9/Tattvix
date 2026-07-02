@@ -1,10 +1,10 @@
-import { Button } from "@hotel-app/ui/components/button";
+import { Button } from "@tattvix/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@hotel-app/ui/components/dropdown-menu";
+} from "@tattvix/ui/components/dropdown-menu";
 import { Moon, Sun } from "lucide-react";
 
 import { useTheme } from "@/components/theme-provider";

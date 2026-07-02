@@ -1,11 +1,11 @@
 {
-  "extends": "@hotel-app/config/tsconfig.base.json",
+  "extends": "@tattvix/config/tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": [],
     "paths": {
-      "@hotel-app/ui/*": ["./src/*"]
+      "@tattvix/ui/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],

@@ -1,4 +1,4 @@
-import { cn } from "@hotel-app/ui/lib/utils";
+import { cn } from "@tattvix/ui/lib/utils";
 import * as React from "react";
 
 function Card({
