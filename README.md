@@ -1,85 +1,61 @@
 # Hotel App
 
-A full-stack hotel app monorepo for web, native, and API development.
+A monorepo for the hotel app:
 
-## Included
+- `apps/web`: React, TanStack Router, Clerk, and shadcn/ui-style components
+- `apps/server`: Django REST Framework API using PostgreSQL only
+- `apps/native`: Expo development-build app
+- `packages/*`: shared TypeScript config, contracts, env helpers, and UI
 
-- React 19 and TanStack Router web app
-- Expo and React Native app
-- Django REST Framework API scaffold
-- Clerk authentication on web and native
-- Reference web/native CRUD UI and contracts (`ExampleProject`) to replace
-- PostgreSQL-only Django database configuration
-- Shared shadcn/ui package
-- Shared, validated environment configuration
-- Turborepo and pnpm workspaces
+## Tooling
 
-## Create A Project
+This repo uses both JavaScript and Python tooling.
 
-Use GitHub's **Use this template** button, then clone the generated repository.
+- `pnpm` is the JavaScript package manager. It installs the monorepo packages, runs Turborepo, and starts the web/native workspaces.
+- `uv` is the Python package and environment manager. It reads `apps/server/pyproject.toml`, installs Django dependencies, and creates the server virtual environment.
 
-Install dependencies:
+Yes, both need to be installed locally.
+
+The Django server has an `apps/server/package.json` only so pnpm and Turborepo can run server commands from the monorepo root. The Python dependencies are still managed by `uv`, not by npm.
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm 10.x
+- uv
+- A Supabase PostgreSQL database
+- A Clerk application for web auth
+- Xcode/iOS Simulator for `pnpm --filter native ios`, or Android Studio/emulator for `pnpm --filter native android`
+
+Install pnpm:
+
+```bash
+npm install -g pnpm@10.10.0
+```
+
+Install uv on macOS:
+
+```bash
+brew install uv
+```
+
+Check the tools:
+
+```bash
+node --version
+pnpm --version
+uv --version
+```
+
+## First Setup
+
+Clone the repo, then install JavaScript dependencies:
 
 ```bash
 pnpm install
 ```
 
-Install `uv` if it is not already available, then set up the Django virtual
-environment:
-
-```bash
-pnpm run setup
-```
-
-Initialize the project metadata in one step:
-
-```bash
-pnpm run init:project -- \
-  --name "Acme Tasks" \
-  --slug acme-tasks \
-  --scope acme-tasks \
-  --scheme acme-tasks \
-  --bundle-id com.acme.tasks
-```
-
-`init:project` updates the root package name, workspace scope, Expo identifiers,
-visible branding, and import specifiers across the known starter files. It also
-creates missing `.env` files by copying the matching `.env.example` files.
-
-Options:
-
-- `--name` visible product name
-- `--slug` root package and Expo slug
-- `--scope` npm workspace scope, with or without a leading `@`
-- `--scheme` Expo URL scheme
-- `--bundle-id` iOS bundle identifier and Android package name
-- `--dry-run` print planned changes without writing files
-- `--yes` apply changes without interactive confirmation
-
-Preview changes first:
-
-```bash
-pnpm run init:project -- \
-  --name "Acme Tasks" \
-  --slug acme-tasks \
-  --scope acme-tasks \
-  --scheme acme-tasks \
-  --bundle-id com.acme.tasks \
-  --dry-run
-```
-
-After a scope rename, run:
-
-```bash
-pnpm install
-```
-
-The initializer never provisions Clerk, PostgreSQL, hosting, or app-store
-projects, and it never overwrites an existing `.env` file.
-
-### Manual fallback
-
-If you prefer to customize by hand:
+Create local env files:
 
 ```bash
 cp apps/server/.env.example apps/server/.env
@@ -87,118 +63,123 @@ cp apps/web/.env.example apps/web/.env
 cp apps/native/.env.example apps/native/.env
 ```
 
-Then rename the root package, `@hotel-app/*` workspace scope, Expo metadata,
-and visible branding yourself.
+`apps/native/.env.example` is currently empty, but `pnpm run doctor` still expects the local file to exist.
 
-Create a new Clerk application for each project and add a Supabase PostgreSQL
-connection string to `apps/server/.env`. Replace the placeholder values in the
-three environment files.
-
-Run the doctor before shipping:
-
-```bash
-pnpm run doctor
-```
-
-Doctor checks runtime availability, required environment keys, remaining starter
-identifiers, native metadata consistency, and workspace dependency integrity.
-It reports missing keys only and never prints environment values.
-
-Set up or refresh the Django server environment with uv:
+Install the Django server dependencies:
 
 ```bash
 pnpm run setup
 ```
 
-The Django server requires `DATABASE_URL`; this project does not use a local
-SQLite database.
+That runs `uv sync` inside `apps/server` and creates the Python virtual environment for the backend.
 
-Start the web app and Django API:
+## Environment Variables
+
+Fill in `apps/server/.env`:
+
+```bash
+DJANGO_SECRET_KEY="replace-me"
+DJANGO_DEBUG="true"
+DATABASE_URL="postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require"
+DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,0.0.0.0"
+CORS_ALLOWED_ORIGINS="http://localhost:3001,http://127.0.0.1:3001"
+CLERK_SECRET_KEY="sk_test_replace_me"
+CLERK_WEBHOOK_SIGNING_SECRET="whsec_replace_me"
+CLERK_AUTHORIZED_PARTIES="http://localhost:3001,http://127.0.0.1:3001"
+```
+
+Use Supabase's direct PostgreSQL connection string for local development and migrations. If your database password contains special characters, URL-encode it before putting it in `DATABASE_URL`.
+
+Fill in `apps/web/.env`:
+
+```bash
+VITE_SERVER_URL="http://localhost:3000"
+VITE_CLERK_PUBLISHABLE_KEY="pk_test_replace_me"
+```
+
+The webhook signing secret is only used when Clerk webhooks call `POST /api/webhooks/clerk/`. The app can still start before webhooks are hosted, but keep the key in the env file because it is part of the documented server config.
+
+Never commit real `.env` files.
+
+## Database
+
+This project is PostgreSQL-only. It does not use a local SQLite database.
+
+After `DATABASE_URL` is set, run migrations:
+
+```bash
+pnpm run db:migrate
+```
+
+This creates Django's built-in tables plus the app table for Clerk users. The Clerk user table is named `api_clerkuser`.
+
+When a signed-in web user calls `GET /api/me/`, the backend verifies the Clerk request and creates or updates the matching `api_clerkuser` row.
+
+## Run The App
+
+Start the Django API, web app, and native Metro server:
 
 ```bash
 pnpm run dev
 ```
 
-For the first run after filling in all `.env` files, sync Python server
-dependencies before starting the dev servers:
-
-```bash
-pnpm run dev:first-run
-```
+Local URLs:
 
 - Web: `http://localhost:3001`
 - API: `http://localhost:3000`
-- Native: Expo development server for a custom development build, started separately
+- API health check: `http://localhost:3000/api/health/`
+- Native: Expo dev-client Metro server
 
-The native app uses `expo-dev-client`, so build and install a development
-client before opening the Metro server:
-
-```bash
-pnpm --filter native android
-pnpm run dev:native
-```
-
-Or for iOS:
-
-```bash
-pnpm --filter native ios
-pnpm run dev:native
-```
-
-Use `pnpm --filter native dev:go` only if you intentionally want to test with
-Expo Go.
-
-## Clerk Setup
-
-Configure these values:
-
-- Server: `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SIGNING_SECRET`
-- Web: `VITE_CLERK_PUBLISHABLE_KEY`
-- Native: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
-
-The Django API uses Clerk's Python backend SDK for request authentication and
-Svix verification for Clerk webhooks. Local Clerk sync models are defined, but
-their migrations are intentionally deferred until the database setup is ready.
-
-For web Google OAuth, allow:
+For web auth, the Clerk app should allow this callback URL:
 
 ```text
 http://localhost:3001/sso-callback
 ```
 
-## Structure
+## Native App
 
-```text
-apps/
-  web/       React and TanStack Router
-  native/    Expo and React Native
-  server/    Django REST Framework API
-packages/
-  config/    Shared TypeScript configuration
-  env/       Validated environment variables
-  ui/        Shared UI components and styles
+The native app is an Expo development build. `pnpm run dev` starts Metro, but it does not build and install the native app binary.
+
+First iOS run:
+
+```bash
+pnpm --filter native ios
 ```
 
-## Scripts
+First Android run:
 
-- `pnpm run dev`
-- `pnpm run build`
-- `pnpm run check-types`
-- `pnpm test`
-- `pnpm run setup`
-- `pnpm run init:project`
-- `pnpm run doctor`
-- `pnpm run dev:first-run`
-- `pnpm run dev:web`
-- `pnpm run dev:server`
-- `pnpm run dev:native`
-- `pnpm --filter server run setup`
-- `pnpm run db:migrate`
+```bash
+pnpm --filter native android
+```
 
-## Before Shipping A New Product
+After the development build is installed, `pnpm run dev` is enough for normal local development.
 
-- Run `pnpm run doctor` and resolve required findings.
-- Replace the placeholder branding and dashboard.
-- Replace the example CRUD contracts and UI when your product domain is ready.
-- Use separate Clerk, database, and deployment projects.
-- Never commit real `.env` files.
+`pnpm --filter native <script>` means "run this script only in the `apps/native` workspace".
+
+## Useful Commands
+
+```bash
+pnpm run dev          # server + web + native Metro
+pnpm run dev:web      # web only
+pnpm run dev:server   # Django server only
+pnpm run dev:native   # native Metro only
+pnpm run db:migrate   # Django migrations
+pnpm run check-types  # type checks
+pnpm run doctor       # repo setup checks
+pnpm run setup        # uv sync for the Django backend
+```
+
+## Fresh Clone Checklist
+
+```bash
+pnpm install
+cp apps/server/.env.example apps/server/.env
+cp apps/web/.env.example apps/web/.env
+cp apps/native/.env.example apps/native/.env
+pnpm run setup
+pnpm run db:migrate
+pnpm run doctor
+pnpm run dev
+```
+
+For native development, also run `pnpm --filter native ios` or `pnpm --filter native android` once to install the development build.
