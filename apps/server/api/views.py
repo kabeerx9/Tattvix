@@ -20,14 +20,28 @@ def health(_request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
+    db_user = request.user.db_user
+
     return Response(
         {
-            "id": request.user.id,
-            "session_id": request.user.session_id,
-            "organization_id": request.user.organization_id,
-            "organization_role": request.user.organization_role,
+            "id": db_user.id,
+            "clerkId": db_user.clerk_id,
+            "email": db_user.email,
+            "firstName": db_user.first_name,
+            "lastName": db_user.last_name,
+            "username": db_user.username,
+            "imageUrl": db_user.image_url,
+            "createdAt": _isoformat(db_user.created_at),
+            "updatedAt": _isoformat(db_user.updated_at),
+            "lastSyncedAt": _isoformat(db_user.last_synced_at),
         }
     )
+
+
+def _isoformat(value):
+    if value is None:
+        return None
+    return value.isoformat().replace("+00:00", "Z")
 
 
 @api_view(["POST"])

@@ -5,25 +5,31 @@ import { apiErrorResponseSchema, meResponseSchema } from "./me.ts";
 
 describe("meResponseSchema", () => {
   const validMe = {
-    id: "user_123",
-    clerkId: "clerk_123",
+    id: 1,
+    clerkId: "user_123",
     email: "user@example.com",
-    name: "Ada Lovelace",
+    firstName: "Ada",
+    lastName: "Lovelace",
+    username: "ada",
     imageUrl: "https://example.com/avatar.png",
     createdAt: "2026-06-14T12:00:00.000Z",
     updatedAt: "2026-06-14T12:30:00.000Z",
+    lastSyncedAt: "2026-06-14T12:31:00.000Z",
   };
 
   it("accepts a complete valid response", () => {
     assert.deepEqual(meResponseSchema.parse(validMe), validMe);
   });
 
-  it("accepts nullable profile fields", () => {
+  it("accepts empty profile fields", () => {
     const payload = {
       ...validMe,
-      email: null,
-      name: null,
-      imageUrl: null,
+      email: "",
+      firstName: "",
+      lastName: "",
+      username: "",
+      imageUrl: "",
+      lastSyncedAt: null,
     };
 
     assert.deepEqual(meResponseSchema.parse(payload), payload);
@@ -39,6 +45,15 @@ describe("meResponseSchema", () => {
       meResponseSchema.parse({
         ...validMe,
         createdAt: "not-a-date",
+      }),
+    );
+  });
+
+  it("rejects extra debug fields", () => {
+    assert.throws(() =>
+      meResponseSchema.parse({
+        ...validMe,
+        sessionId: "sess_123",
       }),
     );
   });

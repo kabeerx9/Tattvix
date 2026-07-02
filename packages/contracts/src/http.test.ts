@@ -161,13 +161,16 @@ describe("createApiClient", () => {
 
   it("parses successful JSON through the supplied schema", async () => {
     const payload = {
-      id: "user_123",
-      clerkId: "clerk_123",
-      email: null,
-      name: "Ada",
-      imageUrl: null,
+      id: 1,
+      clerkId: "user_123",
+      email: "ada@example.com",
+      firstName: "Ada",
+      lastName: "",
+      username: "",
+      imageUrl: "",
       createdAt: "2026-06-14T12:00:00.000Z",
       updatedAt: "2026-06-14T12:30:00.000Z",
+      lastSyncedAt: null,
     };
 
     const client = createApiClient({

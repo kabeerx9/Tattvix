@@ -5,6 +5,8 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
 from .clerk import authenticate_headers
+from .models import ClerkUser
+from .user_sync import get_or_create_clerk_user
 
 
 @dataclass(frozen=True)
@@ -14,6 +16,7 @@ class ClerkPrincipal:
     organization_id: str | None
     organization_role: str | None
     claims: dict[str, Any]
+    db_user: ClerkUser
 
     @property
     def is_authenticated(self) -> bool:
@@ -49,11 +52,13 @@ class ClerkAuthentication(BaseAuthentication):
         if not clerk_user_id:
             raise AuthenticationFailed("Clerk token is missing a subject claim.")
 
+        db_user = get_or_create_clerk_user(clerk_id=clerk_user_id, claims=payload)
         principal = ClerkPrincipal(
             id=clerk_user_id,
             session_id=payload.get("sid"),
             organization_id=payload.get("org_id"),
             organization_role=payload.get("org_role"),
             claims=payload,
+            db_user=db_user,
         )
         return principal, state
