@@ -17,10 +17,7 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
-    "db:push": "turbo -F @hotel-app/db db:push",
-    "db:studio": "turbo -F @hotel-app/db db:studio",
-    "db:generate": "turbo -F @hotel-app/db db:generate",
-    "db:migrate": "turbo -F @hotel-app/db db:migrate"
+    "db:migrate": "turbo -F server migrate"
   },
   "dependencies": {
     "@hotel-app/env": "workspace:*",

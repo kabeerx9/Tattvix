@@ -16,6 +16,9 @@ fi
 if ! "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
 import django
 import rest_framework
+import dj_database_url
+import dotenv
+import psycopg
 PY
 then
   printf "Django dependencies are missing. Run: pnpm --filter server run setup\n" >&2

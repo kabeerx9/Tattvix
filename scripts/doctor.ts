@@ -295,15 +295,6 @@ export function runDoctor(repoRoot: string): { findings: DoctorFinding[]; exitCo
     }
   }
 
-  const prismaClientPath = join(repoRoot, "packages/db/prisma/generated/client");
-  if (!existsSync(prismaClientPath)) {
-    findings.push({
-      severity: "info",
-      category: "database",
-      message: "Prisma client is not generated. Run `pnpm run db:generate`.",
-    });
-  }
-
   const hasErrors = findings.some((finding) => finding.severity === "error");
   return {
     findings,

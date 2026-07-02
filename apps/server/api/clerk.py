@@ -14,8 +14,6 @@ def get_clerk_client() -> Clerk:
 def get_authenticate_request_options() -> AuthenticateRequestOptions:
     return AuthenticateRequestOptions(
         secret_key=settings.CLERK_SECRET_KEY or None,
-        jwt_key=settings.CLERK_JWT_KEY or None,
-        audience=settings.CLERK_JWT_AUDIENCE or None,
         authorized_parties=settings.CLERK_AUTHORIZED_PARTIES or None,
     )
 

@@ -13,8 +13,6 @@ export default defineConfig({
     path: path.join("prisma", "migrations"),
   },
   datasource: {
-    // Use direct connection for CLI (db push, migrate, studio).
-    // Runtime Prisma Client uses the pooled DATABASE_URL via the pg adapter.
-    url: env("DIRECT_URL"),
+    url: env("DATABASE_URL"),
   },
 });

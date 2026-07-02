@@ -1,7 +1,12 @@
 import os
 from pathlib import Path
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -15,9 +20,20 @@ def env_list(name: str, default: str) -> list[str]:
     return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
 
 
+def env_required(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ImproperlyConfigured(f"{name} must be set.")
+    return value
+
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-replace-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0")
+DATABASE_URL = env_required("DATABASE_URL")
+
+if not DATABASE_URL.startswith(("postgres://", "postgresql://")):
+    raise ImproperlyConfigured("DATABASE_URL must use a postgres:// or postgresql:// URL.")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -62,10 +78,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "hotel_app.wsgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get("DJANGO_SQLITE_PATH", BASE_DIR / "db.sqlite3"),
-    }
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=60,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
 }
 
 LANGUAGE_CODE = "en-us"
@@ -85,8 +103,6 @@ CORS_ALLOW_CREDENTIALS = True
 CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")
 CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
-CLERK_JWT_AUDIENCE = env_list("CLERK_JWT_AUDIENCE", "")
-CLERK_JWT_KEY = os.environ.get("CLERK_JWT_KEY", "")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
