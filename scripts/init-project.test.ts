@@ -34,9 +34,6 @@ function writeStarterFixture(root: string): void {
         dependencies: {
           "@app-starter/env": "workspace:*",
         },
-        scripts: {
-          "db:generate": "turbo -F @app-starter/db db:generate",
-        },
       },
       null,
       2,
@@ -127,7 +124,6 @@ describe("init-project", () => {
       const rootPackage = readFileSync(join(root, "package.json"), "utf8");
       assert.match(rootPackage, /"name": "acme-tasks"/);
       assert.match(rootPackage, /"@acme-tasks\/env"/);
-      assert.match(rootPackage, /turbo -F @acme-tasks\/db db:generate/);
 
       const appJson = readFileSync(join(root, "apps/native/app.json"), "utf8");
       assert.match(appJson, /"name": "Acme Tasks"/);

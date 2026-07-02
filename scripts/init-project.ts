@@ -33,8 +33,6 @@ const TEXT_FILE_ALLOWLIST = [
   "packages/ui/src/components/input.tsx",
   "packages/ui/src/components/label.tsx",
   "packages/ui/src/components/skeleton.tsx",
-  "packages/db/tsconfig.json",
-  "packages/db/src/index.ts",
   "packages/env/tsconfig.json",
   "apps/web/tsconfig.json",
   "apps/web/components.json",

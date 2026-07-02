@@ -7,10 +7,11 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "turbo -F server -F web dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "test": "node --import tsx --test scripts/*.test.ts && turbo test",
+    "setup": "pnpm --filter server run setup",
     "init:project": "tsx scripts/init-project.ts",
     "doctor": "tsx scripts/doctor.ts",
     "dev:first-run": "sh scripts/dev-first-run.sh",
@@ -18,11 +19,6 @@
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:migrate": "turbo -F server migrate"
-  },
-  "dependencies": {
-    "@hotel-app/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
   },
   "devDependencies": {
     "@hotel-app/config": "workspace:*",

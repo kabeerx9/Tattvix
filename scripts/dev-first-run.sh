@@ -2,6 +2,6 @@
 set -eu
 
 pnpm install
-pnpm --filter server run setup
+pnpm run setup
 
 pnpm run dev

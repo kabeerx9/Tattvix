@@ -13,7 +13,6 @@ function writeHealthyFixture(root: string): void {
   mkdirSync(join(root, "apps/native"), { recursive: true });
   mkdirSync(join(root, "apps/server"), { recursive: true });
   mkdirSync(join(root, "packages/config"), { recursive: true });
-  mkdirSync(join(root, "packages/db/prisma/generated/client"), { recursive: true });
 
   writeFileSync(
     join(root, "package.json"),
@@ -83,7 +82,6 @@ function writeHealthyFixture(root: string): void {
   writeFileSync(join(root, "apps/server/.env"), 'DATABASE_URL="postgresql://example"\n');
   writeFileSync(join(root, "apps/web/.env"), 'VITE_SERVER_URL="http://localhost:3000"\n');
   writeFileSync(join(root, "apps/native/.env"), 'EXPO_PUBLIC_SERVER_URL="http://localhost:3000"\n');
-  writeFileSync(join(root, "packages/db/prisma/generated/client/index.js"), "export {};\n");
 }
 
 describe("doctor", () => {

@@ -9,7 +9,7 @@ A full-stack hotel app monorepo for web, native, and API development.
 - Django REST Framework API scaffold
 - Clerk authentication on web and native
 - Reference web/native CRUD UI and contracts (`ExampleProject`) to replace
-- Prisma 7 and PostgreSQL package, if you keep the TypeScript data layer
+- PostgreSQL-only Django database configuration
 - Shared shadcn/ui package
 - Shared, validated environment configuration
 - Turborepo and pnpm workspaces
@@ -22,6 +22,12 @@ Install dependencies:
 
 ```bash
 pnpm install
+```
+
+Set up the Django virtual environment:
+
+```bash
+pnpm run setup
 ```
 
 Initialize the project metadata in one step:
@@ -83,9 +89,9 @@ cp apps/native/.env.example apps/native/.env
 Then rename the root package, `@hotel-app/*` workspace scope, Expo metadata,
 and visible branding yourself.
 
-Create a new Clerk application for each project. Add a PostgreSQL database when
-you are ready to replace the default Django SQLite setup. Replace the placeholder
-values in the three environment files.
+Create a new Clerk application for each project and add a Supabase PostgreSQL
+connection string to `apps/server/.env`. Replace the placeholder values in the
+three environment files.
 
 Run the doctor before shipping:
 
@@ -97,16 +103,16 @@ Doctor checks runtime availability, required environment keys, remaining starter
 identifiers, native metadata consistency, and workspace dependency integrity.
 It reports missing keys only and never prints environment values.
 
-Set up the Django server environment:
+Set up or refresh the Django server environment:
 
 ```bash
-pnpm --filter server run setup
+pnpm run setup
 ```
 
-The server starts with SQLite by default. Add a real Django database configuration
-when the backend domain is ready.
+The Django server requires `DATABASE_URL`; this project does not use a local
+SQLite database.
 
-Start all applications:
+Start the web app and Django API:
 
 ```bash
 pnpm run dev
@@ -121,7 +127,7 @@ pnpm run dev:first-run
 
 - Web: `http://localhost:3001`
 - API: `http://localhost:3000`
-- Native: Expo development server for a custom development build
+- Native: Expo development server for a custom development build, started separately
 
 The native app uses `expo-dev-client`, so build and install a development
 client before opening the Metro server:
@@ -168,7 +174,6 @@ apps/
   server/    Django REST Framework API
 packages/
   config/    Shared TypeScript configuration
-  db/        Prisma schema and client
   env/       Validated environment variables
   ui/        Shared UI components and styles
 ```
@@ -179,6 +184,7 @@ packages/
 - `pnpm run build`
 - `pnpm run check-types`
 - `pnpm test`
+- `pnpm run setup`
 - `pnpm run init:project`
 - `pnpm run doctor`
 - `pnpm run dev:first-run`
@@ -186,16 +192,12 @@ packages/
 - `pnpm run dev:server`
 - `pnpm run dev:native`
 - `pnpm --filter server run setup`
-- `pnpm run db:generate`
-- `pnpm run db:push`
 - `pnpm run db:migrate`
-- `pnpm run db:studio`
 
 ## Before Shipping A New Product
 
 - Run `pnpm run doctor` and resolve required findings.
 - Replace the placeholder branding and dashboard.
-- Remove the reference feature when your product domain is ready. See
-  [docs/reference-feature.md](./docs/reference-feature.md).
+- Replace the example CRUD contracts and UI when your product domain is ready.
 - Use separate Clerk, database, and deployment projects.
 - Never commit real `.env` files.
