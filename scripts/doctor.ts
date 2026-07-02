@@ -235,6 +235,21 @@ export function runDoctor(repoRoot: string): { findings: DoctorFinding[]; exitCo
     });
   }
 
+  try {
+    const uvVersion = execSync("uv --version", { encoding: "utf8" }).trim();
+    findings.push({
+      severity: "info",
+      category: "runtime",
+      message: `${uvVersion} detected`,
+    });
+  } catch {
+    findings.push({
+      severity: "error",
+      category: "runtime",
+      message: "uv is not available on PATH. Install uv to manage the Django environment.",
+    });
+  }
+
   for (const envCheck of ENV_FILE_CHECKS) {
     const examplePath = join(repoRoot, envCheck.examplePath);
     const envPath = join(repoRoot, envCheck.envPath);

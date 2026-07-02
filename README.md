@@ -24,7 +24,8 @@ Install dependencies:
 pnpm install
 ```
 
-Set up the Django virtual environment:
+Install `uv` if it is not already available, then set up the Django virtual
+environment:
 
 ```bash
 pnpm run setup
@@ -103,7 +104,7 @@ Doctor checks runtime availability, required environment keys, remaining starter
 identifiers, native metadata consistency, and workspace dependency integrity.
 It reports missing keys only and never prints environment values.
 
-Set up or refresh the Django server environment:
+Set up or refresh the Django server environment with uv:
 
 ```bash
 pnpm run setup
@@ -118,7 +119,7 @@ Start the web app and Django API:
 pnpm run dev
 ```
 
-For the first run after filling in all `.env` files, install Python server
+For the first run after filling in all `.env` files, sync Python server
 dependencies before starting the dev servers:
 
 ```bash

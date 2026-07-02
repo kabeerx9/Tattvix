@@ -5,6 +5,10 @@ SCRIPT_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"
 APP_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$APP_DIR"
 
+if command -v uv >/dev/null 2>&1; then
+  exec uv run python manage.py "$@"
+fi
+
 if [ -n "${PYTHON:-}" ]; then
   PYTHON_BIN="$PYTHON"
 elif [ -x ".venv/bin/python" ]; then
@@ -21,7 +25,7 @@ import dotenv
 import psycopg
 PY
 then
-  printf "Django dependencies are missing. Run: pnpm --filter server run setup\n" >&2
+  printf "uv is missing and Django dependencies are not installed. Install uv, then run: pnpm run setup\n" >&2
   exit 1
 fi
 
