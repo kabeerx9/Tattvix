@@ -163,7 +163,7 @@ function SignInForm() {
 }
 
 function SignedInHome() {
-  const { getToken, signOut } = useAuth();
+  const { getToken, sessionId, signOut, userId } = useAuth();
   const { user } = useUser();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +174,7 @@ function SignedInHome() {
 
     setIsLoading(true);
     setError(null);
+    setMe(null);
     getMe(getToken)
       .then((value) => {
         if (isMounted) {
@@ -194,7 +195,7 @@ function SignedInHome() {
     return () => {
       isMounted = false;
     };
-  }, [getToken]);
+  }, [sessionId, userId]);
 
   return (
     <View style={styles.authBox}>
