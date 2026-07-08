@@ -33,6 +33,7 @@ The guest reviews and approves exactly what identity information is shared with 
 7. Backend creates consent grant and shared identity snapshot.
 8. Stay status becomes `submitted_to_hotel`.
 9. Hotel dashboard can view the submitted identity package.
+10. Hotel proceeds to room assignment in the next phase.
 
 ## Backend Capabilities
 
@@ -51,6 +52,7 @@ The guest reviews and approves exactly what identity information is shared with 
 - Submitted confirmation screen for guest.
 - Hotel dashboard submitted-stays list.
 - Hotel stay detail page showing approved identity data.
+- Clear handoff state showing the stay is ready for room assignment.
 
 ## In Scope
 
@@ -66,6 +68,7 @@ The guest reviews and approves exactly what identity information is shared with 
 - Room assignment.
 - Room status.
 - Payment status.
+- Room assignment.
 - Check-out.
 - Reports.
 - Staff role UI.
@@ -94,4 +97,3 @@ Stop and ask for product clarification if:
 - Companion selection is skipped or treated as free text.
 - Data access cannot be scoped to organization/property.
 - A requested change introduces room assignment into this phase.
-

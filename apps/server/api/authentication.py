@@ -43,7 +43,10 @@ class ClerkAuthentication(BaseAuthentication):
         if not has_bearer_token and not has_session_cookie:
             return None
 
-        state = authenticate_headers(request.headers)
+        state = authenticate_headers(
+            request.headers,
+            verify_authorized_parties=not has_bearer_token,
+        )
         if not state.is_signed_in:
             raise AuthenticationFailed(state.message or "Invalid Clerk authentication.")
 

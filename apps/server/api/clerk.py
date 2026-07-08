@@ -11,10 +11,16 @@ def get_clerk_client() -> Clerk:
     return Clerk(bearer_auth=settings.CLERK_SECRET_KEY or None)
 
 
-def get_authenticate_request_options() -> AuthenticateRequestOptions:
+def get_authenticate_request_options(
+    *, verify_authorized_parties: bool = True
+) -> AuthenticateRequestOptions:
     return AuthenticateRequestOptions(
         secret_key=settings.CLERK_SECRET_KEY or None,
-        authorized_parties=settings.CLERK_AUTHORIZED_PARTIES or None,
+        authorized_parties=(
+            settings.CLERK_AUTHORIZED_PARTIES or None
+            if verify_authorized_parties
+            else None
+        ),
     )
 
 
@@ -27,10 +33,14 @@ class ClerkRequest:
         return self._headers
 
 
-def authenticate_headers(headers: Mapping[str, str]) -> RequestState:
+def authenticate_headers(
+    headers: Mapping[str, str], *, verify_authorized_parties: bool = True
+) -> RequestState:
     return get_clerk_client().authenticate_request(
         ClerkRequest(headers),
-        get_authenticate_request_options(),
+        get_authenticate_request_options(
+            verify_authorized_parties=verify_authorized_parties
+        ),
     )
 
 

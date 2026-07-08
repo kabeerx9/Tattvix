@@ -35,6 +35,7 @@ A valid hotel QR opens a web check-in flow tied to a specific property.
 ## Backend Capabilities
 
 - Minimal `Organization` and `Property` records.
+- Minimal hotel owner/staff membership needed to generate or display property QR codes.
 - `HotelQrToken` generation for one property.
 - QR payload validation with token, expiry, property, and signature or secure random token.
 - Draft `Stay` creation or resumable check-in session after QR validation.
@@ -51,6 +52,7 @@ A valid hotel QR opens a web check-in flow tied to a specific property.
 ## In Scope
 
 - Hotel/property bootstrap sufficient for local development and first pilot.
+- Basic owner/staff access to the property QR route or endpoint.
 - QR token generation and validation.
 - Visit-created draft stay/check-in session.
 - Guest route for scanned QR.
@@ -87,4 +89,3 @@ Stop and ask for product clarification if:
 - QR validation does not bind the flow to a property.
 - Invalid QR tokens reveal hotel or guest data.
 - The flow cannot resume after authentication.
-

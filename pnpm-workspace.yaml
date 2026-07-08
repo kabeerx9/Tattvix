@@ -5,6 +5,11 @@ allowBuilds:
   esbuild: true
   msw: true
   msgpackr-extract: true
+  bufferutil: true
+  '@clerk/shared': true
+  browser-tabs-lock: true
+  core-js: true
+  utf-8-validate: true
 catalog:
   dotenv: ^17.2.2
   zod: ^4.1.13

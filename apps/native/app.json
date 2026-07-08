@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tattvix.app"
+      "bundleIdentifier": "com.tattvix.app",
+      "deploymentTarget": "17.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,6 +37,27 @@
           "backgroundColor": "#071F1B",
           "dark": {
             "backgroundColor": "#071F1B"
+          }
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "extraPods": [
+              {
+                "name": "GoogleUtilities",
+                "modular_headers": true
+              },
+              {
+                "name": "RecaptchaInterop",
+                "modular_headers": true
+              }
+            ]
           }
         }
       ]

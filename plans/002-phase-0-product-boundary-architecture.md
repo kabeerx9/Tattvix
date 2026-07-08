@@ -27,9 +27,9 @@ Align the repo around a web-only MVP:
 ## Deliverables
 
 - A concise MVP glossary covering `Organization`, `Property`, `GuestProfile`, `CompanionProfile`, `Stay`, `StayParticipant`, `ConsentGrant`, `SharedIdentitySnapshot`, and `AuditLog`.
-- A refined product overview section clearly marking native, rooms, staff, maintenance, payments, reports, and super admin as post-MVP.
+- A refined product overview section clearly marking native, online bookings, housekeeping, maintenance, payments, invoices, OTA integrations, and advanced verification as post-MVP.
 - A data model architecture note confirming multi-hotel readiness without building multi-hotel UX.
-- A permissions architecture note explaining that Django auth is used for accounts/admin, while Tattvix needs custom tenant-aware RBAC.
+- A user-type and permissions architecture note explaining guest, hotel owner/staff, and super admin access. Django auth is used for accounts/admin, while Tattvix needs custom tenant-aware RBAC.
 - A list of required identity fields for the first launch, pending legal/operator confirmation.
 
 ## In Scope
@@ -38,6 +38,8 @@ Align the repo around a web-only MVP:
 - Naming decisions for future backend models and frontend routes.
 - MVP boundary and non-MVP backlog ordering.
 - Architecture constraints that protect future expansion.
+- MVP user types and role boundaries.
+- MVP scope for super admin, room assignment, and reports.
 
 ## Out Of Scope
 
@@ -45,13 +47,15 @@ Align the repo around a web-only MVP:
 - Database migrations.
 - UI implementation.
 - Native app work.
-- Room, staff, payment, report, and super admin implementation.
+- Product implementation beyond planning decisions. The actual room assignment, report, and super admin builds belong to their dedicated phase plans.
 
 ## Decisions To Preserve
 
 - MVP is web-only.
 - MVP check-ins are visit-created only.
-- Room assignment is post-MVP.
+- Room assignment after identity submission is part of MVP.
+- Basic reports are part of MVP, but revenue/payment reports are post-MVP.
+- Super admin dashboard is part of MVP.
 - Companion selection is part of MVP.
 - Hotels must read a stay-specific shared identity snapshot, not the guest's live profile.
 - Data access must be scoped by organization and property even if the first pilot has one property.
@@ -59,7 +63,8 @@ Align the repo around a web-only MVP:
 ## Exit Criteria
 
 - Future implementation plans can reference one agreed vocabulary.
-- No MVP build ticket needs to decide whether rooms, bookings, staff, native, payments, or reports are in scope.
+- No MVP build ticket needs to decide whether native, online bookings, housekeeping, maintenance, payments, invoices, OTA, or advanced verification are in scope.
+- Future build tickets clearly distinguish guest, hotel owner/staff, and super admin behavior.
 - Product docs separate MVP from future vision.
 - RBAC direction is documented before endpoint work begins.
 
@@ -75,6 +80,5 @@ Align the repo around a web-only MVP:
 Stop and ask for product clarification if:
 
 - Required hotel identity fields cannot be agreed before implementation starts.
-- A stakeholder wants online booking, room assignment, staff, or native app work in the first MVP build.
+- A stakeholder wants online booking, housekeeping, maintenance, payments, invoices, OTA, advanced verification, or native app work in the first MVP build.
 - The team wants to rely only on global Django groups for property-scoped hotel access.
-
