@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { FileCheck2, HeartHandshake, ShieldCheck } from "lucide-react";
 import { PageHeader, Surface } from "@/components/design-system";
 
@@ -18,7 +18,9 @@ function GuestHomePage() {
     <div className="mx-auto grid max-w-[1400px] gap-7">
       <PageHeader eyebrow="Guest account" title={`Welcome, ${displayName}`} description="Keep your travel identity, companions, and hotel sharing preferences ready for a smoother arrival." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <PortalCard icon={FileCheck2} title="Travel profile" description="Prepare identity details for a faster check-in." />
+        <Link to="/profile" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <PortalCard icon={FileCheck2} title="Travel profile" description="Prepare identity details for a faster check-in." />
+        </Link>
         <PortalCard icon={HeartHandshake} title="Companions" description="Keep accompanying guest profiles together." />
         <PortalCard icon={ShieldCheck} title="Privacy center" description="Review consent and hotel access history." />
       </div>

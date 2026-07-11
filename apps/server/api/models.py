@@ -25,6 +25,32 @@ class ClerkUser(models.Model):
         return self.email or self.username or self.clerk_id
 
 
+class GuestProfile(models.Model):
+    user = models.OneToOneField(
+        ClerkUser,
+        on_delete=models.CASCADE,
+        related_name="guest_profile",
+    )
+    legal_first_name = models.CharField(max_length=150, blank=True, default="")
+    legal_last_name = models.CharField(max_length=150, blank=True, default="")
+    phone_number = models.CharField(max_length=32, blank=True, default="")
+    date_of_birth = models.DateField(null=True, blank=True)
+    nationality = models.CharField(max_length=2, blank=True, default="")
+    address_line_1 = models.CharField(max_length=255, blank=True, default="")
+    address_line_2 = models.CharField(max_length=255, blank=True, default="")
+    city = models.CharField(max_length=120, blank=True, default="")
+    state_region = models.CharField(max_length=120, blank=True, default="")
+    postal_code = models.CharField(max_length=20, blank=True, default="")
+    country = models.CharField(max_length=2, blank=True, default="")
+    emergency_contact_name = models.CharField(max_length=150, blank=True, default="")
+    emergency_contact_phone = models.CharField(max_length=32, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"Guest profile — {self.user}"
+
+
 class PlatformRole(models.TextChoices):
     SUPER_ADMIN = "SUPER_ADMIN", "Super admin"
 

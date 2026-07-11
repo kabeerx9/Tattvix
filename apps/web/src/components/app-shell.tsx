@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarDays,
   Contact,
+  IdCard,
   Gauge,
   Hotel,
   ShieldCheck,
@@ -40,6 +41,7 @@ type NavItem = {
   label: string;
   to:
     | "/guest"
+    | "/profile"
     | "/hotel"
     | "/admin"
     | "/settings";
@@ -48,6 +50,7 @@ type NavItem = {
 
 const guestNav: NavItem[] = [
   { label: "Guest home", to: "/guest", icon: Contact },
+  { label: "Travel profile", to: "/profile", icon: IdCard },
   { label: "Account settings", to: "/settings", icon: Settings },
 ];
 

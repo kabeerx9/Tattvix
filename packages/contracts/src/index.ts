@@ -6,6 +6,14 @@ export {
   type UpdateAccountInput,
 } from "./account";
 export {
+  guestProfileInputSchema,
+  guestProfileMissingFieldSchema,
+  guestProfileResponseSchema,
+  type GuestProfileInput,
+  type GuestProfileMissingField,
+  type GuestProfileResponse,
+} from "./guest-profile";
+export {
   createExampleProjectInputSchema,
   exampleProjectIdParamsSchema,
   exampleProjectListSchema,
