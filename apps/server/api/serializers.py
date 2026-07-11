@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import GuestProfile
+from .models import CompanionProfile, GuestProfile
 
 
 SLUG_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -108,3 +108,37 @@ class GuestProfileSerializer(serializers.ModelSerializer):
         if normalized and (len(normalized) != 2 or not normalized.isalpha()):
             raise serializers.ValidationError("Use a two-letter country code.")
         return normalized
+
+
+class CompanionProfileSerializer(serializers.ModelSerializer):
+    legalFirstName = serializers.CharField(
+        source="legal_first_name", allow_blank=True, max_length=150, required=False
+    )
+    legalLastName = serializers.CharField(
+        source="legal_last_name", allow_blank=True, max_length=150, required=False
+    )
+    dateOfBirth = serializers.DateField(
+        source="date_of_birth", allow_null=True, required=False
+    )
+
+    class Meta:
+        model = CompanionProfile
+        fields = [
+            "legalFirstName",
+            "legalLastName",
+            "dateOfBirth",
+            "relationship",
+            "nationality",
+        ]
+        extra_kwargs = {
+            "relationship": {"allow_blank": True, "max_length": 100},
+            "nationality": {"allow_blank": True, "max_length": 2},
+        }
+
+    def validate_dateOfBirth(self, value):
+        if value is not None and value >= date.today():
+            raise serializers.ValidationError("Date of birth must be in the past.")
+        return value
+
+    def validate_nationality(self, value):
+        return GuestProfileSerializer._validate_country_code(value)

@@ -14,6 +14,16 @@ export {
   type GuestProfileResponse,
 } from "./guest-profile";
 export {
+  companionProfileInputSchema,
+  companionProfileListResponseSchema,
+  companionProfileMissingFieldSchema,
+  companionProfileSchema,
+  type CompanionProfile,
+  type CompanionProfileInput,
+  type CompanionProfileListResponse,
+  type CompanionProfileMissingField,
+} from "./companion-profile";
+export {
   createExampleProjectInputSchema,
   exampleProjectIdParamsSchema,
   exampleProjectListSchema,

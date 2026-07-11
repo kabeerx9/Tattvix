@@ -51,6 +51,27 @@ class GuestProfile(models.Model):
         return f"Guest profile — {self.user}"
 
 
+class CompanionProfile(models.Model):
+    user = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.CASCADE,
+        related_name="companion_profiles",
+    )
+    legal_first_name = models.CharField(max_length=150, blank=True, default="")
+    legal_last_name = models.CharField(max_length=150, blank=True, default="")
+    date_of_birth = models.DateField(null=True, blank=True)
+    relationship = models.CharField(max_length=100, blank=True, default="")
+    nationality = models.CharField(max_length=2, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        name = " ".join(
+            part for part in (self.legal_first_name, self.legal_last_name) if part
+        )
+        return f"Companion — {name or self.user}"
+
+
 class PlatformRole(models.TextChoices):
     SUPER_ADMIN = "SUPER_ADMIN", "Super admin"
 

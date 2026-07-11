@@ -60,22 +60,26 @@ Document images are part of the reusable guest identity profile. They must use p
 
 ## Companions
 
-Adult companions require the same identity fields and at least one supported government identity document as the primary guest.
+Companions are optional reusable profiles owned by the primary guest. A guest does not need to create companion profiles until a stay includes other people.
 
-A minor companion requires:
+Every companion profile uses this minimal information:
 
 - Legal name
 - Date of birth
 - Relationship to the primary guest
 - Nationality
 
-A minor does not require a separate government identity document for MVP profile readiness. The system should derive minor/adult status from date of birth using the age threshold configured for the launch jurisdiction; it should not persist a manually editable `is_minor` flag as the source of truth.
+The system derives minor/adult status from date of birth using the age threshold configured for the launch jurisdiction; it must not persist a manually editable `is_minor` flag as the source of truth.
+
+Saving a companion is allowed before all of these fields are complete. A companion profile is ready when the four minimal fields are present. A companion does not need a full address, phone number, or identity document merely to be saved or ready as a reusable profile.
+
+Whether an adult companion must provide an identity document or more data is decided per check-in, after the guest indicates that they are arriving with companions. The MVP pilot handles unexpected companion requirements manually at reception; later QR check-in work will model property/stay requirements explicitly.
 
 ## Profile Readiness
 
 A primary guest is ready when all required primary-guest fields are present and at least one supported identity document is complete.
 
-An adult companion is ready under the same rules. A minor companion is ready when all minor fields are present.
+A companion profile is ready when its minimal companion fields are present. Check-in readiness is a separate, future per-stay decision and may require identity documents or further data based on that stay.
 
 Readiness must be computed by the server and returned as both:
 
@@ -113,4 +117,3 @@ The production launch is blocked until the pilot has an approved retention sched
 Phase 1 includes reusable guest profiles, companion profiles, identity document metadata and private images, server-computed readiness, ownership authorization, and web CRUD screens.
 
 Phase 1 does not include hotel configuration of consent categories, stay snapshots, QR check-in, hotel access to identity data, or historical retention jobs. Those belong to later phases, but Phase 1 storage and APIs must not prevent them.
-

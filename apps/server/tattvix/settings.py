@@ -104,6 +104,18 @@ CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")
 CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
 
+try:
+    COMPANION_MINOR_AGE_YEARS = int(
+        os.environ.get("COMPANION_MINOR_AGE_YEARS", "18")
+    )
+except ValueError as exc:
+    raise ImproperlyConfigured(
+        "COMPANION_MINOR_AGE_YEARS must be a positive integer."
+    ) from exc
+
+if COMPANION_MINOR_AGE_YEARS < 1:
+    raise ImproperlyConfigured("COMPANION_MINOR_AGE_YEARS must be positive.")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.ClerkAuthentication",

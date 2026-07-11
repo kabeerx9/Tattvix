@@ -29,7 +29,7 @@ The required fields, supported documents, companion rules, readiness semantics, 
 - View profile readiness.
 - Create or update main guest profile.
 - Add, edit, and remove companions.
-- Add identity document details for guest and companions.
+- Add identity document details for the guest and, later in this phase, companions when needed for a check-in.
 - See which required fields are missing.
 - Save progress without starting a hotel stay.
 
@@ -37,7 +37,7 @@ The required fields, supported documents, companion rules, readiness semantics, 
 
 - Persist guest profile for the authenticated user.
 - Persist companion profiles owned by the authenticated user.
-- Persist identity document metadata for guest and companions.
+- Persist identity document metadata for guest and companions without making it a prerequisite for saving a minimal companion profile.
 - Enforce ownership so one user cannot read or modify another user's companions.
 - Expose typed API responses for web consumption.
 
@@ -54,7 +54,7 @@ The required fields, supported documents, companion rules, readiness semantics, 
 Recommended model concepts:
 
 - `GuestProfile`: one per user.
-- `CompanionProfile`: many per user.
+- `CompanionProfile`: many per user; its reusable profile is intentionally minimal, as defined in the identity contract.
 - `IdentityDocument`: attached to either guest profile or companion profile.
 
 Avoid attaching companions to a stay in this phase. Stay participants belong to the check-in phase after QR flow exists.
@@ -81,7 +81,7 @@ Avoid attaching companions to a stay in this phase. Stay participants belong to 
 
 - A guest can prepare their own profile.
 - A guest can add at least one companion with required details.
-- The app can determine whether guest and selected companions are ready for check-in.
+- The app can determine primary-profile readiness and minimal companion-profile readiness; per-stay companion requirements belong to QR check-in work.
 - API ownership tests prove users cannot access each other's companions.
 
 ## Verification Gates
