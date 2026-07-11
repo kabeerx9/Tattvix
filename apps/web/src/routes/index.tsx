@@ -1,8 +1,34 @@
-import { useAuth } from "@clerk/react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowRight, BedDouble, CalendarCheck, ClipboardList, Users } from "lucide-react";
 
+import { getFirstAccessibleHotelScope } from "@/lib/hotel-scope";
+import { hasAnyHotelPermission, hasPlatformPermission } from "@/lib/router-auth";
+
 export const Route = createFileRoute("/")({
+  beforeLoad: ({ context }) => {
+    if (!context.auth.isAuthenticated) return;
+
+    if (hasPlatformPermission(context.auth, "platform:admin")) {
+      throw redirect({ to: "/admin" });
+    }
+
+    const hotelScope = getFirstAccessibleHotelScope(context.auth.currentUser);
+    if (hotelScope) {
+      throw redirect({
+        to: "/hotel/$organizationSlug/$propertySlug/dashboard",
+        params: {
+          organizationSlug: hotelScope.membership.organization.slug,
+          propertySlug: hotelScope.property.slug,
+        },
+      });
+    }
+
+    if (hasAnyHotelPermission(context.auth, "hotel:view")) {
+      throw redirect({ to: "/hotel" });
+    }
+
+    throw redirect({ to: "/guest" });
+  },
   component: HomePage,
 });
 
@@ -30,9 +56,6 @@ const operations = [
 ];
 
 function HomePage() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const primaryCta = isLoaded && isSignedIn ? "/guest" : "/login";
-
   return (
     <div className="min-h-svh bg-background">
       <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-white">
@@ -44,10 +67,10 @@ function HomePage() {
             Login
           </Link>
           <Link
-            to={primaryCta}
+            to="/login"
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/30 bg-white px-4 text-xs font-medium text-black shadow-lg hover:bg-white/90"
           >
-            {isLoaded && isSignedIn ? "Open account" : "Get started"}
+            Get started
             <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -74,10 +97,10 @@ function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to={primaryCta}
+                to="/login"
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-black shadow-xl hover:bg-white/90"
               >
-                {isLoaded && isSignedIn ? "Open account" : "Login to Tattvix"}
+                Login to Tattvix
                 <ArrowRight className="size-4" />
               </Link>
               <Link
