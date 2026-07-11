@@ -24,7 +24,10 @@ export function UserEmailCombobox({
 }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
-  const searchQuery = useQuery(platformUserQueries.search(debouncedSearch));
+  const searchQuery = useQuery({
+    ...platformUserQueries.search(debouncedSearch),
+    enabled: debouncedSearch.length >= 3 && value === null,
+  });
   const users = searchQuery.data?.users ?? [];
 
   let emptyMessage = "Type at least 3 characters of an email.";
@@ -42,7 +45,13 @@ export function UserEmailCombobox({
       value={value}
       onValueChange={onValueChange}
       inputValue={search}
-      onInputValueChange={setSearch}
+      onInputValueChange={(nextSearch) => {
+        setSearch(nextSearch);
+        if (value && nextSearch !== value.email) {
+          onValueChange(null);
+        }
+      }}
+      itemToStringLabel={(user) => user.email}
       itemToStringValue={(user) => user.email}
       autoHighlight
     >
