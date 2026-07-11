@@ -66,12 +66,12 @@ export function OrganizationOnboardingPage() {
       : null;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6">
+    <div className="mx-auto grid max-w-[1400px] gap-7">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Platform administration
         </p>
-        <h1 className="mt-2 text-2xl font-semibold">Onboard a hotel</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Onboard a hotel</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Create the organization, its first property, and an initial owner in one
           operation. Search for an existing Tattvix account to assign as owner.
@@ -79,7 +79,7 @@ export function OrganizationOnboardingPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <form className="grid gap-6 border bg-card p-5 sm:p-6" onSubmit={onSubmit}>
+        <form className="app-surface grid gap-7 p-5 sm:p-7" onSubmit={onSubmit}>
           <FormSection icon={Building2} title="Organization" description="The hotel business or ownership group.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Organization name" error={fieldErrors["organization.name"]}>
@@ -128,7 +128,7 @@ export function OrganizationOnboardingPage() {
           </div>
         </form>
 
-        <aside className="border bg-card p-5 sm:p-6">
+        <aside className="app-surface h-fit p-5 sm:p-6">
           <h2 className="text-sm font-medium">Onboarding result</h2>
           {result ? (
             <div className="mt-5 grid gap-4 text-sm">
@@ -160,7 +160,7 @@ function FormSection({ icon: Icon, title, description, children }: {
   return (
     <section className="grid gap-4">
       <div className="flex items-start gap-3">
-        <span className="grid size-8 shrink-0 place-items-center border bg-background"><Icon className="size-4" /></span>
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Icon className="size-4" /></span>
         <div><h2 className="text-sm font-medium">{title}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>
       </div>
       {children}

@@ -7,6 +7,7 @@ import {
   Gauge,
   Hotel,
   ShieldCheck,
+  Search,
   Settings,
   Users,
 } from "lucide-react";
@@ -73,21 +74,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur">
+        <SidebarInset className="min-w-0 bg-transparent">
+          <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-border/70 bg-background/85 px-4 backdrop-blur-xl sm:px-7">
             <div className="flex items-center gap-3">
-              <SidebarTrigger />
+              <SidebarTrigger className="rounded-xl" />
               <div>
-                <p className="text-sm font-medium">Tattvix</p>
-                <p className="text-xs text-muted-foreground">{portalLabel}</p>
+                <p className="text-xs text-muted-foreground">Workspace</p>
+                <p className="text-sm font-semibold">{portalLabel}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="hidden h-10 w-64 items-center gap-2 rounded-xl border bg-card px-3 text-muted-foreground shadow-sm md:flex">
+                <Search className="size-4" /><span className="text-xs">Search workspace...</span>
+                <kbd className="ml-auto text-[10px]">⌘K</kbd>
+              </div>
               <ModeToggle />
-              <UserButton />
+              <div className="rounded-full ring-4 ring-card"><UserButton /></div>
             </div>
           </header>
-          <div className="flex-1 p-4 sm:p-6">{children}</div>
+          <main className="flex-1 p-4 sm:p-7 lg:p-8">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
@@ -106,17 +111,15 @@ function AppSidebar() {
     "Signed in";
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="px-3 py-5">
         <Link to="/guest" className="flex items-center gap-3 px-2 py-1.5">
-          <span className="flex size-9 items-center justify-center border bg-sidebar-primary text-sidebar-primary-foreground">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
             <Hotel className="size-5" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">Tattvix</span>
-            <span className="block truncate text-xs text-sidebar-foreground/55">
-              Identity and hotel access
-            </span>
+            <span className="block truncate text-base font-semibold tracking-[-0.02em]">Tattvix</span>
+            <span className="block truncate text-[11px] text-sidebar-foreground/55">Hotel workspace</span>
           </span>
         </Link>
       </SidebarHeader>
@@ -125,8 +128,8 @@ function AppSidebar() {
         {canAccessHotel ? <SidebarNavGroup label="Hotel" items={hotelNav} /> : null}
         {canAccessAdmin ? <SidebarNavGroup label="Platform" items={platformNav} /> : null}
       </SidebarContent>
-      <SidebarFooter>
-        <div className="grid gap-1 px-2">
+      <SidebarFooter className="p-3">
+        <div className="grid gap-1 rounded-xl bg-muted/70 px-3 py-3">
           <p className="truncate text-xs font-medium">{displayName}</p>
           <p className="truncate text-xs text-sidebar-foreground/55">
             {user?.primaryEmailAddress?.emailAddress ?? "Clerk account"}
@@ -175,6 +178,7 @@ function SidebarNavLink({ item }: { item: NavItem }) {
   return (
     <SidebarMenuButton
       isActive={isActive}
+      className="h-10 rounded-xl px-3 font-medium"
       tooltip={item.label}
       render={
         <Link

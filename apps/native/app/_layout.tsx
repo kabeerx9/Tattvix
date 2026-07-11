@@ -11,6 +11,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="(guest)" />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ClerkProvider>

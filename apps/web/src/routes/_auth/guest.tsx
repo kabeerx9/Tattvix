@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FileCheck2, HeartHandshake, ShieldCheck } from "lucide-react";
+import { PageHeader, Surface } from "@/components/design-system";
 
 export const Route = createFileRoute("/_auth/guest")({
   component: GuestHomePage,
@@ -13,31 +15,22 @@ function GuestHomePage() {
     "Guest";
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Guest portal
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold">Welcome, {displayName}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Every signed-in Tattvix account can access this portal. Guest profiles,
-          companions, identity documents, and sharing history will live here.
-        </p>
-      </div>
+    <div className="mx-auto grid max-w-[1400px] gap-7">
+      <PageHeader eyebrow="Guest account" title={`Welcome, ${displayName}`} description="Keep your travel identity, companions, and hotel sharing preferences ready for a smoother arrival." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <PortalCard title="Profile" description="Prepare identity details for check-in." />
-        <PortalCard title="Companions" description="Manage accompanying guest profiles." />
-        <PortalCard title="Sharing history" description="Review consent and hotel access." />
+        <PortalCard icon={FileCheck2} title="Travel profile" description="Prepare identity details for a faster check-in." />
+        <PortalCard icon={HeartHandshake} title="Companions" description="Keep accompanying guest profiles together." />
+        <PortalCard icon={ShieldCheck} title="Privacy center" description="Review consent and hotel access history." />
       </div>
+      <Surface className="p-7 sm:p-9"><p className="app-kicker">Ready when you are</p><h2 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight">One profile, less paperwork at every Tattvix property.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Your information stays under your control and is shared only when you approve it.</p></Surface>
     </div>
   );
 }
 
-function PortalCard({ title, description }: { title: string; description: string }) {
+function PortalCard({ icon: Icon, title, description }: { icon: typeof FileCheck2; title: string; description: string }) {
   return (
-    <section className="border bg-card p-5">
-      <h2 className="text-sm font-medium">{title}</h2>
+    <Surface className="p-5"><span className="grid size-11 place-items-center rounded-xl bg-accent text-primary"><Icon className="size-5" /></span><h2 className="mt-5 text-base font-semibold">{title}</h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-    </section>
+    </Surface>
   );
 }

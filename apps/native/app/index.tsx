@@ -1,69 +1,52 @@
-import {
-  SignedIn,
-  SignedOut,
-  useAuth,
-  useSignIn,
-  useSSO,
-  useUser,
-} from "@clerk/clerk-expo";
+import { SignedIn, SignedOut, useSignIn, useSSO } from "@clerk/clerk-expo";
+import { Redirect, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { ApiError, getMe, type MeResponse } from "@/lib/api";
+import { AppButton, AppInput, Card, Screen } from "@/src/design-system/components";
+import { useAppTheme } from "@/src/design-system/theme";
 
-export default function HomeRoute() {
+export default function WelcomeRoute() {
+  const { colors, isDark } = useAppTheme();
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <View style={styles.panel}>
-        <Text style={styles.eyebrow}>Development Build</Text>
-        <Text style={styles.title}>Tattvix</Text>
-        <SignedIn>
-          <SignedInHome />
-        </SignedIn>
-        <SignedOut>
-          <SignInForm />
-        </SignedOut>
-      </View>
-    </View>
+    <Screen>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <SignedIn><Redirect href={"/(guest)" as Href} /></SignedIn>
+      <SignedOut>
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+              <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={[styles.logoText, { color: colors.primaryForeground }]}>T</Text></View><Text style={[styles.brandName, { color: colors.foreground }]}>Tattvix</Text></View>
+              <View style={styles.hero}><Text style={[styles.kicker, { color: colors.primary }]}>Your stay, simplified</Text><Text style={[styles.title, { color: colors.foreground }]}>Arrive ready. Feel at home.</Text><Text style={[styles.copy, { color: colors.mutedForeground }]}>Keep your guest profile, companions, and privacy choices together for a smoother hotel experience.</Text></View>
+              <SignInForm />
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </SignedOut>
+    </Screen>
   );
 }
 
 function SignInForm() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startSSOFlow } = useSSO();
+  const { colors } = useAppTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const submit = useCallback(async () => {
-    if (!isLoaded || isSubmitting) {
-      return;
-    }
-
+    if (!isLoaded || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const result = await signIn.create({
-        identifier: email.trim(),
-        password,
-      });
-
+      const result = await signIn.create({ identifier: email.trim(), password });
       if (result.status === "complete" && result.createdSessionId) {
         await setActive({ session: result.createdSessionId });
         return;
       }
-
-      Alert.alert("Sign in needs another step", "This account requires a sign-in flow that is not enabled in the native shell yet.");
+      Alert.alert("One more step needed", "This account requires an additional sign-in step.");
     } catch (error) {
       Alert.alert("Could not sign in", clerkErrorMessage(error));
     } finally {
@@ -71,26 +54,12 @@ function SignInForm() {
     }
   }, [email, isLoaded, isSubmitting, password, setActive, signIn]);
 
-  const signInWithGoogle = useCallback(async () => {
-    if (isGoogleSubmitting) {
-      return;
-    }
-
+  const google = useCallback(async () => {
+    if (isGoogleSubmitting) return;
     setIsGoogleSubmitting(true);
     try {
-      const { createdSessionId, setActive: setOAuthActive, authSessionResult } =
-        await startSSOFlow({
-          strategy: "oauth_google",
-        });
-
-      if (createdSessionId && setOAuthActive) {
-        await setOAuthActive({ session: createdSessionId });
-        return;
-      }
-
-      if (authSessionResult?.type !== "cancel") {
-        Alert.alert("Could not sign in with Google", "Clerk did not return an active Google session.");
-      }
+      const result = await startSSOFlow({ strategy: "oauth_google" });
+      if (result.createdSessionId && result.setActive) await result.setActive({ session: result.createdSessionId });
     } catch (error) {
       Alert.alert("Could not sign in with Google", clerkErrorMessage(error));
     } finally {
@@ -99,256 +68,26 @@ function SignInForm() {
   }, [isGoogleSubmitting, startSSOFlow]);
 
   return (
-    <View style={styles.authBox}>
-      <Text style={styles.copy}>Sign in with the same Clerk account used by the web app.</Text>
-      <Pressable
-        accessibilityRole="button"
-        disabled={isGoogleSubmitting || isSubmitting}
-        onPress={signInWithGoogle}
-        style={({ pressed }) => [
-          styles.googleButton,
-          (pressed || isGoogleSubmitting) && styles.buttonPressed,
-          (isGoogleSubmitting || isSubmitting) && styles.buttonDisabled,
-        ]}
-      >
-        {isGoogleSubmitting ? (
-          <ActivityIndicator color="#1C1C1E" />
-        ) : (
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        )}
-      </Pressable>
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-      <TextInput
-        autoCapitalize="none"
-        autoComplete="email"
-        autoCorrect={false}
-        inputMode="email"
-        onChangeText={setEmail}
-        placeholder="Email"
-        placeholderTextColor="rgba(60,60,67,0.48)"
-        style={styles.input}
-        value={email}
-      />
-      <TextInput
-        autoCapitalize="none"
-        onChangeText={setPassword}
-        placeholder="Password"
-        placeholderTextColor="rgba(60,60,67,0.48)"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-      />
-      <Pressable
-        accessibilityRole="button"
-        disabled={!isLoaded || isSubmitting}
-        onPress={submit}
-        style={({ pressed }) => [
-          styles.button,
-          (pressed || isSubmitting) && styles.buttonPressed,
-          (!isLoaded || isSubmitting) && styles.buttonDisabled,
-        ]}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Sign in</Text>
-        )}
-      </Pressable>
-    </View>
-  );
-}
-
-function SignedInHome() {
-  const { getToken, sessionId, signOut, userId } = useAuth();
-  const { user } = useUser();
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    setIsLoading(true);
-    setError(null);
-    setMe(null);
-    getMe(getToken)
-      .then((value) => {
-        if (isMounted) {
-          setMe(value);
-        }
-      })
-      .catch((unknownError) => {
-        if (isMounted) {
-          setError(apiErrorMessage(unknownError));
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [sessionId, userId]);
-
-  return (
-    <View style={styles.authBox}>
-      <Text style={styles.copy}>
-        Signed in as {user?.primaryEmailAddress?.emailAddress ?? "a Clerk user"}.
-      </Text>
-      {isLoading ? <ActivityIndicator color="#1D9E75" /> : null}
-      {me ? <Text style={styles.meta}>API profile: {me.email || me.clerkId}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => signOut()} style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Sign out</Text>
-      </Pressable>
-    </View>
+    <Card style={styles.form}>
+      <Text style={[styles.formTitle, { color: colors.foreground }]}>Welcome back</Text>
+      <Text style={[styles.formCopy, { color: colors.mutedForeground }]}>Sign in with the same account you use on the web.</Text>
+      <AppButton label="Continue with Google" onPress={google} variant="outline" loading={isGoogleSubmitting} />
+      <View style={styles.divider}><View style={[styles.line, { backgroundColor: colors.border }]} /><Text style={[styles.or, { color: colors.mutedForeground }]}>or</Text><View style={[styles.line, { backgroundColor: colors.border }]} /></View>
+      <AppInput autoCapitalize="none" autoComplete="email" inputMode="email" onChangeText={setEmail} placeholder="Email address" value={email} />
+      <AppInput autoCapitalize="none" onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
+      <AppButton label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded} />
+    </Card>
   );
 }
 
 function clerkErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "errors" in error &&
-    Array.isArray(error.errors) &&
-    error.errors[0]?.message
-  ) {
-    return String(error.errors[0].message);
-  }
-
+  if (typeof error === "object" && error !== null && "errors" in error && Array.isArray(error.errors) && error.errors[0]?.message) return String(error.errors[0].message);
   return error instanceof Error ? error.message : "Please check your credentials and try again.";
 }
 
-function apiErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return `API ${error.status}: ${error.message}`;
-  }
-
-  return error instanceof Error ? error.message : "Could not load the API profile.";
-}
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FAFAF8",
-    padding: 24,
-  },
-  panel: {
-    width: "100%",
-    maxWidth: 420,
-    gap: 12,
-  },
-  eyebrow: {
-    color: "#1D9E75",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0,
-    textTransform: "uppercase",
-  },
-  title: {
-    color: "#1C1C1E",
-    fontSize: 34,
-    fontWeight: "800",
-    letterSpacing: 0,
-  },
-  copy: {
-    color: "rgba(60,60,67,0.72)",
-    fontSize: 16,
-    lineHeight: 23,
-  },
-  authBox: {
-    gap: 12,
-  },
-  input: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: "rgba(60,60,67,0.22)",
-    borderRadius: 8,
-    color: "#1C1C1E",
-    fontSize: 16,
-    paddingHorizontal: 14,
-  },
-  button: {
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#1C1C1E",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  buttonPressed: {
-    opacity: 0.84,
-  },
-  buttonDisabled: {
-    opacity: 0.62,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  googleButton: {
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(60,60,67,0.22)",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  googleButtonText: {
-    color: "#1C1C1E",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  divider: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    paddingVertical: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(60,60,67,0.16)",
-  },
-  dividerText: {
-    color: "rgba(60,60,67,0.58)",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(60,60,67,0.22)",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  secondaryButtonText: {
-    color: "#1C1C1E",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  meta: {
-    color: "#1C1C1E",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  error: {
-    color: "#B42318",
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  flex: { flex: 1 }, safeArea: { flex: 1 }, scroll: { flexGrow: 1, justifyContent: "center", gap: 32, padding: 24, paddingVertical: 40 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 11 }, logo: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 13 }, logoText: { fontSize: 18, fontWeight: "800" }, brandName: { fontSize: 19, fontWeight: "700", letterSpacing: -0.4 },
+  hero: { gap: 10 }, kicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }, title: { maxWidth: 440, fontSize: 38, lineHeight: 43, fontWeight: "700", letterSpacing: -1.5 }, copy: { maxWidth: 480, fontSize: 15, lineHeight: 23 },
+  form: { gap: 14 }, formTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.4 }, formCopy: { marginTop: -6, fontSize: 13, lineHeight: 19 }, divider: { flexDirection: "row", alignItems: "center", gap: 10 }, line: { flex: 1, height: StyleSheet.hairlineWidth }, or: { fontSize: 12, fontWeight: "600" },
 });

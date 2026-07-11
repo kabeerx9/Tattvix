@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight, Building2 } from "lucide-react";
+import { Button } from "@tattvix/ui/components/button";
+import { PageHeader, Surface } from "@/components/design-system";
 
 export const Route = createFileRoute("/_auth/_hotel/hotel")({
   component: HotelPortalPage,
@@ -8,34 +11,22 @@ function HotelPortalPage() {
   const memberships = Route.useRouteContext().auth.currentUser?.memberships ?? [];
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Hotel portal
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold">Your hotel access</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Owners, managers, and reception staff share this portal, while their effective
-          permissions remain scoped to each organization and property.
-        </p>
-      </div>
-      <div className="grid gap-4">
+    <div className="mx-auto grid max-w-[1400px] gap-7">
+      <PageHeader eyebrow="Property access" title="Choose your workspace" description="Your available hotels and permissions are managed securely for each organization." />
+      <div className="grid gap-4 lg:grid-cols-2">
         {memberships.map((membership) => (
-          <section key={membership.id} className="border bg-card p-5">
+          <Surface key={membership.id} className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-medium">{membership.organization.name}</h2>
+              <div className="flex items-center gap-4"><span className="grid size-12 place-items-center rounded-xl bg-accent text-primary"><Building2 className="size-5" /></span><div>
+                <h2 className="text-base font-semibold">{membership.organization.name}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {membership.hasAllProperties
                     ? "All properties"
                     : `${membership.properties.length} assigned properties`}
                 </p>
-              </div>
-              <span className="border bg-background px-2 py-1 text-xs font-medium">
-                {formatRole(membership.role)}
-              </span>
+              </div></div><Button variant="ghost" className="rounded-xl">{formatRole(membership.role)} <ArrowRight className="size-4" /></Button>
             </div>
-          </section>
+          </Surface>
         ))}
       </div>
     </div>

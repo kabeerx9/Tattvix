@@ -35,8 +35,8 @@ function HomePage() {
 
   return (
     <div className="min-h-svh bg-background">
-      <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 text-white">
-        <Link to="/" className="text-sm font-semibold tracking-wide">
+      <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-white">
+        <Link to="/" className="text-lg font-semibold tracking-tight">
           Tattvix
         </Link>
         <div className="flex items-center gap-4 text-sm">
@@ -45,7 +45,7 @@ function HomePage() {
           </Link>
           <Link
             to={primaryCta}
-            className="inline-flex h-9 items-center gap-2 border border-white/30 bg-white px-3 text-xs font-medium text-black hover:bg-white/90"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/30 bg-white px-4 text-xs font-medium text-black shadow-lg hover:bg-white/90"
           >
             {isLoaded && isSignedIn ? "Open account" : "Get started"}
             <ArrowRight className="size-4" />
@@ -53,20 +53,20 @@ function HomePage() {
         </div>
       </nav>
 
-      <section className="relative grid min-h-[88svh] place-items-center overflow-hidden">
+      <section className="relative grid min-h-[92svh] place-items-center overflow-hidden rounded-b-[2.5rem]">
         <img
           alt="Modern hotel reception lobby"
           className="absolute inset-0 size-full object-cover"
           src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2400&q=80"
         />
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="relative z-10 mx-auto max-w-6xl px-5 pt-20 text-white">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.16_0.03_275/0.88),oklch(0.2_0.04_275/0.3))]" />
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pt-20 text-white">
           <div className="max-w-2xl">
             <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-white/65">
               Hotel operations workspace
             </p>
-            <h1 className="text-5xl font-semibold leading-tight sm:text-6xl">
-              Tattvix
+            <h1 className="text-5xl font-semibold leading-[1.05] tracking-[-0.05em] sm:text-7xl">
+              Hospitality flows better here.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/78">
               A focused dashboard for managing reservations, rooms, guests, and the
@@ -75,14 +75,14 @@ function HomePage() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to={primaryCta}
-                className="inline-flex h-10 items-center gap-2 bg-white px-4 text-sm font-medium text-black hover:bg-white/90"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-black shadow-xl hover:bg-white/90"
               >
                 {isLoaded && isSignedIn ? "Open account" : "Login to Tattvix"}
                 <ArrowRight className="size-4" />
               </Link>
               <Link
                 to="/sign-up"
-                className="inline-flex h-10 items-center border border-white/30 px-4 text-sm font-medium text-white hover:bg-white/10"
+                className="inline-flex h-11 items-center rounded-xl border border-white/30 px-5 text-sm font-medium text-white hover:bg-white/10"
               >
                 Create account
               </Link>
@@ -91,11 +91,11 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto grid max-w-7xl gap-4 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         {operations.map((item) => (
-          <div key={item.title} className="border bg-card p-5">
-            <item.icon className="mb-4 size-5 text-muted-foreground" />
-            <h2 className="text-sm font-medium">{item.title}</h2>
+          <div key={item.title} className="app-surface p-5">
+            <span className="mb-5 grid size-10 place-items-center rounded-xl bg-accent text-primary"><item.icon className="size-5" /></span>
+            <h2 className="text-sm font-semibold">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {item.description}
             </p>
