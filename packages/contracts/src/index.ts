@@ -17,4 +17,18 @@ export {
   type ExampleProjectList,
   type UpdateExampleProjectInput,
 } from "./example-projects";
-export { apiErrorResponseSchema, meResponseSchema, type MeResponse } from "./me";
+export {
+  apiErrorResponseSchema,
+  meResponseSchema,
+  membershipRoleSchema,
+  membershipSchema,
+  organizationSummarySchema,
+  permissionSchema,
+  platformRoleSchema,
+  propertyAccessSchema,
+  type MeResponse,
+  type Membership,
+  type MembershipRole,
+  type Permission,
+  type PlatformRole,
+} from "./me";
