@@ -22,6 +22,8 @@ Check-in cannot be fast if the guest has no reusable identity profile. This phas
 
 A signed-in guest can manage identity data for themselves and companions in the web app.
 
+The required fields, supported documents, companion rules, readiness semantics, and storage constraints are defined in [docs/mvp-identity-contract.md](../docs/mvp-identity-contract.md).
+
 ## User Capabilities
 
 - View profile readiness.
@@ -93,8 +95,7 @@ Avoid attaching companions to a stay in this phase. Stay participants belong to 
 
 Stop and ask for product clarification if:
 
-- Required identity fields are still undecided.
+- Required identity fields in [docs/mvp-identity-contract.md](../docs/mvp-identity-contract.md) are changed or disputed without a replacement decision.
 - The implementation would require native app work.
 - Identity data would be stored without an ownership boundary.
 - Companion data is modeled only as free text on the guest instead of separate profiles.
-

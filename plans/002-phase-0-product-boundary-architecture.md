@@ -30,7 +30,7 @@ Align the repo around a web-only MVP:
 - A refined product overview section clearly marking native, online bookings, housekeeping, maintenance, payments, invoices, OTA integrations, and advanced verification as post-MVP.
 - A data model architecture note confirming multi-hotel readiness without building multi-hotel UX.
 - A user-type and permissions architecture note explaining guest, hotel owner/staff, and super admin access. Django auth is used for accounts/admin, while Tattvix needs custom tenant-aware RBAC.
-- A list of required identity fields for the first launch, pending legal/operator confirmation.
+- A list of required identity fields for the first launch, recorded in [docs/mvp-identity-contract.md](../docs/mvp-identity-contract.md). Legal/operator validation remains a production-launch gate.
 
 ## In Scope
 
