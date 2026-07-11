@@ -1,32 +1,22 @@
-import {
-  ApiError,
-  createApiClient,
-  meResponseSchema,
-  type MeResponse,
-} from "@tattvix/contracts";
+import { ApiError, createApiClient } from "@tattvix/contracts";
 import { env } from "@tattvix/env/web";
 
 import { getClerkAuthToken } from "@/utils/clerk-auth";
 
-export type { MeResponse };
 export { ApiError };
 
-const api = createApiClient({
+export const apiClient = createApiClient({
   baseUrl: env.VITE_SERVER_URL,
   getToken: getClerkAuthToken,
   credentials: "include",
 });
 
-export function getMe() {
-  return api.requestJson("/api/me", meResponseSchema);
-}
-
-export function getMeWithToken(getToken: () => Promise<string | null | undefined>) {
-  const bootstrapApi = createApiClient({
+export function createAuthenticatedApiClient(
+  getToken: () => Promise<string | null | undefined>,
+) {
+  return createApiClient({
     baseUrl: env.VITE_SERVER_URL,
     getToken,
     credentials: "include",
   });
-
-  return bootstrapApi.requestJson("/api/me", meResponseSchema);
 }

@@ -1,16 +1,12 @@
 import { useAuth } from "@clerk/react";
 import { Button } from "@tattvix/ui/components/button";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import Loader from "@/components/loader";
-import { getMeWithToken } from "@/lib/api";
+import { currentUserQueries } from "@/features/current-user/queries";
 import type { RouterAuthContext } from "@/lib/router-auth";
 import { setClerkAuthTokenGetter } from "@/utils/clerk-auth";
-
-type AuthState =
-  | { status: "loading" }
-  | { status: "ready"; auth: RouterAuthContext }
-  | { status: "error" };
 
 export function RouterAuthProvider({
   children,
@@ -18,60 +14,21 @@ export function RouterAuthProvider({
   children: (auth: RouterAuthContext) => React.ReactNode;
 }) {
   const { getToken, isLoaded, isSignedIn, userId } = useAuth();
-  const [retryCount, setRetryCount] = useState(0);
-  const [state, setState] = useState<AuthState>({ status: "loading" });
+  const currentUserQuery = useQuery({
+    ...currentUserQueries.detail(userId ?? "signed-out", getToken),
+    enabled: isLoaded && Boolean(isSignedIn && userId),
+  });
 
   useEffect(() => {
     setClerkAuthTokenGetter(() => getToken());
     return () => setClerkAuthTokenGetter(null);
   }, [getToken]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!isLoaded) {
-      setState({ status: "loading" });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (!isSignedIn) {
-      setState({
-        status: "ready",
-        auth: { isAuthenticated: false, currentUser: null },
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setState({ status: "loading" });
-    getMeWithToken(getToken)
-      .then((currentUser) => {
-        if (!cancelled) {
-          setState({
-            status: "ready",
-            auth: { isAuthenticated: true, currentUser },
-          });
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setState({ status: "error" });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken, isLoaded, isSignedIn, retryCount, userId]);
-
-  if (state.status === "loading") {
+  if (!isLoaded || (isSignedIn && currentUserQuery.isPending)) {
     return <Loader />;
   }
 
-  if (state.status === "error") {
+  if (isSignedIn && currentUserQuery.isError) {
     return (
       <div className="grid min-h-svh place-items-center p-6">
         <div className="max-w-sm space-y-4 text-center">
@@ -81,11 +38,15 @@ export function RouterAuthProvider({
               Check that the API server is running, then try again.
             </p>
           </div>
-          <Button onClick={() => setRetryCount((count) => count + 1)}>Try again</Button>
+          <Button onClick={() => currentUserQuery.refetch()}>Try again</Button>
         </div>
       </div>
     );
   }
 
-  return children(state.auth);
+  const auth: RouterAuthContext = isSignedIn && currentUserQuery.data
+    ? { isAuthenticated: true, currentUser: currentUserQuery.data }
+    : { isAuthenticated: false, currentUser: null };
+
+  return children(auth);
 }

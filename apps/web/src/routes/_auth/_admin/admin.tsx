@@ -1,17 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { OrganizationOnboardingPage } from "@/features/platform-organizations/components/organization-onboarding-page";
 
 export const Route = createFileRoute("/_auth/_admin/admin")({
-  component: AdminPage,
+  component: OrganizationOnboardingPage,
 });
-
-function AdminPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Platform administration"
-      title="Super admin"
-      description="This route is restricted to Tattvix platform administrators and is ready for hotel onboarding and platform oversight workflows."
-    />
-  );
-}

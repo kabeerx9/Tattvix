@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
 import { RouterAuthProvider } from "./components/router-auth-provider";
+import { AppProviders } from "./core/providers/app-providers";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
@@ -39,9 +40,11 @@ if (!rootElement.innerHTML) {
       signInFallbackRedirectUrl="/guest"
       signUpFallbackRedirectUrl="/guest"
     >
-      <RouterAuthProvider>
-        {(auth) => <RouterProvider router={router} context={{ auth }} />}
-      </RouterAuthProvider>
+      <AppProviders>
+        <RouterAuthProvider>
+          {(auth) => <RouterProvider router={router} context={{ auth }} />}
+        </RouterAuthProvider>
+      </AppProviders>
     </ClerkProvider>,
   );
 }

@@ -11,13 +11,14 @@
     "check-types": "vite build && tsc --noEmit"
   },
   "dependencies": {
-    "@tattvix/contracts": "workspace:*",
-    "@tattvix/env": "workspace:*",
-    "@tattvix/ui": "workspace:*",
     "@clerk/react": "^6.1.1",
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.168.22",
+    "@tattvix/contracts": "workspace:*",
+    "@tattvix/env": "workspace:*",
+    "@tattvix/ui": "workspace:*",
     "dotenv": "catalog:",
     "lucide-react": "^1.8.0",
     "next-themes": "catalog:",
@@ -27,9 +28,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tattvix/config": "workspace:*",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/router-plugin": "^1.167.22",
+    "@tattvix/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "^19.2.15",
     "@types/react-dom": "catalog:",

@@ -1,6 +1,11 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from api.models import ClerkUser, PlatformRole, PlatformRoleAssignment
+from api.models import PlatformRole, PlatformRoleAssignment
+from api.user_lookup import (
+    AmbiguousExistingUser,
+    ExistingUserNotFound,
+    get_unique_existing_user_by_email,
+)
 
 
 class Command(BaseCommand):
@@ -18,20 +23,21 @@ class Command(BaseCommand):
         if not email:
             raise CommandError("Email cannot be empty.")
 
-        users = list(ClerkUser.objects.filter(email__iexact=email).order_by("id")[:2])
-        if not users:
+        try:
+            user = get_unique_existing_user_by_email(email)
+        except ExistingUserNotFound:
             raise CommandError(
                 "No Tattvix account exists for this email. The user must sign in once "
                 "before super-admin access can be granted."
             )
-        if len(users) > 1:
+        except AmbiguousExistingUser:
             raise CommandError(
                 "Multiple Tattvix accounts use this email; resolve the duplicate before "
                 "granting privileged access."
             )
 
         assignment, created = PlatformRoleAssignment.objects.update_or_create(
-            user=users[0],
+            user=user,
             defaults={"role": PlatformRole.SUPER_ADMIN},
         )
 

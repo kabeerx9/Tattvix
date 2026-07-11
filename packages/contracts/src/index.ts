@@ -32,3 +32,15 @@ export {
   type Permission,
   type PlatformRole,
 } from "./me";
+export {
+  platformOrganizationOnboardingInputSchema,
+  platformOrganizationOnboardingResponseSchema,
+  platformUserSearchParamsSchema,
+  platformUserSearchResponseSchema,
+  platformUserSearchResultSchema,
+  type PlatformOrganizationOnboardingInput,
+  type PlatformOrganizationOnboardingResponse,
+  type PlatformUserSearchParams,
+  type PlatformUserSearchResponse,
+  type PlatformUserSearchResult,
+} from "./platform";
