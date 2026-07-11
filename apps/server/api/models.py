@@ -23,3 +23,132 @@ class ClerkUser(models.Model):
 
     def __str__(self) -> str:
         return self.email or self.username or self.clerk_id
+
+
+class PlatformRole(models.TextChoices):
+    SUPER_ADMIN = "SUPER_ADMIN", "Super admin"
+
+
+class MembershipRole(models.TextChoices):
+    OWNER = "OWNER", "Owner"
+    MANAGER = "MANAGER", "Manager"
+    RECEPTION = "RECEPTION", "Reception"
+
+
+class PlatformRoleAssignment(models.Model):
+    user = models.OneToOneField(
+        ClerkUser,
+        on_delete=models.CASCADE,
+        related_name="platform_role_assignment",
+    )
+    role = models.CharField(
+        max_length=32,
+        choices=PlatformRole.choices,
+        default=PlatformRole.SUPER_ADMIN,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.user} — {self.get_role_display()}"
+
+
+class Organization(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Property(models.Model):
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="properties",
+    )
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "slug"],
+                name="unique_property_slug_per_organization",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.organization.name} — {self.name}"
+
+
+class Membership(models.Model):
+    user = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    role = models.CharField(max_length=32, choices=MembershipRole.choices)
+    has_all_properties = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "organization"],
+                name="unique_user_membership_per_organization",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} — {self.organization.name} ({self.get_role_display()})"
+
+
+class MembershipPropertyAccess(models.Model):
+    membership = models.ForeignKey(
+        Membership,
+        on_delete=models.CASCADE,
+        related_name="property_accesses",
+    )
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="membership_accesses",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "property"],
+                name="unique_membership_property_access",
+            ),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            self.membership_id
+            and self.property_id
+            and self.membership.organization_id != self.property.organization_id
+        ):
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                {"property": "Property must belong to the membership organization."}
+            )
+
+    def __str__(self) -> str:
+        return f"{self.membership} — {self.property.name}"
