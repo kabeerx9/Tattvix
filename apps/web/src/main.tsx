@@ -36,8 +36,8 @@ if (!rootElement.innerHTML) {
       publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
       signInUrl="/login"
       signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/guest"
+      signUpFallbackRedirectUrl="/guest"
     >
       <RouterAuthProvider>
         {(auth) => <RouterProvider router={router} context={{ auth }} />}

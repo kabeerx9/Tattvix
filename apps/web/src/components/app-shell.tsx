@@ -1,10 +1,12 @@
 import { UserButton, useUser } from "@clerk/react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import {
   BedDouble,
   CalendarDays,
+  Contact,
   Gauge,
   Hotel,
+  ShieldCheck,
   Settings,
   Users,
 } from "lucide-react";
@@ -30,25 +32,43 @@ import { TooltipProvider } from "@tattvix/ui/components/tooltip";
 import { cn } from "@tattvix/ui/lib/utils";
 
 import { ModeToggle } from "@/components/mode-toggle";
+import { hasAnyHotelPermission, hasPlatformPermission } from "@/lib/router-auth";
 
 type NavItem = {
   label: string;
-  to: "/dashboard" | "/reservations" | "/guests" | "/rooms" | "/settings";
+  to:
+    | "/guest"
+    | "/hotel"
+    | "/dashboard"
+    | "/reservations"
+    | "/guests"
+    | "/rooms"
+    | "/admin"
+    | "/settings";
   icon: React.ComponentType<{ className?: string }>;
 };
 
-const mainNav: NavItem[] = [
+const guestNav: NavItem[] = [
+  { label: "Guest home", to: "/guest", icon: Contact },
+  { label: "Account settings", to: "/settings", icon: Settings },
+];
+
+const hotelNav: NavItem[] = [
+  { label: "Hotel portal", to: "/hotel", icon: Hotel },
   { label: "Dashboard", to: "/dashboard", icon: Gauge },
   { label: "Reservations", to: "/reservations", icon: CalendarDays },
   { label: "Guests", to: "/guests", icon: Users },
   { label: "Rooms", to: "/rooms", icon: BedDouble },
 ];
 
-const adminNav: NavItem[] = [
-  { label: "Settings", to: "/settings", icon: Settings },
+const platformNav: NavItem[] = [
+  { label: "Super admin", to: "/admin", icon: ShieldCheck },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const portalLabel = getPortalLabel(location.pathname);
+
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -59,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SidebarTrigger />
               <div>
                 <p className="text-sm font-medium">Tattvix</p>
-                <p className="text-xs text-muted-foreground">Operations dashboard</p>
+                <p className="text-xs text-muted-foreground">{portalLabel}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -76,6 +96,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function AppSidebar() {
   const { user } = useUser();
+  const { auth } = useRouteContext({ from: "__root__" });
+  const canAccessHotel = hasAnyHotelPermission(auth, "hotel:view");
+  const canAccessAdmin = hasPlatformPermission(auth, "platform:admin");
   const displayName =
     user?.fullName ||
     user?.primaryEmailAddress?.emailAddress ||
@@ -85,21 +108,22 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <Link to="/dashboard" className="flex items-center gap-3 px-2 py-1.5">
+        <Link to="/guest" className="flex items-center gap-3 px-2 py-1.5">
           <span className="flex size-9 items-center justify-center border bg-sidebar-primary text-sidebar-primary-foreground">
             <Hotel className="size-5" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">Tattvix</span>
             <span className="block truncate text-xs text-sidebar-foreground/55">
-              Front desk workspace
+              Identity and hotel access
             </span>
           </span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarNavGroup label="Operations" items={mainNav} />
-        <SidebarNavGroup label="Workspace" items={adminNav} />
+        <SidebarNavGroup label="Guest" items={guestNav} />
+        {canAccessHotel ? <SidebarNavGroup label="Hotel" items={hotelNav} /> : null}
+        {canAccessAdmin ? <SidebarNavGroup label="Platform" items={platformNav} /> : null}
       </SidebarContent>
       <SidebarFooter>
         <div className="grid gap-1 px-2">
@@ -112,6 +136,18 @@ function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function getPortalLabel(pathname: string) {
+  if (pathname === "/admin") {
+    return "Platform administration";
+  }
+
+  if (["/hotel", "/dashboard", "/reservations", "/guests", "/rooms"].includes(pathname)) {
+    return "Hotel operations";
+  }
+
+  return "Guest account";
 }
 
 function SidebarNavGroup({ label, items }: { label: string; items: NavItem[] }) {

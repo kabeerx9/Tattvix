@@ -9,9 +9,9 @@ export const Route = createFileRoute("/_auth/settings")({
 function SettingsPage() {
   return (
     <PlaceholderPage
-      eyebrow="Workspace"
-      title="Settings"
-      description="A future configuration area for property details, team access, and operational preferences."
+      eyebrow="Guest account"
+      title="Account settings"
+      description="A future configuration area for account security, personal preferences, privacy, and data controls."
     />
   );
 }

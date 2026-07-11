@@ -31,7 +31,7 @@ const operations = [
 
 function HomePage() {
   const { isLoaded, isSignedIn } = useAuth();
-  const primaryCta = isLoaded && isSignedIn ? "/dashboard" : "/login";
+  const primaryCta = isLoaded && isSignedIn ? "/guest" : "/login";
 
   return (
     <div className="min-h-svh bg-background">
@@ -47,7 +47,7 @@ function HomePage() {
             to={primaryCta}
             className="inline-flex h-9 items-center gap-2 border border-white/30 bg-white px-3 text-xs font-medium text-black hover:bg-white/90"
           >
-            {isLoaded && isSignedIn ? "Open dashboard" : "Get started"}
+            {isLoaded && isSignedIn ? "Open account" : "Get started"}
             <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -77,7 +77,7 @@ function HomePage() {
                 to={primaryCta}
                 className="inline-flex h-10 items-center gap-2 bg-white px-4 text-sm font-medium text-black hover:bg-white/90"
               >
-                {isLoaded && isSignedIn ? "Open dashboard" : "Login to dashboard"}
+                {isLoaded && isSignedIn ? "Open account" : "Login to Tattvix"}
                 <ArrowRight className="size-4" />
               </Link>
               <Link

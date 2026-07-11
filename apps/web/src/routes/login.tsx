@@ -22,7 +22,7 @@ function LoginPage() {
   }
 
   if (isSignedIn) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/guest" />;
   }
 
   return (
@@ -36,7 +36,7 @@ function LoginPage() {
           routing="path"
           path="/login"
           signUpUrl="/sign-up"
-          fallbackRedirectUrl={search.redirect ?? "/dashboard"}
+          fallbackRedirectUrl={search.redirect ?? "/guest"}
         />
       </div>
     </div>
