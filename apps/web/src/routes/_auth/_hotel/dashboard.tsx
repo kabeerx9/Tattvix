@@ -1,26 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
-import { getMe, type MeResponse } from "@/lib/api";
-
-export const Route = createFileRoute("/_auth/dashboard")({
+export const Route = createFileRoute("/_auth/_hotel/dashboard")({
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getMe()
-      .then((account) => {
-        setMe(account);
-        setError(null);
-      })
-      .catch(() => {
-        setError("Unable to load account details.");
-      });
-  }, []);
+  const { currentUser: me } = Route.useRouteContext().auth;
 
   const displayName =
     [me?.firstName, me?.lastName].filter(Boolean).join(" ") ||
@@ -61,9 +46,7 @@ function DashboardPage() {
               <AccountDetail label="Clerk ID" value={me.clerkId} />
               <AccountDetail label="Local ID" value={String(me.id)} />
             </div>
-          ) : (
-            <p className="mt-1 font-medium">{error ?? "Loading..."}</p>
-          )}
+          ) : null}
         </section>
       </div>
     </div>

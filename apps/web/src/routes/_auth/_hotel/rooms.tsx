@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { PlaceholderPage } from "@/components/placeholder-page";
 
-export const Route = createFileRoute("/_auth/rooms")({
+export const Route = createFileRoute("/_auth/_hotel/rooms")({
   component: RoomsPage,
 });
 
