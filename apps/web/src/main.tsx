@@ -5,7 +5,9 @@ import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
 import { RouterAuthProvider } from "./components/router-auth-provider";
+import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
+import { queryClient } from "./core/query/query-client";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
@@ -15,6 +17,7 @@ const router = createRouter({
   defaultPendingComponent: () => <Loader />,
   context: {
     auth: undefined!,
+    queryClient,
   },
 });
 
@@ -33,18 +36,28 @@ if (!rootElement) {
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
-    <ClerkProvider
-      publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
-      signInUrl="/login"
-      signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/guest"
-      signUpFallbackRedirectUrl="/guest"
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="vite-ui-theme"
     >
-      <AppProviders>
-        <RouterAuthProvider>
-          {(auth) => <RouterProvider router={router} context={{ auth }} />}
-        </RouterAuthProvider>
-      </AppProviders>
-    </ClerkProvider>,
+      <ClerkProvider
+        publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
+        signInUrl="/login"
+        signUpUrl="/sign-up"
+        signInFallbackRedirectUrl="/guest"
+        signUpFallbackRedirectUrl="/guest"
+      >
+        <AppProviders client={queryClient}>
+          <RouterAuthProvider>
+            {(auth) => (
+              <RouterProvider router={router} context={{ auth, queryClient }} />
+            )}
+          </RouterAuthProvider>
+        </AppProviders>
+      </ClerkProvider>
+    </ThemeProvider>,
   );
 }

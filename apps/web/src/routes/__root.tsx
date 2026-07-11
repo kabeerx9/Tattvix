@@ -1,14 +1,15 @@
 import { Toaster } from "@tattvix/ui/components/sonner";
+import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import { ThemeProvider } from "@/components/theme-provider";
 import type { RouterAuthContext } from "@/lib/router-auth";
 
 import "../index.css";
 
 export interface RouterAppContext {
   auth: RouterAuthContext;
+  queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
@@ -36,17 +37,10 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        disableTransitionOnChange
-        storageKey="vite-ui-theme"
-      >
-        <div className="min-h-svh">
-          <Outlet />
-        </div>
-        <Toaster richColors />
-      </ThemeProvider>
+      <div className="min-h-svh">
+        <Outlet />
+      </div>
+      <Toaster richColors />
       <TanStackRouterDevtools position="bottom-left" />
     </>
   );
