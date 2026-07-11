@@ -1,5 +1,6 @@
 import { SignUp, useAuth } from "@clerk/react";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
+import Loader from "@/components/loader";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUpPage,
@@ -9,7 +10,7 @@ function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) {
-    return <div className="flex min-h-[60vh] items-center justify-center">Loading...</div>;
+    return <Loader />;
   }
 
   if (isSignedIn) {

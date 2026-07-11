@@ -1,6 +1,7 @@
 import { SignIn, useAuth } from "@clerk/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import Loader from "@/components/loader";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
@@ -18,7 +19,7 @@ function LoginPage() {
   const search = Route.useSearch();
 
   if (!isLoaded) {
-    return <div className="flex min-h-svh items-center justify-center">Loading...</div>;
+    return <Loader />;
   }
 
   if (isSignedIn) {

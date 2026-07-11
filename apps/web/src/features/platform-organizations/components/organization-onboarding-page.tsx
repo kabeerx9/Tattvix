@@ -18,6 +18,7 @@ export function OrganizationOnboardingPage() {
   const queryClient = useQueryClient();
   const onboardingMutation = useMutation(platformOrganizationMutations.onboard(queryClient));
   const [owner, setOwner] = useState<PlatformUserSearchResult | null>(null);
+  const [ownerPickerKey, setOwnerPickerKey] = useState(0);
   const [result, setResult] = useState<PlatformOrganizationOnboardingResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -54,6 +55,7 @@ export function OrganizationOnboardingPage() {
       onSuccess: (created) => {
         setResult(created);
         setOwner(null);
+        setOwnerPickerKey((key) => key + 1);
         form.reset();
       },
     });
@@ -105,6 +107,7 @@ export function OrganizationOnboardingPage() {
           <FormSection icon={UserRoundCheck} title="Initial owner" description="Search for and select an existing account. Free-form emails cannot be submitted.">
             <Field label="Owner account" error={fieldErrors.ownerEmail}>
               <UserEmailCombobox
+                key={ownerPickerKey}
                 value={owner}
                 onValueChange={(user) => {
                   setOwner(user);
