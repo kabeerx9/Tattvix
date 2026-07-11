@@ -1,12 +1,21 @@
 import { SignIn, useAuth } from "@clerk/react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: z.object({
+    redirect: z
+      .string()
+      .refine((value) => value.startsWith("/") && !value.startsWith("//"))
+      .optional()
+      .catch(undefined),
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const { isLoaded, isSignedIn } = useAuth();
+  const search = Route.useSearch();
 
   if (!isLoaded) {
     return <div className="flex min-h-svh items-center justify-center">Loading...</div>;
@@ -27,7 +36,7 @@ function LoginPage() {
           routing="path"
           path="/login"
           signUpUrl="/sign-up"
-          fallbackRedirectUrl="/dashboard"
+          fallbackRedirectUrl={search.redirect ?? "/dashboard"}
         />
       </div>
     </div>

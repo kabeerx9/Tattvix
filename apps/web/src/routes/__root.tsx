@@ -3,10 +3,13 @@ import { HeadContent, Outlet, createRootRouteWithContext } from "@tanstack/react
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import type { RouterAuthContext } from "@/lib/router-auth";
 
 import "../index.css";
 
-export interface RouterAppContext {}
+export interface RouterAppContext {
+  auth: RouterAuthContext;
+}
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,

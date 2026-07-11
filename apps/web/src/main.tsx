@@ -4,7 +4,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
-import { ClerkAuthSetup } from "./components/clerk-auth-setup";
+import { RouterAuthProvider } from "./components/router-auth-provider";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
@@ -12,19 +12,8 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultPendingComponent: () => <Loader />,
-  context: {},
-  Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
-    return (
-      <ClerkProvider
-        publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
-        signInUrl="/login"
-        signUpUrl="/sign-up"
-        signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/dashboard"
-      >
-        <ClerkAuthSetup>{children}</ClerkAuthSetup>
-      </ClerkProvider>
-    );
+  context: {
+    auth: undefined!,
   },
 });
 
@@ -42,5 +31,17 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
-  root.render(<RouterProvider router={router} />);
+  root.render(
+    <ClerkProvider
+      publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
+      signInUrl="/login"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+    >
+      <RouterAuthProvider>
+        {(auth) => <RouterProvider router={router} context={{ auth }} />}
+      </RouterAuthProvider>
+    </ClerkProvider>,
+  );
 }
