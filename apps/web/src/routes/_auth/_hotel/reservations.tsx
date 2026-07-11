@@ -1,17 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { getFirstAccessibleHotelScope } from "@/lib/hotel-scope";
 
 export const Route = createFileRoute("/_auth/_hotel/reservations")({
-  component: ReservationsPage,
+  beforeLoad: ({ context }) => {
+    const scope = getFirstAccessibleHotelScope(context.auth.currentUser);
+    if (!scope) throw redirect({ to: "/hotel" });
+    throw redirect({
+      to: "/hotel/$organizationSlug/$propertySlug/reservations",
+      params: {
+        organizationSlug: scope.membership.organization.slug,
+        propertySlug: scope.property.slug,
+      },
+    });
+  },
 });
-
-function ReservationsPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Operations"
-      title="Reservations"
-      description="A future workspace for arrivals, departures, booking details, and stay management."
-    />
-  );
-}

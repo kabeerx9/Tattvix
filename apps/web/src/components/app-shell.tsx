@@ -2,6 +2,7 @@ import { UserButton, useUser } from "@clerk/react";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import {
   BedDouble,
+  Building2,
   CalendarDays,
   Contact,
   Gauge,
@@ -40,10 +41,6 @@ type NavItem = {
   to:
     | "/guest"
     | "/hotel"
-    | "/dashboard"
-    | "/reservations"
-    | "/guests"
-    | "/rooms"
     | "/admin"
     | "/settings";
   icon: React.ComponentType<{ className?: string }>;
@@ -52,14 +49,6 @@ type NavItem = {
 const guestNav: NavItem[] = [
   { label: "Guest home", to: "/guest", icon: Contact },
   { label: "Account settings", to: "/settings", icon: Settings },
-];
-
-const hotelNav: NavItem[] = [
-  { label: "Hotel portal", to: "/hotel", icon: Hotel },
-  { label: "Dashboard", to: "/dashboard", icon: Gauge },
-  { label: "Reservations", to: "/reservations", icon: CalendarDays },
-  { label: "Guests", to: "/guests", icon: Users },
-  { label: "Rooms", to: "/rooms", icon: BedDouble },
 ];
 
 const platformNav: NavItem[] = [
@@ -125,7 +114,7 @@ function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarNavGroup label="Guest" items={guestNav} />
-        {canAccessHotel ? <SidebarNavGroup label="Hotel" items={hotelNav} /> : null}
+        {canAccessHotel ? <HotelNavigation /> : null}
         {canAccessAdmin ? <SidebarNavGroup label="Platform" items={platformNav} /> : null}
       </SidebarContent>
       <SidebarFooter className="p-3">
@@ -146,11 +135,144 @@ function getPortalLabel(pathname: string) {
     return "Platform administration";
   }
 
-  if (["/hotel", "/dashboard", "/reservations", "/guests", "/rooms"].includes(pathname)) {
+  if (
+    pathname.startsWith("/hotel") ||
+    ["/dashboard", "/reservations", "/guests", "/rooms"].includes(pathname)
+  ) {
     return "Hotel operations";
   }
 
   return "Guest account";
+}
+
+function HotelNavigation() {
+  const location = useLocation();
+  const { auth } = useRouteContext({ from: "__root__" });
+  const segments = location.pathname.split("/").filter(Boolean);
+  const organizationSlug = segments[0] === "hotel" ? segments[1] : undefined;
+  const propertySlug = segments[0] === "hotel" ? segments[2] : undefined;
+  const membership = auth.currentUser?.memberships.find(
+    (item) => item.organization.slug === organizationSlug,
+  );
+  const property = membership?.properties.find((item) => item.slug === propertySlug);
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Hotel</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarNavLink item={{ label: "Organizations", to: "/hotel", icon: Hotel }} />
+          </SidebarMenuItem>
+
+          {membership ? (
+            <SidebarMenuItem>
+              <ScopedSidebarLink
+                label={membership.organization.name}
+                icon={Building2}
+                isActive={location.pathname === `/hotel/${membership.organization.slug}`}
+                to="/hotel/$organizationSlug"
+                params={{ organizationSlug: membership.organization.slug }}
+              />
+            </SidebarMenuItem>
+          ) : null}
+
+          {membership && property ? (
+            <>
+              <SidebarMenuItem>
+                <ScopedSidebarLink
+                  label="Dashboard"
+                  icon={Gauge}
+                  isActive={location.pathname.endsWith("/dashboard")}
+                  to="/hotel/$organizationSlug/$propertySlug/dashboard"
+                  params={{
+                    organizationSlug: membership.organization.slug,
+                    propertySlug: property.slug,
+                  }}
+                />
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <ScopedSidebarLink
+                  label="Reservations"
+                  icon={CalendarDays}
+                  isActive={location.pathname.endsWith("/reservations")}
+                  to="/hotel/$organizationSlug/$propertySlug/reservations"
+                  params={{
+                    organizationSlug: membership.organization.slug,
+                    propertySlug: property.slug,
+                  }}
+                />
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <ScopedSidebarLink
+                  label="Guests"
+                  icon={Users}
+                  isActive={location.pathname.endsWith("/guests")}
+                  to="/hotel/$organizationSlug/$propertySlug/guests"
+                  params={{
+                    organizationSlug: membership.organization.slug,
+                    propertySlug: property.slug,
+                  }}
+                />
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <ScopedSidebarLink
+                  label="Rooms"
+                  icon={BedDouble}
+                  isActive={location.pathname.endsWith("/rooms")}
+                  to="/hotel/$organizationSlug/$propertySlug/rooms"
+                  params={{
+                    organizationSlug: membership.organization.slug,
+                    propertySlug: property.slug,
+                  }}
+                />
+              </SidebarMenuItem>
+            </>
+          ) : null}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
+function ScopedSidebarLink({
+  label,
+  icon: Icon,
+  isActive,
+  to,
+  params,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  to:
+    | "/hotel/$organizationSlug"
+    | "/hotel/$organizationSlug/$propertySlug/dashboard"
+    | "/hotel/$organizationSlug/$propertySlug/reservations"
+    | "/hotel/$organizationSlug/$propertySlug/guests"
+    | "/hotel/$organizationSlug/$propertySlug/rooms";
+  params: { organizationSlug: string; propertySlug?: string };
+}) {
+  const { setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenuButton
+      isActive={isActive}
+      className="h-10 rounded-xl px-3 font-medium"
+      tooltip={label}
+      render={
+        <Link
+          to={to}
+          params={params}
+          onClick={() => setOpenMobile(false)}
+          className={cn(isActive && "bg-sidebar-accent text-sidebar-accent-foreground")}
+        />
+      }
+    >
+      <Icon className="size-4" />
+      <span className="truncate">{label}</span>
+    </SidebarMenuButton>
+  );
 }
 
 function SidebarNavGroup({ label, items }: { label: string; items: NavItem[] }) {
