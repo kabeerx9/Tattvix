@@ -9,7 +9,8 @@ from .companion_profile import (
     build_companion_profile_payload,
 )
 from .guest_profile import build_guest_profile_payload
-from .models import CompanionProfile, GuestProfile
+from .identity_documents import is_identity_document_ready
+from .models import CompanionProfile, GuestProfile, IdentityDocument
 from .serializers import CompanionProfileSerializer, GuestProfileSerializer
 
 
@@ -18,14 +19,30 @@ from .serializers import CompanionProfileSerializer, GuestProfileSerializer
 def guest_profile(request):
     user = request.user.db_user
     profile = GuestProfile.objects.filter(user=user).first()
+    identity_documents = IdentityDocument.objects.filter(user=user).prefetch_related(
+        "images"
+    )
+    has_complete_identity_document = any(
+        is_identity_document_ready(document) for document in identity_documents
+    )
 
     if request.method == "GET":
-        return Response(build_guest_profile_payload(profile))
+        return Response(
+            build_guest_profile_payload(
+                profile,
+                has_complete_identity_document=has_complete_identity_document,
+            )
+        )
 
     serializer = GuestProfileSerializer(instance=profile, data=request.data)
     serializer.is_valid(raise_exception=True)
     saved_profile = serializer.save(user=user)
-    return Response(build_guest_profile_payload(saved_profile))
+    return Response(
+        build_guest_profile_payload(
+            saved_profile,
+            has_complete_identity_document=has_complete_identity_document,
+        )
+    )
 
 
 @api_view(["GET", "POST"])

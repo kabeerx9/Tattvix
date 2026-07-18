@@ -110,11 +110,22 @@ class PrivateObjectStorageTests(SimpleTestCase):
 
     def test_delete_and_health_check_use_only_the_configured_bucket(self):
         key = "users/user_123/documents/upload_123/front.jpg"
+        self.client.head_object.return_value = {
+            "ContentType": "image/jpeg",
+            "ContentLength": 2048,
+        }
 
         self.storage.delete_object(object_key=key)
+        metadata = self.storage.get_object_metadata(object_key=key)
         self.storage.check_bucket_access()
 
+        self.assertEqual(metadata.content_type, "image/jpeg")
+        self.assertEqual(metadata.content_length, 2048)
         self.client.delete_object.assert_called_once_with(
+            Bucket="private-documents",
+            Key=key,
+        )
+        self.client.head_object.assert_called_once_with(
             Bucket="private-documents",
             Key=key,
         )

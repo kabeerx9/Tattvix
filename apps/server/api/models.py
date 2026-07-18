@@ -72,6 +72,72 @@ class CompanionProfile(models.Model):
         return f"Companion — {name or self.user}"
 
 
+class IdentityDocumentType(models.TextChoices):
+    AADHAAR = "AADHAAR", "Aadhaar"
+    PASSPORT = "PASSPORT", "Passport"
+    DRIVING_LICENCE = "DRIVING_LICENCE", "Driving licence"
+    VOTER_ID = "VOTER_ID", "Voter ID"
+
+
+class IdentityDocument(models.Model):
+    user = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.CASCADE,
+        related_name="identity_documents",
+    )
+    document_type = models.CharField(
+        max_length=32,
+        choices=IdentityDocumentType.choices,
+        blank=True,
+        default="",
+    )
+    document_number = models.CharField(max_length=64, blank=True, default="")
+    name_on_document = models.CharField(max_length=300, blank=True, default="")
+    issuing_country = models.CharField(max_length=2, blank=True, default="")
+    expiry_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.get_document_type_display() or 'Identity document'} — {self.user}"
+
+
+class IdentityDocumentImageSide(models.TextChoices):
+    FRONT = "FRONT", "Front"
+    BACK = "BACK", "Back"
+
+
+class IdentityDocumentImage(models.Model):
+    document = models.ForeignKey(
+        IdentityDocument,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    side = models.CharField(max_length=8, choices=IdentityDocumentImageSide.choices)
+    object_key = models.CharField(max_length=1024, blank=True, default="")
+    content_type = models.CharField(max_length=100, blank=True, default="")
+    content_length = models.PositiveBigIntegerField(null=True, blank=True)
+    pending_object_key = models.CharField(max_length=1024, blank=True, default="")
+    pending_content_type = models.CharField(max_length=100, blank=True, default="")
+    pending_content_length = models.PositiveBigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["document", "side"],
+                name="unique_identity_document_image_side",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.document} — {self.get_side_display()}"
+
+
 class PlatformRole(models.TextChoices):
     SUPER_ADMIN = "SUPER_ADMIN", "Super admin"
 

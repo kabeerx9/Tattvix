@@ -3,6 +3,8 @@ from django.contrib import admin
 from .models import (
     ClerkUser,
     CompanionProfile,
+    IdentityDocument,
+    IdentityDocumentImage,
     Membership,
     MembershipPropertyAccess,
     Organization,
@@ -20,6 +22,8 @@ class ClerkUserAdmin(admin.ModelAdmin):
 
 admin.site.register(PlatformRoleAssignment)
 admin.site.register(CompanionProfile)
+admin.site.register(IdentityDocument)
+admin.site.register(IdentityDocumentImage)
 admin.site.register(Organization)
 admin.site.register(Property)
 admin.site.register(Membership)

@@ -15,7 +15,11 @@ PROFILE_REQUIRED_FIELDS = (
 )
 
 
-def build_guest_profile_payload(profile: GuestProfile | None) -> dict:
+def build_guest_profile_payload(
+    profile: GuestProfile | None,
+    *,
+    has_complete_identity_document: bool = False,
+) -> dict:
     values = {
         "legalFirstName": profile.legal_first_name if profile else "",
         "legalLastName": profile.legal_last_name if profile else "",
@@ -39,9 +43,8 @@ def build_guest_profile_payload(profile: GuestProfile | None) -> dict:
         if not profile or not getattr(profile, model_name)
     ]
 
-    # Identity-document CRUD is the next implementation slice. Until at least one
-    # complete document exists, the approved MVP contract says the profile is not ready.
-    missing_fields.append("identityDocuments")
+    if not has_complete_identity_document:
+        missing_fields.append("identityDocuments")
 
     return {
         "profile": values,

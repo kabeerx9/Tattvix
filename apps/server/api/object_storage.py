@@ -19,6 +19,12 @@ class PresignedUpload:
     expires_in_seconds: int
 
 
+@dataclass(frozen=True)
+class ObjectMetadata:
+    content_type: str
+    content_length: int
+
+
 class PrivateObjectStorage:
     """Small S3-compatible boundary shared by local MinIO and production R2."""
 
@@ -96,6 +102,17 @@ class PrivateObjectStorage:
     def delete_object(self, *, object_key: str) -> None:
         self._validate_object_key(object_key)
         self.client.delete_object(Bucket=self.bucket_name, Key=object_key)
+
+    def get_object_metadata(self, *, object_key: str) -> ObjectMetadata:
+        self._validate_object_key(object_key)
+        response = self.client.head_object(
+            Bucket=self.bucket_name,
+            Key=object_key,
+        )
+        return ObjectMetadata(
+            content_type=response.get("ContentType", ""),
+            content_length=response.get("ContentLength", 0),
+        )
 
     def check_bucket_access(self) -> None:
         self.client.head_bucket(Bucket=self.bucket_name)

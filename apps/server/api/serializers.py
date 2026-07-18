@@ -1,8 +1,14 @@
 from datetime import date
 
+from django.conf import settings
 from rest_framework import serializers
 
-from .models import CompanionProfile, GuestProfile
+from .models import (
+    CompanionProfile,
+    GuestProfile,
+    IdentityDocument,
+    IdentityDocumentImageSide,
+)
 
 
 SLUG_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -142,3 +148,70 @@ class CompanionProfileSerializer(serializers.ModelSerializer):
 
     def validate_nationality(self, value):
         return GuestProfileSerializer._validate_country_code(value)
+
+
+class IdentityDocumentSerializer(serializers.ModelSerializer):
+    documentType = serializers.ChoiceField(
+        source="document_type",
+        choices=IdentityDocument._meta.get_field("document_type").choices,
+        allow_blank=True,
+        required=False,
+    )
+    documentNumber = serializers.CharField(
+        source="document_number",
+        allow_blank=True,
+        max_length=64,
+        required=False,
+    )
+    nameOnDocument = serializers.CharField(
+        source="name_on_document",
+        allow_blank=True,
+        max_length=300,
+        required=False,
+    )
+    issuingCountry = serializers.CharField(
+        source="issuing_country",
+        allow_blank=True,
+        max_length=2,
+        required=False,
+    )
+    expiryDate = serializers.DateField(
+        source="expiry_date",
+        allow_null=True,
+        required=False,
+    )
+
+    class Meta:
+        model = IdentityDocument
+        fields = [
+            "documentType",
+            "documentNumber",
+            "nameOnDocument",
+            "issuingCountry",
+            "expiryDate",
+        ]
+
+    def validate_issuingCountry(self, value):
+        return GuestProfileSerializer._validate_country_code(value)
+
+
+class IdentityDocumentImageUploadSerializer(serializers.Serializer):
+    side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
+    contentType = serializers.ChoiceField(
+        source="content_type",
+        choices=sorted(settings.OBJECT_STORAGE_ALLOWED_CONTENT_TYPES),
+    )
+    contentLength = serializers.IntegerField(
+        source="content_length",
+        min_value=1,
+        max_value=settings.OBJECT_STORAGE_MAX_UPLOAD_BYTES,
+    )
+
+
+class IdentityDocumentImageFinalizeSerializer(serializers.Serializer):
+    side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
+    objectKey = serializers.CharField(source="object_key", max_length=1024)
+
+
+class IdentityDocumentImageAccessSerializer(serializers.Serializer):
+    side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
