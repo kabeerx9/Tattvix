@@ -19,11 +19,12 @@ export const Route = createFileRoute(
 
 function PropertyStayDetailRoute() {
   const params = Route.useParams();
-  const { activeMembership } = Route.useRouteContext();
+  const { activeMembership, activeProperty } = Route.useRouteContext();
   return (
     <HotelStayDetailPage
       organizationSlug={params.organizationSlug}
       propertySlug={params.propertySlug}
+      propertyName={activeProperty.name}
       stayId={params.stayId}
       canClose={activeMembership.permissions.includes("stays:update")}
     />

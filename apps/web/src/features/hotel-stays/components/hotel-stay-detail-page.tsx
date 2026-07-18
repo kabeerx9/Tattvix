@@ -1,9 +1,11 @@
 import type {
   HotelStayDetail,
+  IdentityDocumentImageAccessResponse,
   IdentityDocumentImageSide,
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Link } from "@tanstack/react-router";
+import type { UseQueryResult } from "@tanstack/react-query";
 import {
   useMutation,
   useQueries,
@@ -15,12 +17,15 @@ import {
   Clock3,
   FileKey2,
   ImageIcon,
+  Printer,
   RefreshCw,
   ShieldCheck,
   ShieldOff,
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
 import { PageHeader, Surface } from "@/components/design-system";
@@ -28,34 +33,134 @@ import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
 
+const STAY_PRINT_PAGE_STYLE = `
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  @media print {
+    html {
+      color-scheme: light;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--foreground);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .stay-print-root {
+      display: grid;
+      width: 100%;
+      max-width: none;
+      gap: 16px;
+    }
+
+    .stay-print-actions,
+    .stay-print-screen-only {
+      display: none !important;
+    }
+
+    .stay-print-layout {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 16px !important;
+    }
+
+    .stay-print-image-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 12px !important;
+    }
+
+    .stay-print-image,
+    .stay-print-root .app-surface {
+      break-inside: avoid;
+    }
+
+    .stay-print-root .app-surface {
+      box-shadow: none !important;
+    }
+  }
+`;
+
 export function HotelStayDetailPage({
   organizationSlug,
   propertySlug,
+  propertyName,
   stayId,
   canClose,
 }: {
   organizationSlug: string;
   propertySlug: string;
+  propertyName: string;
   stayId: string;
   canClose: boolean;
 }) {
+  const printContentRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: stay } = useSuspenseQuery(
     hotelStayQueries.detail(organizationSlug, propertySlug, stayId),
   );
-  const closeMutation = useMutation(hotelStayMutations.close(queryClient));
+  const imageQueries = useQueries({
+    queries:
+      stay.snapshot?.images.map(({ side }) =>
+        hotelStayQueries.imageAccess(
+          organizationSlug,
+          propertySlug,
+          stayId,
+          side,
+        ),
+      ) ?? [],
+  });
+  const finishReviewMutation = useMutation(
+    hotelStayMutations.close(queryClient),
+  );
+  const imagesPreparing = imageQueries.some(
+    (query) => !query.data && (query.isPending || query.isFetching),
+  );
+  const imagesUnavailable = imageQueries.some((query) => query.isError);
+  const canPrint =
+    Boolean(stay.snapshot) && !imagesPreparing && !imagesUnavailable;
 
-  function closeStay() {
-    closeMutation.mutate(
+  const printStay = useReactToPrint({
+    contentRef: printContentRef,
+    documentTitle: () =>
+      `${propertyName}-${stay.guestName}-identity-review`
+        .trim()
+        .replaceAll(/[^a-zA-Z0-9_-]+/g, "-"),
+    pageStyle: STAY_PRINT_PAGE_STYLE,
+    preserveAfterPrint: false,
+    printIframeProps: { referrerPolicy: "no-referrer" },
+    onBeforePrint: async () => {
+      if (!canPrint) {
+        throw new Error("Private identity images are not ready to print.");
+      }
+    },
+    onPrintError: () => {
+      toast.error("The stay review could not be prepared for printing");
+    },
+  });
+
+  function finishIdentityReview() {
+    finishReviewMutation.mutate(
       { organizationSlug, propertySlug, stayId },
-      { onSuccess: () => toast.success("Stay closed; checkout grace period started") },
+      {
+        onSuccess: () =>
+          toast.success(
+            "Identity review finished; the 24-hour access wind-down started",
+          ),
+      },
     );
   }
 
   const error =
-    closeMutation.error instanceof ApiError
-      ? closeMutation.error.message
-      : closeMutation.isError
+    finishReviewMutation.error instanceof ApiError
+      ? finishReviewMutation.error.message
+      : finishReviewMutation.isError
         ? "The stay could not be updated."
         : null;
 
@@ -76,51 +181,70 @@ export function HotelStayDetailPage({
         Back to stays
       </Button>
 
-      <PageHeader
-        eyebrow="Submitted identity package"
-        title={stay.guestName}
-        description={accessDescription(stay)}
-        action={
-          canClose && stay.status === "SUBMITTED" ? (
-            <Button
-              variant="outline"
-              disabled={closeMutation.isPending}
-              onClick={closeStay}
-            >
-              {closeMutation.isPending ? "Closing..." : "Complete checkout"}
-            </Button>
-          ) : undefined
-        }
-      />
+      <div ref={printContentRef} className="stay-print-root grid gap-7">
+        <PageHeader
+          eyebrow={`${propertyName} · Submitted identity package`}
+          title={stay.guestName}
+          description={accessDescription(stay)}
+          action={
+            stay.snapshot ? (
+              <div className="stay-print-actions flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  disabled={!canPrint}
+                  onClick={() => printStay()}
+                  title={
+                    imagesUnavailable
+                      ? "Retry unavailable document images before printing"
+                      : undefined
+                  }
+                >
+                  <Printer />
+                  {imagesPreparing ? "Preparing images..." : "Print stay"}
+                </Button>
+                {canClose && stay.status === "SUBMITTED" ? (
+                  <Button
+                    variant="outline"
+                    disabled={finishReviewMutation.isPending}
+                    onClick={finishIdentityReview}
+                  >
+                    {finishReviewMutation.isPending
+                      ? "Finishing..."
+                      : "Finish identity review"}
+                  </Button>
+                ) : null}
+              </div>
+            ) : undefined
+          }
+        />
 
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          {error}
-        </p>
-      ) : null}
+        {error ? (
+          <p
+            role="alert"
+            className="stay-print-screen-only rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {error}
+          </p>
+        ) : null}
 
-      {stay.snapshot ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="grid gap-5">
-            <GuestIdentity stay={stay} />
-            <DocumentIdentity
-              stay={stay}
-              organizationSlug={organizationSlug}
-              propertySlug={propertySlug}
-              stayId={stayId}
-            />
+        {stay.snapshot ? (
+          <div className="stay-print-layout grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-5">
+              <GuestIdentity stay={stay} />
+              <DocumentIdentity
+                stay={stay}
+                imageQueries={imageQueries}
+              />
+            </div>
+            <div className="grid h-fit gap-5">
+              <CompanionIdentity stay={stay} />
+              <AccessPolicy stay={stay} />
+            </div>
           </div>
-          <div className="grid h-fit gap-5">
-            <CompanionIdentity stay={stay} />
-            <AccessPolicy stay={stay} />
-          </div>
-        </div>
-      ) : (
-        <ExpiredIdentity stay={stay} />
-      )}
+        ) : (
+          <ExpiredIdentity stay={stay} />
+        )}
+      </div>
     </div>
   );
 }
@@ -167,27 +291,13 @@ function GuestIdentity({ stay }: { stay: HotelStayDetail }) {
 
 function DocumentIdentity({
   stay,
-  organizationSlug,
-  propertySlug,
-  stayId,
+  imageQueries,
 }: {
   stay: HotelStayDetail;
-  organizationSlug: string;
-  propertySlug: string;
-  stayId: string;
+  imageQueries: ImageAccessQuery[];
 }) {
   const snapshot = stay.snapshot!;
   const document = snapshot.document;
-  const imageQueries = useQueries({
-    queries: snapshot.images.map(({ side }) =>
-      hotelStayQueries.imageAccess(
-        organizationSlug,
-        propertySlug,
-        stayId,
-        side,
-      ),
-    ),
-  });
 
   return (
     <Surface className="p-6">
@@ -211,7 +321,7 @@ function DocumentIdentity({
           <h3 className="text-sm font-semibold">Shared document images</h3>
         </div>
         {snapshot.images.length ? (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="stay-print-image-grid grid gap-4 lg:grid-cols-2">
             {snapshot.images.map(({ side }, index) => (
               <DocumentImage
                 key={side}
@@ -225,7 +335,7 @@ function DocumentIdentity({
             No document images were included in this identity package.
           </p>
         )}
-        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        <p className="stay-print-screen-only mt-4 text-xs leading-5 text-muted-foreground">
           These private links expire automatically. The already loaded preview
           remains on this review screen, but the URL cannot be reused after it
           expires.
@@ -240,18 +350,12 @@ function DocumentImage({
   query,
 }: {
   side: IdentityDocumentImageSide;
-  query: {
-    data?: { url: string };
-    isPending: boolean;
-    isError: boolean;
-    isFetching: boolean;
-    refetch: () => unknown;
-  } | undefined;
+  query: ImageAccessQuery | undefined;
 }) {
   const label = side === "FRONT" ? "Front" : "Back";
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-muted/30">
+    <div className="stay-print-image overflow-hidden rounded-2xl border bg-muted/30">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <p className="text-sm font-medium">{label}</p>
         <span className="text-xs text-muted-foreground">Private</span>
@@ -273,6 +377,7 @@ function DocumentImage({
             </p>
           </div>
           <Button
+            className="stay-print-screen-only"
             size="sm"
             variant="outline"
             disabled={query.isFetching}
@@ -298,6 +403,11 @@ function DocumentImage({
     </div>
   );
 }
+
+type ImageAccessQuery = Pick<
+  UseQueryResult<IdentityDocumentImageAccessResponse>,
+  "data" | "isPending" | "isError" | "isFetching" | "refetch"
+>;
 
 function CompanionIdentity({ stay }: { stay: HotelStayDetail }) {
   const companions = stay.snapshot!.companions;
@@ -346,7 +456,8 @@ function AccessPolicy({ stay }: { stay: HotelStayDetail }) {
           {stay.identityAccess.expiresAt
             ? formatDateTime(stay.identityAccess.expiresAt)
             : "the configured retention boundary"}
-          . Completing checkout shortens this to the post-checkout grace period.
+          . Finishing the identity review starts the shorter access wind-down
+          period. A future operational checkout will trigger this automatically.
         </p>
       </div>
     </Surface>
@@ -416,6 +527,9 @@ function accessDescription(stay: HotelStayDetail) {
   }
   if (!stay.identityAccess.isActive) {
     return "The authorized identity-viewing window for this stay has ended.";
+  }
+  if (stay.status === "CLOSED") {
+    return "Identity review is complete. Private access remains available only through the shorter wind-down window.";
   }
   return "Review the immutable identity snapshot submitted for this property. Every document view is audited.";
 }

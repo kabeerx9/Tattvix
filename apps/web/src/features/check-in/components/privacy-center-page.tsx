@@ -229,13 +229,13 @@ function activityLabel(
     return `${side === "BACK" ? "Back" : "Front"} document image opened`;
   }
   if (action === "DETAILS_VIEWED") return "Identity details opened";
-  if (action === "STAY_CLOSED") return "Stay marked checked out";
+  if (action === "STAY_CLOSED") return "Hotel finished identity review";
   return "Consent revoked";
 }
 
 function statusLabel(stay: GuestShare) {
   if (stay.status === "REVOKED") return "Consent revoked";
-  if (stay.status === "CLOSED") return "Stay closed";
+  if (stay.status === "CLOSED") return "Identity review complete";
   return "Access expired";
 }
 

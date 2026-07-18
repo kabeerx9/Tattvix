@@ -223,7 +223,7 @@ function StayRow({
 function StatusPill({ stay }: { stay: HotelStayListItem }) {
   const label = stay.identityAccess.isActive
     ? stay.status === "CLOSED"
-      ? "Checkout grace"
+      ? "Review complete"
       : "Identity available"
     : stay.identityAccess.reason === "REVOKED"
       ? "Consent revoked"
