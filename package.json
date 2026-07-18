@@ -7,7 +7,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo -F server -F web -F native dev",
+    "dev": "pnpm run storage:up && turbo -F server -F web -F native dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "test": "node --import tsx --test scripts/*.test.ts && turbo test",
@@ -22,7 +22,8 @@
     "storage:up": "docker compose up -d minio minio-init",
     "storage:down": "docker compose down",
     "storage:logs": "docker compose logs -f minio",
-    "storage:check": "pnpm --filter server storage:check"
+    "storage:check": "pnpm --filter server storage:check",
+    "identity:purge": "pnpm --filter server identity:purge"
   },
   "devDependencies": {
     "@tattvix/config": "workspace:*",

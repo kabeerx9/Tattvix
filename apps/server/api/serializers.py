@@ -215,3 +215,30 @@ class IdentityDocumentImageFinalizeSerializer(serializers.Serializer):
 
 class IdentityDocumentImageAccessSerializer(serializers.Serializer):
     side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
+
+
+class GuestCheckInSubmitSerializer(serializers.Serializer):
+    identityDocumentId = serializers.IntegerField(
+        source="identity_document_id",
+        min_value=1,
+    )
+    companionIds = serializers.ListField(
+        source="companion_ids",
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=True,
+        max_length=20,
+    )
+    consentAccepted = serializers.BooleanField(
+        source="consent_accepted",
+    )
+
+    def validate_consentAccepted(self, value):
+        if value is not True:
+            raise serializers.ValidationError(
+                "Explicit consent is required before sharing."
+            )
+        return value
+
+
+class HotelStayImageAccessSerializer(serializers.Serializer):
+    side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)

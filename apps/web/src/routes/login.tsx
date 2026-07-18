@@ -23,6 +23,15 @@ function LoginPage() {
   }
 
   if (isSignedIn) {
+    const checkInToken = checkInTokenFromRedirect(search.redirect);
+    if (checkInToken) {
+      return (
+        <Navigate
+          to="/check-in/$token"
+          params={{ token: checkInToken }}
+        />
+      );
+    }
     return <Navigate to="/guest" />;
   }
 
@@ -49,4 +58,9 @@ function LoginPage() {
       </div></div>
     </div>
   );
+}
+
+function checkInTokenFromRedirect(redirect: string | undefined) {
+  const match = redirect?.match(/^\/check-in\/([^/?#]+)$/);
+  return match?.[1] ?? null;
 }

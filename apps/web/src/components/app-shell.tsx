@@ -3,7 +3,7 @@ import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import {
   BedDouble,
   Building2,
-  CalendarDays,
+  ClipboardCheck,
   Contact,
   UsersRound,
   IdCard,
@@ -44,6 +44,7 @@ type NavItem = {
     | "/guest"
     | "/profile"
     | "/companions"
+    | "/privacy"
     | "/hotel"
     | "/admin"
     | "/settings";
@@ -54,6 +55,7 @@ const guestNav: NavItem[] = [
   { label: "Guest home", to: "/guest", icon: Contact },
   { label: "Travel profile", to: "/profile", icon: IdCard },
   { label: "Companions", to: "/companions", icon: UsersRound },
+  { label: "Privacy center", to: "/privacy", icon: ShieldCheck },
   { label: "Account settings", to: "/settings", icon: Settings },
 ];
 
@@ -199,10 +201,10 @@ function HotelNavigation() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <ScopedSidebarLink
-                  label="Reservations"
-                  icon={CalendarDays}
-                  isActive={location.pathname.endsWith("/reservations")}
-                  to="/hotel/$organizationSlug/$propertySlug/reservations"
+                  label="Stays"
+                  icon={ClipboardCheck}
+                  isActive={location.pathname.includes("/stays")}
+                  to="/hotel/$organizationSlug/$propertySlug/stays"
                   params={{
                     organizationSlug: membership.organization.slug,
                     propertySlug: property.slug,
@@ -254,7 +256,7 @@ function ScopedSidebarLink({
   to:
     | "/hotel/$organizationSlug"
     | "/hotel/$organizationSlug/$propertySlug/dashboard"
-    | "/hotel/$organizationSlug/$propertySlug/reservations"
+    | "/hotel/$organizationSlug/$propertySlug/stays"
     | "/hotel/$organizationSlug/$propertySlug/guests"
     | "/hotel/$organizationSlug/$propertySlug/rooms";
   params: { organizationSlug: string; propertySlug?: string };

@@ -72,6 +72,26 @@ class PrivateObjectStorageTests(SimpleTestCase):
             HttpMethod="GET",
         )
 
+    def test_copy_creates_a_private_stay_snapshot_without_exposing_source(self):
+        self.storage.copy_object(
+            source_key="users/1/identity-documents/1/front/image.jpg",
+            destination_key="stays/stay-123/shared-identity/front.jpg",
+            content_type="image/jpeg",
+        )
+
+        self.client.copy_object.assert_called_once_with(
+            Bucket="private-documents",
+            CopySource={
+                "Bucket": "private-documents",
+                "Key": "users/1/identity-documents/1/front/image.jpg",
+            },
+            Key="stays/stay-123/shared-identity/front.jpg",
+            ContentType="image/jpeg",
+            CacheControl="private, no-store",
+            ContentDisposition="inline",
+            MetadataDirective="REPLACE",
+        )
+
     def test_rejects_unsupported_empty_and_oversized_uploads_before_signing(self):
         invalid_uploads = (
             {"content_type": "application/pdf", "content_length": 2048},

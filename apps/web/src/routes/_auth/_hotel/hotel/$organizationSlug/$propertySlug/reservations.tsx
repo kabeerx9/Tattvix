@@ -1,15 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute(
   "/_auth/_hotel/hotel/$organizationSlug/$propertySlug/reservations",
 )({
-  component: () => (
-    <PlaceholderPage
-      eyebrow="Property operations"
-      title="Reservations"
-      description="Arrivals, departures, booking details, and stay management for this property."
-    />
-  ),
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/hotel/$organizationSlug/$propertySlug/stays",
+      params,
+    });
+  },
 });

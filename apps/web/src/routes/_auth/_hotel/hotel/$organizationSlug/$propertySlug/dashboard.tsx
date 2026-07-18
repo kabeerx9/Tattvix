@@ -1,6 +1,6 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { BedDouble, CalendarDays, Users } from "lucide-react";
+import { BedDouble, ClipboardCheck, Users } from "lucide-react";
 
 import { PageHeader, Surface } from "@/components/design-system";
 
@@ -18,16 +18,16 @@ function PropertyDashboardPage() {
       <PageHeader
         eyebrow={activeMembership.organization.name}
         title={activeProperty.name}
-        description="Property operations will appear here as real reservations, rooms, and guests are added."
+        description="Start secure walk-in check-ins, review submitted guest identity, and prepare the property for room operations."
       />
 
       <Surface>
         <div className="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
           <EmptyOperation
-            icon={CalendarDays}
-            title="No reservations yet"
-            description="Create or import the first booking to begin tracking arrivals."
-            to="/hotel/$organizationSlug/$propertySlug/reservations"
+            icon={ClipboardCheck}
+            title="No stays submitted yet"
+            description="Generate the property QR to start the first consent-based check-in."
+            to="/hotel/$organizationSlug/$propertySlug/stays"
           />
           <EmptyOperation
             icon={BedDouble}
@@ -38,7 +38,7 @@ function PropertyDashboardPage() {
           <EmptyOperation
             icon={Users}
             title="No guest records"
-            description="Guest profiles will appear when the first reservation is created."
+            description="Guest records will appear after the first identity package is submitted."
             to="/hotel/$organizationSlug/$propertySlug/guests"
           />
         </div>
@@ -53,11 +53,11 @@ function EmptyOperation({
   description,
   to,
 }: {
-  icon: typeof CalendarDays;
+  icon: typeof ClipboardCheck;
   title: string;
   description: string;
   to:
-    | "/hotel/$organizationSlug/$propertySlug/reservations"
+    | "/hotel/$organizationSlug/$propertySlug/stays"
     | "/hotel/$organizationSlug/$propertySlug/rooms"
     | "/hotel/$organizationSlug/$propertySlug/guests";
 }) {

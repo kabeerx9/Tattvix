@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_auth/_hotel/reservations")({
     const scope = getFirstAccessibleHotelScope(context.auth.currentUser);
     if (!scope) throw redirect({ to: "/hotel" });
     throw redirect({
-      to: "/hotel/$organizationSlug/$propertySlug/reservations",
+      to: "/hotel/$organizationSlug/$propertySlug/stays",
       params: {
         organizationSlug: scope.membership.organization.slug,
         propertySlug: scope.property.slug,

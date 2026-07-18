@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.db import models
 
 
@@ -265,3 +267,168 @@ class MembershipPropertyAccess(models.Model):
 
     def __str__(self) -> str:
         return f"{self.membership} — {self.property.name}"
+
+
+class HotelQrToken(models.Model):
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="check_in_tokens",
+    )
+    token_digest = models.CharField(max_length=64, unique=True)
+    token_hint = models.CharField(max_length=12)
+    created_by = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="created_hotel_qr_tokens",
+    )
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.property} — QR {self.token_hint}"
+
+
+class StayStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    SUBMITTED = "SUBMITTED", "Submitted to hotel"
+    CLOSED = "CLOSED", "Closed"
+    REVOKED = "REVOKED", "Consent revoked"
+
+
+class Stay(models.Model):
+    public_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.PROTECT,
+        related_name="stays",
+    )
+    guest = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="guest_stays",
+    )
+    qr_token = models.ForeignKey(
+        HotelQrToken,
+        on_delete=models.PROTECT,
+        related_name="stays",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=StayStatus.choices,
+        default=StayStatus.DRAFT,
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    hotel_access_expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-submitted_at", "-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["guest", "qr_token"],
+                condition=models.Q(status=StayStatus.DRAFT),
+                name="unique_draft_stay_per_guest_qr",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.property} — {self.public_id}"
+
+
+class ConsentGrant(models.Model):
+    stay = models.OneToOneField(
+        Stay,
+        on_delete=models.CASCADE,
+        related_name="consent_grant",
+    )
+    granted_by = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="identity_consent_grants",
+    )
+    consent_version = models.CharField(max_length=32)
+    data_categories = models.JSONField(default=list)
+    granted_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"Consent — {self.stay.public_id}"
+
+
+class SharedIdentitySnapshot(models.Model):
+    stay = models.OneToOneField(
+        Stay,
+        on_delete=models.CASCADE,
+        related_name="identity_snapshot",
+    )
+    guest_data = models.JSONField()
+    companion_data = models.JSONField(default=list)
+    document_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Identity snapshot — {self.stay.public_id}"
+
+
+class SharedIdentityDocumentImage(models.Model):
+    snapshot = models.ForeignKey(
+        SharedIdentitySnapshot,
+        on_delete=models.CASCADE,
+        related_name="document_images",
+    )
+    side = models.CharField(max_length=8, choices=IdentityDocumentImageSide.choices)
+    object_key = models.CharField(max_length=1024)
+    content_type = models.CharField(max_length=100)
+    content_length = models.PositiveBigIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["snapshot", "side"],
+                name="unique_shared_identity_image_side",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.snapshot} — {self.get_side_display()}"
+
+
+class IdentityAccessAction(models.TextChoices):
+    DETAILS_VIEWED = "DETAILS_VIEWED", "Identity details viewed"
+    DOCUMENT_VIEWED = "DOCUMENT_VIEWED", "Document image viewed"
+    STAY_CLOSED = "STAY_CLOSED", "Stay closed"
+    CONSENT_REVOKED = "CONSENT_REVOKED", "Consent revoked"
+
+
+class IdentityAccessAudit(models.Model):
+    stay = models.ForeignKey(
+        Stay,
+        on_delete=models.CASCADE,
+        related_name="identity_access_events",
+    )
+    actor = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="identity_access_events",
+    )
+    action = models.CharField(max_length=32, choices=IdentityAccessAction.choices)
+    image_side = models.CharField(
+        max_length=8,
+        choices=IdentityDocumentImageSide.choices,
+        blank=True,
+        default="",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.stay.public_id} — {self.get_action_display()}"

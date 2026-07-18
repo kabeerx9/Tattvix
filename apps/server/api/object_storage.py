@@ -103,6 +103,29 @@ class PrivateObjectStorage:
         self._validate_object_key(object_key)
         self.client.delete_object(Bucket=self.bucket_name, Key=object_key)
 
+    def copy_object(
+        self,
+        *,
+        source_key: str,
+        destination_key: str,
+        content_type: str,
+    ) -> None:
+        self._validate_object_key(source_key)
+        self._validate_object_key(destination_key)
+        if content_type not in self.allowed_content_types:
+            raise ObjectStorageValidationError(
+                f"Unsupported copy content type: {content_type}."
+            )
+        self.client.copy_object(
+            Bucket=self.bucket_name,
+            CopySource={"Bucket": self.bucket_name, "Key": source_key},
+            Key=destination_key,
+            ContentType=content_type,
+            CacheControl="private, no-store",
+            ContentDisposition="inline",
+            MetadataDirective="REPLACE",
+        )
+
     def get_object_metadata(self, *, object_key: str) -> ObjectMetadata:
         self._validate_object_key(object_key)
         response = self.client.head_object(

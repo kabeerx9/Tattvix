@@ -88,6 +88,9 @@ CLERK_SECRET_KEY="sk_test_replace_me"
 CLERK_WEBHOOK_SIGNING_SECRET="whsec_replace_me"
 CLERK_AUTHORIZED_PARTIES="http://localhost:3001,http://127.0.0.1:3001"
 COMPANION_MINOR_AGE_YEARS="18"
+HOTEL_QR_TOKEN_TTL_DAYS="365"
+HOTEL_IDENTITY_MAX_ACCESS_DAYS="30"
+HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS="24"
 OBJECT_STORAGE_ENDPOINT_URL="http://127.0.0.1:9000"
 OBJECT_STORAGE_ACCESS_KEY_ID="tattvix-server"
 OBJECT_STORAGE_SECRET_ACCESS_KEY="tattvix-server-local-only"
@@ -121,7 +124,8 @@ Identity-document images use a private S3-compatible bucket. Local development
 uses MinIO, while production can later switch to Cloudflare R2 by changing only
 the server-side object-storage environment variables.
 
-Start MinIO and create the private development bucket:
+`pnpm run dev` starts MinIO and creates the private development bucket before
+launching the application processes. To start storage by itself:
 
 ```bash
 pnpm run storage:up
@@ -153,6 +157,16 @@ Stop the containers without deleting locally stored objects:
 pnpm run storage:down
 ```
 
+Hotel identity sharing copies approved document images into an immutable
+stay-specific location. New image access ends on guest revocation, the maximum
+access date, or after the post-checkout grace window. Run the cleanup command
+from a production scheduler (at least daily) to delete expired copied images
+while retaining non-image stay and audit metadata:
+
+```bash
+pnpm run identity:purge
+```
+
 ## Database
 
 This project is PostgreSQL-only. It does not use a local SQLite database.
@@ -169,7 +183,7 @@ When a signed-in web user calls `GET /api/me/`, the backend verifies the Clerk r
 
 ## Run The App
 
-Start the Django API, web app, and native Metro server:
+Start MinIO, the Django API, web app, and native Metro server:
 
 ```bash
 pnpm run dev
@@ -219,6 +233,7 @@ pnpm run db:migrate   # Django migrations
 pnpm run storage:up    # start private local MinIO storage
 pnpm run storage:check # verify Django can access the private bucket
 pnpm run storage:down  # stop MinIO without deleting its volume
+pnpm run identity:purge # delete expired copied identity images
 pnpm run check-types  # type checks
 pnpm run doctor       # repo setup checks
 pnpm run setup        # uv sync for the Django backend

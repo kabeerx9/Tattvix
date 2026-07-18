@@ -24,7 +24,9 @@ function GuestHomePage() {
         <Link to="/companions" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <PortalCard icon={HeartHandshake} title="Companions" description="Keep accompanying guest profiles together." />
         </Link>
-        <PortalCard icon={ShieldCheck} title="Privacy center" description="Review consent and hotel access history." />
+        <Link to="/privacy" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <PortalCard icon={ShieldCheck} title="Privacy center" description="Review consent and hotel access history." />
+        </Link>
       </div>
       <Surface className="p-7 sm:p-9"><p className="app-kicker">Ready when you are</p><h2 className="mt-2 max-w-xl text-2xl font-semibold tracking-tight">One profile, less paperwork at every Tattvix property.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Your information stays under your control and is shared only when you approve it.</p></Surface>
     </div>
