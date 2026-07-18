@@ -1,5 +1,7 @@
 import os
+import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -24,6 +26,17 @@ def env_required(name: str) -> str:
     value = os.environ.get(name, "").strip()
     if not value:
         raise ImproperlyConfigured(f"{name} must be set.")
+    return value
+
+
+def env_positive_int(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.") from exc
+
+    if value < 1:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.")
     return value
 
 
@@ -104,17 +117,64 @@ CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")
 CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
 
-try:
-    COMPANION_MINOR_AGE_YEARS = int(
-        os.environ.get("COMPANION_MINOR_AGE_YEARS", "18")
-    )
-except ValueError as exc:
-    raise ImproperlyConfigured(
-        "COMPANION_MINOR_AGE_YEARS must be a positive integer."
-    ) from exc
+COMPANION_MINOR_AGE_YEARS = env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 
-if COMPANION_MINOR_AGE_YEARS < 1:
-    raise ImproperlyConfigured("COMPANION_MINOR_AGE_YEARS must be positive.")
+OBJECT_STORAGE_ENDPOINT_URL = os.environ.get(
+    "OBJECT_STORAGE_ENDPOINT_URL",
+    "http://127.0.0.1:9000",
+).strip()
+OBJECT_STORAGE_ACCESS_KEY_ID = os.environ.get(
+    "OBJECT_STORAGE_ACCESS_KEY_ID",
+    "tattvix-server",
+).strip()
+OBJECT_STORAGE_SECRET_ACCESS_KEY = os.environ.get(
+    "OBJECT_STORAGE_SECRET_ACCESS_KEY",
+    "tattvix-server-local-only",
+).strip()
+OBJECT_STORAGE_BUCKET_NAME = os.environ.get(
+    "OBJECT_STORAGE_BUCKET_NAME",
+    "tattvix-identity-documents-dev",
+).strip()
+OBJECT_STORAGE_REGION = os.environ.get("OBJECT_STORAGE_REGION", "us-east-1").strip()
+OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = env_positive_int(
+    "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS",
+    120,
+)
+OBJECT_STORAGE_MAX_UPLOAD_BYTES = env_positive_int(
+    "OBJECT_STORAGE_MAX_UPLOAD_BYTES",
+    8 * 1024 * 1024,
+)
+OBJECT_STORAGE_ALLOWED_CONTENT_TYPES = frozenset(
+    env_list(
+        "OBJECT_STORAGE_ALLOWED_CONTENT_TYPES",
+        "image/jpeg,image/png,image/webp",
+    )
+)
+
+storage_endpoint = urlparse(OBJECT_STORAGE_ENDPOINT_URL)
+if storage_endpoint.scheme not in {"http", "https"} or not storage_endpoint.netloc:
+    raise ImproperlyConfigured(
+        "OBJECT_STORAGE_ENDPOINT_URL must be an absolute http:// or https:// URL."
+    )
+if not OBJECT_STORAGE_ACCESS_KEY_ID or not OBJECT_STORAGE_SECRET_ACCESS_KEY:
+    raise ImproperlyConfigured("Object storage credentials must not be empty.")
+if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", OBJECT_STORAGE_BUCKET_NAME):
+    raise ImproperlyConfigured("OBJECT_STORAGE_BUCKET_NAME is not a valid S3 bucket name.")
+if not OBJECT_STORAGE_REGION:
+    raise ImproperlyConfigured("OBJECT_STORAGE_REGION must not be empty.")
+if not OBJECT_STORAGE_ALLOWED_CONTENT_TYPES:
+    raise ImproperlyConfigured("OBJECT_STORAGE_ALLOWED_CONTENT_TYPES must not be empty.")
+if OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS > 900:
+    raise ImproperlyConfigured(
+        "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS must not exceed 900 seconds."
+    )
+if not DEBUG and (
+    storage_endpoint.scheme != "https"
+    or OBJECT_STORAGE_SECRET_ACCESS_KEY == "tattvix-server-local-only"
+):
+    raise ImproperlyConfigured(
+        "Production object storage must use HTTPS and non-development credentials."
+    )
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

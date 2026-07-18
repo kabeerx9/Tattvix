@@ -18,7 +18,11 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
-    "db:migrate": "turbo -F server migrate"
+    "db:migrate": "turbo -F server migrate",
+    "storage:up": "docker compose up -d minio minio-init",
+    "storage:down": "docker compose down",
+    "storage:logs": "docker compose logs -f minio",
+    "storage:check": "pnpm --filter server storage:check"
   },
   "devDependencies": {
     "@tattvix/config": "workspace:*",

@@ -1,0 +1,34 @@
+name: tattvix-local-storage
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: tattvix-minio-admin
+      MINIO_ROOT_PASSWORD: tattvix-minio-admin-local-only
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3001,http://127.0.0.1:3001
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      - minio
+    volumes:
+      - ./infra/minio:/policies:ro
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 tattvix-minio-admin tattvix-minio-admin-local-only; do sleep 1; done;
+      mc mb --ignore-existing local/tattvix-identity-documents-dev;
+      mc anonymous set none local/tattvix-identity-documents-dev;
+      mc admin user add local tattvix-server tattvix-server-local-only;
+      mc admin policy create local tattvix-identity-documents /policies/identity-documents-policy.json;
+      mc admin policy attach local tattvix-identity-documents --user tattvix-server;
+      "
+
+volumes:
+  minio-data:

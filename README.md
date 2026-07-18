@@ -23,6 +23,7 @@ The Django server has an `apps/server/package.json` only so pnpm and Turborepo c
 - Node.js 20+
 - pnpm 10.x
 - uv
+- Docker Desktop, OrbStack, or another Docker Compose-compatible container runtime
 - A Supabase PostgreSQL database
 - A Clerk application for web auth
 - Xcode/iOS Simulator for `pnpm --filter native ios`, or Android Studio/emulator for `pnpm --filter native android`
@@ -86,6 +87,15 @@ CORS_ALLOWED_ORIGINS="http://localhost:3001,http://127.0.0.1:3001"
 CLERK_SECRET_KEY="sk_test_replace_me"
 CLERK_WEBHOOK_SIGNING_SECRET="whsec_replace_me"
 CLERK_AUTHORIZED_PARTIES="http://localhost:3001,http://127.0.0.1:3001"
+COMPANION_MINOR_AGE_YEARS="18"
+OBJECT_STORAGE_ENDPOINT_URL="http://127.0.0.1:9000"
+OBJECT_STORAGE_ACCESS_KEY_ID="tattvix-server"
+OBJECT_STORAGE_SECRET_ACCESS_KEY="tattvix-server-local-only"
+OBJECT_STORAGE_BUCKET_NAME="tattvix-identity-documents-dev"
+OBJECT_STORAGE_REGION="us-east-1"
+OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS="120"
+OBJECT_STORAGE_MAX_UPLOAD_BYTES="8388608"
+OBJECT_STORAGE_ALLOWED_CONTENT_TYPES="image/jpeg,image/png,image/webp"
 ```
 
 Use Supabase's direct PostgreSQL connection string for local development and migrations. If your database password contains special characters, URL-encode it before putting it in `DATABASE_URL`.
@@ -100,6 +110,48 @@ VITE_CLERK_PUBLISHABLE_KEY="pk_test_replace_me"
 The webhook signing secret is only used when Clerk webhooks call `POST /api/webhooks/clerk/`. The app can still start before webhooks are hosted, but keep the key in the env file because it is part of the documented server config.
 
 Never commit real `.env` files.
+
+The object-storage values above are local-development credentials defined by
+`compose.yaml`. They must never be reused outside local development. Production
+storage must use HTTPS and separately managed, bucket-scoped credentials.
+
+## Private Object Storage
+
+Identity-document images use a private S3-compatible bucket. Local development
+uses MinIO, while production can later switch to Cloudflare R2 by changing only
+the server-side object-storage environment variables.
+
+Start MinIO and create the private development bucket:
+
+```bash
+pnpm run storage:up
+```
+
+The MinIO S3 API is available at `http://127.0.0.1:9000`. Its development-only
+admin console is available at `http://127.0.0.1:9001` with:
+
+```text
+Username: tattvix-minio-admin
+Password: tattvix-minio-admin-local-only
+```
+
+Django does not use that admin account. The initialization container creates a
+separate `tattvix-server` user restricted to reading and writing objects in
+`tattvix-identity-documents-dev`. The bucket has no anonymous/public access.
+Local MinIO data is development data on your machine; use synthetic identity
+documents locally rather than copies of real government IDs.
+
+After MinIO starts, verify Django's bucket access:
+
+```bash
+pnpm run storage:check
+```
+
+Stop the containers without deleting locally stored objects:
+
+```bash
+pnpm run storage:down
+```
 
 ## Database
 
@@ -164,6 +216,9 @@ pnpm run dev:web      # web only
 pnpm run dev:server   # Django server only
 pnpm run dev:native   # native Metro only
 pnpm run db:migrate   # Django migrations
+pnpm run storage:up    # start private local MinIO storage
+pnpm run storage:check # verify Django can access the private bucket
+pnpm run storage:down  # stop MinIO without deleting its volume
 pnpm run check-types  # type checks
 pnpm run doctor       # repo setup checks
 pnpm run setup        # uv sync for the Django backend
@@ -177,6 +232,7 @@ cp apps/server/.env.example apps/server/.env
 cp apps/web/.env.example apps/web/.env
 cp apps/native/.env.example apps/native/.env
 pnpm run setup
+pnpm run storage:up
 pnpm run db:migrate
 pnpm run doctor
 pnpm run dev
