@@ -14,6 +14,7 @@ from .platform_admin import (
     list_organizations,
     list_platform_oversight_audit,
     list_platform_property_stay_overview,
+    list_platform_weekly_check_ins,
     update_organization_member,
 )
 from .platform_onboarding import PlatformOnboardingError, onboard_organization
@@ -23,6 +24,7 @@ from .serializers import (
     PlatformMemberUpdateSerializer,
     PlatformOrganizationOnboardingSerializer,
     PlatformOversightAuditQuerySerializer,
+    PlatformOversightWeeklyCheckInsQuerySerializer,
     PlatformPropertyCreateSerializer,
     PlatformUserSearchQuerySerializer,
     PlatformUserSearchResultSerializer,
@@ -166,3 +168,16 @@ def platform_oversight_audit(request):
         limit=validated.get("limit", 50),
     )
     return Response({"entries": entries})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPlatformAdmin])
+def platform_oversight_weekly_check_ins(request):
+    query_serializer = PlatformOversightWeeklyCheckInsQuerySerializer(
+        data=request.query_params
+    )
+    query_serializer.is_valid(raise_exception=True)
+    rows = list_platform_weekly_check_ins(
+        weeks=query_serializer.validated_data.get("weeks", 8)
+    )
+    return Response({"rows": rows})

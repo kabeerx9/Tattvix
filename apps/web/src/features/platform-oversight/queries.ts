@@ -1,4 +1,7 @@
-import type { PlatformOversightAuditQuery } from "@tattvix/contracts";
+import type {
+  PlatformOversightAuditQuery,
+  PlatformOversightWeeklyCheckInsQuery,
+} from "@tattvix/contracts";
 import { queryOptions } from "@tanstack/react-query";
 
 import { platformOversightApi } from "./api";
@@ -19,6 +22,12 @@ export const platformOversightQueries = {
         query.limit ?? 50,
       ),
       queryFn: () => platformOversightApi.audit(query),
+      staleTime: 15_000,
+    }),
+  weeklyCheckIns: (query: PlatformOversightWeeklyCheckInsQuery) =>
+    queryOptions({
+      queryKey: platformOversightKeys.weeklyCheckIns(query.weeks ?? 8),
+      queryFn: () => platformOversightApi.weeklyCheckIns(query),
       staleTime: 15_000,
     }),
 };

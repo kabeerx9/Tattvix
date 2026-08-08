@@ -80,6 +80,10 @@ class PlatformOversightAuditQuerySerializer(serializers.Serializer):
     limit = serializers.IntegerField(required=False, min_value=1, max_value=200)
 
 
+class PlatformOversightWeeklyCheckInsQuerySerializer(serializers.Serializer):
+    weeks = serializers.IntegerField(required=False, min_value=1, max_value=26)
+
+
 class GuestProfileSerializer(serializers.ModelSerializer):
     legalFirstName = serializers.CharField(
         source="legal_first_name", allow_blank=True, max_length=150

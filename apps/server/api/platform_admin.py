@@ -1,5 +1,9 @@
+from datetime import timedelta
+
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
+from django.db.models.functions import TruncWeek
+from django.utils import timezone
 
 from .models import (
     ClerkUser,
@@ -11,6 +15,7 @@ from .models import (
     PlatformAuditAction,
     PlatformAuditLog,
     Property,
+    Stay,
     StayStatus,
 )
 from .platform_onboarding import PlatformOnboardingError
@@ -358,3 +363,39 @@ def list_platform_oversight_audit(
     for entry in merged:
         entry["at"] = entry["at"].isoformat()
     return merged
+
+
+def list_platform_weekly_check_ins(*, weeks: int = 8) -> list[dict]:
+    """Check-ins per property per ISO week, single aggregate query.
+
+    Pilot-adoption trendline: TruncWeek buckets checked_in_at into its
+    Monday-starting ISO week, then groups by week + property. Weeks/property
+    pairs with zero check-ins are simply absent from the result — the client
+    fills gaps with 0 rather than the server padding every combination, which
+    would grow unbounded as properties x weeks scales.
+    """
+    cutoff = timezone.now() - timedelta(weeks=weeks)
+
+    rows = (
+        Stay.objects.filter(checked_in_at__isnull=False, checked_in_at__gte=cutoff)
+        .annotate(week_start=TruncWeek("checked_in_at"))
+        .values(
+            "week_start",
+            "property_id",
+            "property__name",
+            "property__organization__slug",
+        )
+        .annotate(check_ins=Count("id"))
+        .order_by("week_start", "property__organization__name", "property__name")
+    )
+
+    return [
+        {
+            "weekStart": row["week_start"].date().isoformat(),
+            "propertyId": row["property_id"],
+            "propertyName": row["property__name"],
+            "organizationSlug": row["property__organization__slug"],
+            "checkIns": row["check_ins"],
+        }
+        for row in rows
+    ]

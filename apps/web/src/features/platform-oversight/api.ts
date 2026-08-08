@@ -1,7 +1,9 @@
 import {
   platformOversightAuditResponseSchema,
   platformOversightStaysResponseSchema,
+  platformOversightWeeklyCheckInsResponseSchema,
   type PlatformOversightAuditQuery,
+  type PlatformOversightWeeklyCheckInsQuery,
 } from "@tattvix/contracts";
 
 import { apiClient } from "@/lib/api";
@@ -28,6 +30,17 @@ export const platformOversightApi = {
     return apiClient.requestJson(
       `/api/platform/oversight/audit/${search ? `?${search}` : ""}`,
       platformOversightAuditResponseSchema,
+    );
+  },
+  weeklyCheckIns(query: PlatformOversightWeeklyCheckInsQuery) {
+    const params = new URLSearchParams();
+    if (query.weeks) {
+      params.set("weeks", String(query.weeks));
+    }
+    const search = params.toString();
+    return apiClient.requestJson(
+      `/api/platform/oversight/weekly-check-ins/${search ? `?${search}` : ""}`,
+      platformOversightWeeklyCheckInsResponseSchema,
     );
   },
 };

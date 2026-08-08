@@ -9,4 +9,6 @@ export const platformOversightKeys = {
       action,
       limit,
     ] as const,
+  weeklyCheckIns: (weeks: number) =>
+    [...platformOversightKeys.all, "weekly-check-ins", weeks] as const,
 };

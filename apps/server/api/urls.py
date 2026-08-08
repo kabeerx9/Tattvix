@@ -44,6 +44,7 @@ from .platform_views import (
     platform_organization_properties,
     platform_oversight_audit,
     platform_oversight_stays,
+    platform_oversight_weekly_check_ins,
     platform_user_list,
 )
 from .views import clerk_webhook, health, me
@@ -249,6 +250,11 @@ urlpatterns = [
         "api/platform/oversight/audit/",
         platform_oversight_audit,
         name="platform-oversight-audit",
+    ),
+    path(
+        "api/platform/oversight/weekly-check-ins/",
+        platform_oversight_weekly_check_ins,
+        name="platform-oversight-weekly-check-ins",
     ),
     path("api/webhooks/clerk/", clerk_webhook, name="clerk-webhook"),
 ]

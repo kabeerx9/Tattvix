@@ -199,6 +199,29 @@ export const platformOversightAuditQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(200).optional(),
 }).strict();
 
+// --- Weekly check-ins (pilot-adoption trendline) ---
+//
+// Aggregates only: check-in counts per property per ISO week (Monday start).
+// Weeks with zero check-ins for a property are simply absent from `rows` —
+// the client fills the gaps with 0 rather than the server padding every
+// property x week combination it has never seen a check-in for.
+
+export const platformOversightWeeklyCheckInsQuerySchema = z.object({
+  weeks: z.coerce.number().int().positive().max(26).optional(),
+}).strict();
+
+export const platformOversightWeeklyCheckInsRowSchema = z.object({
+  weekStart: z.iso.date(),
+  propertyId: z.number(),
+  propertyName: z.string(),
+  organizationSlug: z.string(),
+  checkIns: z.number().int().nonnegative(),
+}).strict();
+
+export const platformOversightWeeklyCheckInsResponseSchema = z.object({
+  rows: z.array(platformOversightWeeklyCheckInsRowSchema),
+}).strict();
+
 export type PlatformOversightStatusCounts = z.infer<
   typeof platformOversightStatusCountsSchema
 >;
@@ -223,6 +246,15 @@ export type PlatformOversightAuditResponse = z.infer<
 >;
 export type PlatformOversightAuditQuery = z.infer<
   typeof platformOversightAuditQuerySchema
+>;
+export type PlatformOversightWeeklyCheckInsQuery = z.infer<
+  typeof platformOversightWeeklyCheckInsQuerySchema
+>;
+export type PlatformOversightWeeklyCheckInsRow = z.infer<
+  typeof platformOversightWeeklyCheckInsRowSchema
+>;
+export type PlatformOversightWeeklyCheckInsResponse = z.infer<
+  typeof platformOversightWeeklyCheckInsResponseSchema
 >;
 
 export type PlatformMembershipRole = z.infer<typeof platformMembershipRoleSchema>;

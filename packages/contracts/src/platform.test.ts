@@ -6,6 +6,8 @@ import {
   platformOrganizationOnboardingResponseSchema,
   platformOversightAuditResponseSchema,
   platformOversightStaysResponseSchema,
+  platformOversightWeeklyCheckInsQuerySchema,
+  platformOversightWeeklyCheckInsResponseSchema,
   platformUserSearchParamsSchema,
   platformUserSearchResponseSchema,
 } from "./platform.ts";
@@ -147,5 +149,55 @@ describe("platform oversight contracts", () => {
       }],
     };
     assert.throws(() => platformOversightStaysResponseSchema.parse(withObjectKey));
+  });
+});
+
+describe("platform oversight weekly check-ins contracts", () => {
+  it("accepts a query with a default-able weeks param", () => {
+    assert.deepEqual(platformOversightWeeklyCheckInsQuerySchema.parse({}), {});
+    assert.deepEqual(platformOversightWeeklyCheckInsQuerySchema.parse({ weeks: "12" }), {
+      weeks: 12,
+    });
+  });
+
+  it("rejects weeks outside the bounded range", () => {
+    assert.throws(() => platformOversightWeeklyCheckInsQuerySchema.parse({ weeks: 0 }));
+    assert.throws(() => platformOversightWeeklyCheckInsQuerySchema.parse({ weeks: 27 }));
+  });
+
+  it("accepts a rows response with no identity fields", () => {
+    const response = {
+      rows: [
+        {
+          weekStart: "2026-07-27",
+          propertyId: 1,
+          propertyName: "Tattvix Jaipur",
+          organizationSlug: "tattvix-hotels",
+          checkIns: 4,
+        },
+      ],
+    };
+    assert.deepEqual(
+      platformOversightWeeklyCheckInsResponseSchema.parse(response),
+      response,
+    );
+  });
+
+  it("rejects rows carrying unexpected identity-leaning fields", () => {
+    const withGuestName = {
+      rows: [
+        {
+          weekStart: "2026-07-27",
+          propertyId: 1,
+          propertyName: "Tattvix Jaipur",
+          organizationSlug: "tattvix-hotels",
+          checkIns: 4,
+          guestName: "Kabeer Joshi",
+        },
+      ],
+    };
+    assert.throws(() =>
+      platformOversightWeeklyCheckInsResponseSchema.parse(withGuestName),
+    );
   });
 });

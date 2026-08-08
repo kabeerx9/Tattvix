@@ -1,6 +1,7 @@
 import type {
   PlatformOversightAuditEntry,
   PlatformOversightPropertyStays,
+  PlatformOversightWeeklyCheckInsRow,
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import {
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from "@tattvix/ui/components/select";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { ClipboardList, Hotel, RefreshCw, ShieldAlert } from "lucide-react";
+import { ClipboardList, Hotel, LineChart, RefreshCw, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyState, PageHeader, Surface } from "@/components/design-system";
@@ -42,6 +43,7 @@ export function OversightPage() {
       />
 
       <StaysOverviewSection />
+      <WeeklyCheckInsSection />
       <AuditFeedSection />
     </div>
   );
@@ -116,6 +118,140 @@ function PropertyRow({
       <td className="p-4 font-medium">{property.totalStays}</td>
     </tr>
   );
+}
+
+const WEEKLY_CHECK_INS_WEEKS = 8;
+
+function WeeklyCheckInsSection() {
+  const { data } = useSuspenseQuery(
+    platformOversightQueries.weeklyCheckIns({ weeks: WEEKLY_CHECK_INS_WEEKS }),
+  );
+  const grid = buildWeeklyCheckInsGrid(data.rows);
+
+  return (
+    <Surface>
+      <div className="flex items-start gap-3 border-b p-5 sm:p-6">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
+          <LineChart className="size-5" />
+        </span>
+        <div>
+          <h2 className="text-base font-semibold">Weekly check-ins</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Check-ins per property over the last {WEEKLY_CHECK_INS_WEEKS} weeks —
+            the pilot-adoption trend. Weeks a property had zero check-ins are
+            filled in as 0 rather than omitted.
+          </p>
+        </div>
+      </div>
+
+      {grid.properties.length && grid.weeks.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/60 text-left text-xs text-muted-foreground">
+                <th className="p-4 font-medium">Property</th>
+                {grid.weeks.map((weekStart) => (
+                  <th key={weekStart} className="p-4 font-medium whitespace-nowrap">
+                    {formatWeekStart(weekStart)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {grid.properties.map((property) => (
+                <tr key={`${property.organizationSlug}-${property.propertyId}`}>
+                  <td className="p-4">
+                    <p className="font-medium">{property.propertyName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {property.organizationSlug}
+                    </p>
+                  </td>
+                  {grid.weeks.map((weekStart) => {
+                    const checkIns = property.byWeek.get(weekStart) ?? 0;
+                    return (
+                      <td key={weekStart} className="p-4">
+                        <WeeklyCheckInsBar
+                          checkIns={checkIns}
+                          max={grid.maxCheckIns}
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          icon={LineChart}
+          title="No check-ins recorded yet"
+          description="Check-in a guest at any property to see the weekly trend here."
+        />
+      )}
+    </Surface>
+  );
+}
+
+function WeeklyCheckInsBar({ checkIns, max }: { checkIns: number; max: number }) {
+  const widthPercent = max > 0 ? Math.max((checkIns / max) * 100, checkIns > 0 ? 8 : 0) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-6 shrink-0 text-right tabular-nums">{checkIns}</span>
+      <div className="h-2 w-full min-w-[64px] rounded-full bg-muted">
+        <div
+          className="h-2 rounded-full bg-primary"
+          style={{ width: `${widthPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+type WeeklyCheckInsGridProperty = {
+  propertyId: number;
+  propertyName: string;
+  organizationSlug: string;
+  byWeek: Map<string, number>;
+};
+
+function buildWeeklyCheckInsGrid(rows: PlatformOversightWeeklyCheckInsRow[]): {
+  weeks: string[];
+  properties: WeeklyCheckInsGridProperty[];
+  maxCheckIns: number;
+} {
+  const weeks = Array.from(new Set(rows.map((row) => row.weekStart))).sort();
+  const propertiesByKey = new Map<string, WeeklyCheckInsGridProperty>();
+  let maxCheckIns = 0;
+
+  for (const row of rows) {
+    const key = `${row.organizationSlug}-${row.propertyId}`;
+    let property = propertiesByKey.get(key);
+    if (!property) {
+      property = {
+        propertyId: row.propertyId,
+        propertyName: row.propertyName,
+        organizationSlug: row.organizationSlug,
+        byWeek: new Map(),
+      };
+      propertiesByKey.set(key, property);
+    }
+    property.byWeek.set(row.weekStart, row.checkIns);
+    maxCheckIns = Math.max(maxCheckIns, row.checkIns);
+  }
+
+  const properties = Array.from(propertiesByKey.values()).sort((a, b) =>
+    a.propertyName.localeCompare(b.propertyName),
+  );
+
+  return { weeks, properties, maxCheckIns };
+}
+
+function formatWeekStart(weekStart: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${weekStart}T00:00:00Z`));
 }
 
 function AuditFeedSection() {
