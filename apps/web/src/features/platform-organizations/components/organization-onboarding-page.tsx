@@ -7,6 +7,7 @@ import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Building2, Hotel, UserRoundCheck } from "lucide-react";
 import { useState } from "react";
 
@@ -16,6 +17,7 @@ import { ApiError } from "@/lib/api";
 
 export function OrganizationOnboardingPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const onboardingMutation = useMutation(platformOrganizationMutations.onboard(queryClient));
   const [owner, setOwner] = useState<PlatformUserSearchResult | null>(null);
   const [ownerPickerKey, setOwnerPickerKey] = useState(0);
@@ -57,6 +59,10 @@ export function OrganizationOnboardingPage() {
         setOwner(null);
         setOwnerPickerKey((key) => key + 1);
         form.reset();
+        navigate({
+          to: "/admin/$organizationSlug",
+          params: { organizationSlug: created.organization.slug },
+        });
       },
     });
   }

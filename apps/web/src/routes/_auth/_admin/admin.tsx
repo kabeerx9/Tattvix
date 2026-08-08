@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { OrganizationOnboardingPage } from "@/features/platform-organizations/components/organization-onboarding-page";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/_admin/admin")({
-  component: OrganizationOnboardingPage,
+  component: Outlet,
 });
