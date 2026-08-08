@@ -42,6 +42,29 @@ class PlatformUserSearchResultSerializer(serializers.Serializer):
     imageUrl = serializers.CharField(source="image_url", read_only=True)
 
 
+class PlatformPropertyCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255, trim_whitespace=True)
+    slug = serializers.RegexField(regex=SLUG_PATTERN, max_length=255)
+
+
+class PlatformMemberAddSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=("OWNER", "MANAGER", "RECEPTION"))
+
+
+class PlatformMemberUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=("OWNER", "MANAGER", "RECEPTION"),
+        required=False,
+    )
+    isActive = serializers.BooleanField(source="is_active", required=False)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Provide role or isActive.")
+        return attrs
+
+
 class GuestProfileSerializer(serializers.ModelSerializer):
     legalFirstName = serializers.CharField(
         source="legal_first_name", allow_blank=True, max_length=150

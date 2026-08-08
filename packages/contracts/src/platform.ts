@@ -52,3 +52,89 @@ export type PlatformOrganizationOnboardingResponse = z.infer<
 export type PlatformUserSearchParams = z.infer<typeof platformUserSearchParamsSchema>;
 export type PlatformUserSearchResult = z.infer<typeof platformUserSearchResultSchema>;
 export type PlatformUserSearchResponse = z.infer<typeof platformUserSearchResponseSchema>;
+
+export const platformMembershipRoleSchema = z.enum([
+  "OWNER",
+  "MANAGER",
+  "RECEPTION",
+]);
+
+export const platformOrganizationSummarySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  isActive: z.boolean(),
+  propertyCount: z.number().int().nonnegative(),
+  memberCount: z.number().int().nonnegative(),
+}).strict();
+
+export const platformOrganizationListResponseSchema = z.object({
+  organizations: z.array(platformOrganizationSummarySchema),
+}).strict();
+
+export const platformPropertySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  isActive: z.boolean(),
+}).strict();
+
+export const platformMemberSchema = z.object({
+  id: z.number(),
+  role: platformMembershipRoleSchema,
+  isActive: z.boolean(),
+  hasAllProperties: z.boolean(),
+  user: z.object({
+    id: z.number(),
+    email: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+    imageUrl: z.string(),
+  }).strict(),
+}).strict();
+
+export const platformOrganizationDetailSchema = z.object({
+  organization: z.object({
+    id: z.number(),
+    name: z.string(),
+    slug: z.string(),
+    isActive: z.boolean(),
+  }).strict(),
+  properties: z.array(platformPropertySchema),
+  members: z.array(platformMemberSchema),
+}).strict();
+
+export const platformPropertyCreateInputSchema = namedSlugSchema;
+
+export const platformMemberAddInputSchema = z.object({
+  email: z.email(),
+  role: platformMembershipRoleSchema,
+}).strict();
+
+export const platformMemberUpdateInputSchema = z.object({
+  role: platformMembershipRoleSchema.optional(),
+  isActive: z.boolean().optional(),
+}).strict().refine(
+  (value) => value.role !== undefined || value.isActive !== undefined,
+  { message: "Provide role or isActive." },
+);
+
+export type PlatformMembershipRole = z.infer<typeof platformMembershipRoleSchema>;
+export type PlatformOrganizationSummary = z.infer<
+  typeof platformOrganizationSummarySchema
+>;
+export type PlatformOrganizationListResponse = z.infer<
+  typeof platformOrganizationListResponseSchema
+>;
+export type PlatformProperty = z.infer<typeof platformPropertySchema>;
+export type PlatformMember = z.infer<typeof platformMemberSchema>;
+export type PlatformOrganizationDetail = z.infer<
+  typeof platformOrganizationDetailSchema
+>;
+export type PlatformPropertyCreateInput = z.infer<
+  typeof platformPropertyCreateInputSchema
+>;
+export type PlatformMemberAddInput = z.infer<typeof platformMemberAddInputSchema>;
+export type PlatformMemberUpdateInput = z.infer<
+  typeof platformMemberUpdateInputSchema
+>;

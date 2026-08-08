@@ -499,3 +499,33 @@ class IdentityAccessAudit(models.Model):
 
     def __str__(self) -> str:
         return f"{self.stay.public_id} — {self.get_action_display()}"
+
+
+class PlatformAuditAction(models.TextChoices):
+    PROPERTY_CREATED = "PROPERTY_CREATED", "Property created"
+    MEMBER_ADDED = "MEMBER_ADDED", "Member added"
+    MEMBER_ROLE_CHANGED = "MEMBER_ROLE_CHANGED", "Member role changed"
+    MEMBER_DEACTIVATED = "MEMBER_DEACTIVATED", "Member deactivated"
+    MEMBER_REACTIVATED = "MEMBER_REACTIVATED", "Member reactivated"
+
+
+class PlatformAuditLog(models.Model):
+    actor = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="platform_audit_events",
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="platform_audit_events",
+    )
+    action = models.CharField(max_length=32, choices=PlatformAuditAction.choices)
+    target = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.organization.slug} — {self.get_action_display()} ({self.target})"

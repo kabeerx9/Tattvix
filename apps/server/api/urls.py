@@ -30,7 +30,14 @@ from .hotel_operation_views import (
     hotel_stay_check_in,
     hotel_stay_checkout,
 )
-from .platform_views import platform_organization_list, platform_user_list
+from .platform_views import (
+    platform_organization_detail,
+    platform_organization_list,
+    platform_organization_member_detail,
+    platform_organization_members,
+    platform_organization_properties,
+    platform_user_list,
+)
 from .views import clerk_webhook, health, me
 
 urlpatterns = [
@@ -168,6 +175,29 @@ urlpatterns = [
         ),
         hotel_stay_checkout,
         name="hotel-stay-checkout",
+    ),
+    path(
+        "api/platform/organizations/<slug:organization_slug>/",
+        platform_organization_detail,
+        name="platform-organization-detail",
+    ),
+    path(
+        "api/platform/organizations/<slug:organization_slug>/properties/",
+        platform_organization_properties,
+        name="platform-organization-properties",
+    ),
+    path(
+        "api/platform/organizations/<slug:organization_slug>/members/",
+        platform_organization_members,
+        name="platform-organization-members",
+    ),
+    path(
+        (
+            "api/platform/organizations/<slug:organization_slug>/"
+            "members/<int:membership_id>/"
+        ),
+        platform_organization_member_detail,
+        name="platform-organization-member-detail",
     ),
     path("api/platform/users/", platform_user_list, name="platform-user-list"),
     path("api/webhooks/clerk/", clerk_webhook, name="clerk-webhook"),
