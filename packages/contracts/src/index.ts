@@ -17,6 +17,7 @@ export {
   operationalStayStatusSchema,
   roomStatusSchema,
   roomSummarySchema,
+  stayRoomSummarySchema,
   sharedCompanionSchema,
   sharedDocumentSchema,
   sharedIdentitySnapshotSchema,
@@ -36,6 +37,7 @@ export {
   type OperationalStayStatus,
   type RoomStatus,
   type RoomSummary,
+  type StayRoomSummary,
   type SharedIdentitySnapshot,
   type StayStatus,
 } from "./check-in";

@@ -520,13 +520,14 @@ def _property_payload(property_) -> dict:
 
 
 def _room_payload(room) -> dict:
+    # Stay payloads (guest and hotel alike) only ever need "which room" —
+    # floor/type/housekeeping status are room-inventory internals, exposed
+    # separately via hotel_operations.build_room_payload for the rooms
+    # list/assignment UI. Keeping this minimal means the guest-visible stay
+    # payload never carries hotel-internal room state.
     return {
         "id": room.id,
         "number": room.number,
-        "floor": room.floor,
-        "roomType": room.room_type,
-        "status": room.status,
-        "isActive": room.is_active,
     }
 
 

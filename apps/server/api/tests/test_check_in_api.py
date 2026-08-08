@@ -23,8 +23,10 @@ from api.models import (
     IdentityDocumentType,
     Membership,
     MembershipRole,
+    OperationalStayStatus,
     Organization,
     Property,
+    Room,
     SharedIdentitySnapshot,
     Stay,
     StayStatus,
@@ -402,6 +404,54 @@ class CheckInApiTests(APITestCase):
             IdentityAccessAction.DOCUMENT_VIEWED,
         )
         self.assertNotIn("actor", share["accessEvents"][0])
+
+    def test_guest_stay_list_reports_live_operational_status_and_room(self):
+        response, _storage_class = self.submit_identity()
+        stay = Stay.objects.get(public_id=response.data["id"])
+
+        # Before check-in: no room, operationally pending.
+        pending_response = self.client.get(reverse("guest-stay-list"))
+        pending_share = pending_response.data["stays"][0]
+        self.assertEqual(pending_share["operationalStatus"], "PENDING_CHECK_IN")
+        self.assertIsNone(pending_share["room"])
+        self.assertIsNone(pending_share["checkedInAt"])
+
+        room = Room.objects.create(property=self.property, number="101", floor="1")
+        stay.operational_status = OperationalStayStatus.CHECKED_IN
+        stay.room = room
+        stay.checked_in_at = timezone.now()
+        stay.save(update_fields=["operational_status", "room", "checked_in_at"])
+
+        checked_in_response = self.client.get(reverse("guest-stay-list"))
+        checked_in_share = checked_in_response.data["stays"][0]
+        self.assertEqual(checked_in_share["operationalStatus"], "CHECKED_IN")
+        self.assertEqual(checked_in_share["room"], {"id": room.id, "number": "101"})
+        self.assertIsNotNone(checked_in_share["checkedInAt"])
+        # Guests only ever see the room number, never hotel-internal room
+        # inventory state such as floor, room type, or housekeeping status.
+        self.assertNotIn("floor", checked_in_share["room"])
+        self.assertNotIn("roomType", checked_in_share["room"])
+        self.assertNotIn("status", checked_in_share["room"])
+
+    def test_guest_stay_list_never_leaks_another_guests_stay(self):
+        response, _storage_class = self.submit_identity()
+        stay = Stay.objects.get(public_id=response.data["id"])
+        room = Room.objects.create(property=self.property, number="202", floor="2")
+        stay.operational_status = OperationalStayStatus.CHECKED_IN
+        stay.room = room
+        stay.checked_in_at = timezone.now()
+        stay.save(update_fields=["operational_status", "room", "checked_in_at"])
+
+        other_guest = ClerkUser.objects.create(
+            clerk_id="other_guest",
+            email="other-guest@example.com",
+        )
+        self.authenticate(other_guest)
+
+        other_response = self.client.get(reverse("guest-stay-list"))
+
+        self.assertEqual(other_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(other_response.data["stays"], [])
 
     @patch(
         "api.management.commands.purge_expired_identity_images.PrivateObjectStorage"

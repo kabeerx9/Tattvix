@@ -39,6 +39,18 @@ export const roomSummarySchema = z.object({
   isActive: z.boolean(),
 });
 
+// A stay's assigned room, as embedded in stay payloads (guest and hotel
+// alike). Deliberately minimal: room number is the only thing anyone needs
+// to identify "which door" — floor/type/status/isActive are operational
+// room-inventory internals (see roomSummarySchema), not stay facts, and are
+// only ever read off the standalone rooms list, never off a stay.room. For
+// the guest surface specifically this also keeps hotel-internal room
+// housekeeping state out of a response a guest can inspect.
+export const stayRoomSummarySchema = z.object({
+  id: z.number().int().positive(),
+  number: z.string().min(1).max(32),
+});
+
 export const checkInPropertySchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1),
@@ -54,7 +66,7 @@ export const guestStaySchema = z.object({
   id: z.uuid(),
   status: stayStatusSchema,
   operationalStatus: operationalStayStatusSchema,
-  room: roomSummarySchema.nullable(),
+  room: stayRoomSummarySchema.nullable(),
   submittedAt: dateTimeSchema.nullable(),
   closedAt: dateTimeSchema.nullable(),
   checkedInAt: dateTimeSchema.nullable(),
@@ -167,6 +179,7 @@ export type OperationalStayStatus = z.infer<
 >;
 export type RoomStatus = z.infer<typeof roomStatusSchema>;
 export type RoomSummary = z.infer<typeof roomSummarySchema>;
+export type StayRoomSummary = z.infer<typeof stayRoomSummarySchema>;
 export type CheckInProperty = z.infer<typeof checkInPropertySchema>;
 export type GuestStay = z.infer<typeof guestStaySchema>;
 export type IdentityAccessAction = z.infer<typeof identityAccessActionSchema>;

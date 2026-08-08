@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   checkInContextSchema,
   guestCheckInSubmitInputSchema,
+  guestShareSchema,
   hotelStayDetailSchema,
 } from "./check-in";
 
@@ -51,6 +52,31 @@ test("guest submission requires explicit consent", () => {
     }).success,
     false,
   );
+});
+
+test("guest share carries live operational status and a room number once checked in", () => {
+  const result = guestShareSchema.safeParse({
+    ...submittedStay,
+    operationalStatus: "CHECKED_IN",
+    room: { id: 4, number: "101" },
+    checkedInAt: "2026-07-19T14:00:00Z",
+    property: {
+      id: 1,
+      name: "Tattvix Jaipur",
+      slug: "jaipur",
+      organization: {
+        id: 1,
+        name: "Tattvix Hotels",
+        slug: "tattvix-hotels",
+      },
+    },
+    accessEvents: [],
+  });
+
+  assert.equal(result.success, true);
+  // Guests only ever see the room number, not hotel-internal room
+  // inventory state (floor, room type, housekeeping status).
+  assert.deepEqual(result.data?.room, { id: 4, number: "101" });
 });
 
 test("hotel detail accepts an active immutable identity snapshot", () => {
