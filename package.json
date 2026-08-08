@@ -20,6 +20,7 @@
     "dev:server": "turbo -F server dev",
     "db:migrate": "turbo -F server migrate",
     "storage:up": "docker compose up -d minio minio-init",
+    "db:up": "docker compose up -d postgres",
     "storage:down": "docker compose down",
     "storage:logs": "docker compose logs -f minio",
     "storage:check": "pnpm --filter server storage:check",

@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -98,6 +99,19 @@ DATABASES = {
         ssl_require=True,
     )
 }
+
+# The test runner must never touch the real database. When tests are running
+# and TEST_DATABASE_URL is set (local docker Postgres, no SSL), it replaces
+# the default connection entirely.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "").strip()
+RUNNING_TESTS = "test" in sys.argv
+if RUNNING_TESTS:
+    if not TEST_DATABASE_URL:
+        raise ImproperlyConfigured(
+            "TEST_DATABASE_URL must be set to run tests. "
+            "Start the local database with `pnpm run db:up` first."
+        )
+    DATABASES = {"default": dj_database_url.parse(TEST_DATABASE_URL, conn_max_age=0)}
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
