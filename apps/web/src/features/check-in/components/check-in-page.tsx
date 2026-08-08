@@ -320,8 +320,9 @@ function AuthenticatedCheckIn({
               images, and companions with {propertyName} for this stay. Access
               lasts for up to {accessPolicy.maximumDays} days unless I revoke
               it sooner. Checkout limits any remaining access to{" "}
-              {accessPolicy.postCheckoutGraceHours} hours. Every hotel view is
-              property-scoped and audited.
+              {accessPolicy.postCheckoutGraceHours} hours, after which the
+              document images shared with the hotel are permanently deleted.
+              Every hotel view is property-scoped and audited.
             </span>
           </label>
           {submitError ? (
