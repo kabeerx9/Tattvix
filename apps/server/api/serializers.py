@@ -8,6 +8,7 @@ from .models import (
     GuestProfile,
     IdentityDocument,
     IdentityDocumentImageSide,
+    OperationalStayStatus,
 )
 
 
@@ -308,3 +309,27 @@ class HotelRoomStatusSerializer(serializers.Serializer):
 
 class HotelStayCheckInSerializer(serializers.Serializer):
     roomId = serializers.IntegerField(source="room_id", min_value=1)
+
+
+class HotelStayListQuerySerializer(serializers.Serializer):
+    search = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+        max_length=200,
+    )
+    operationalStatus = serializers.ChoiceField(
+        source="operational_status",
+        choices=OperationalStayStatus.choices,
+        required=False,
+    )
+    dateFrom = serializers.DateField(source="date_from", required=False)
+    dateTo = serializers.DateField(source="date_to", required=False)
+
+    def validate_search(self, value):
+        value = value.strip()
+        if value and len(value) < 2:
+            raise serializers.ValidationError(
+                "Search must be at least 2 characters."
+            )
+        return value or None

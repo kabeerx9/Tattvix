@@ -1,14 +1,27 @@
-import type { HotelQrTokenResponse, HotelStayListItem } from "@tattvix/contracts";
+import type {
+  HotelQrTokenResponse,
+  HotelStayListItem,
+  HotelStayListQuery,
+  OperationalStayStatus,
+} from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@tattvix/ui/components/select";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   CheckCircle2,
   Clock3,
   Copy,
   QrCode,
+  Search,
   ShieldOff,
   UsersRound,
 } from "lucide-react";
@@ -17,9 +30,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader, Surface } from "@/components/design-system";
+import { useDebouncedValue } from "@/core/hooks/use-debounced-value";
 import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
+
+const STATUS_FILTERS: {
+  value: OperationalStayStatus | "__all__";
+  label: string;
+}[] = [
+  { value: "__all__", label: "All statuses" },
+  { value: "PENDING_CHECK_IN", label: "Pending check-in" },
+  { value: "CHECKED_IN", label: "Checked in" },
+  { value: "CHECKED_OUT", label: "Checked out" },
+];
 
 export function HotelStaysPage({
   organizationSlug,
@@ -30,9 +54,30 @@ export function HotelStaysPage({
   propertySlug: string;
   propertyName: string;
 }) {
-  const { data } = useSuspenseQuery(
-    hotelStayQueries.list(organizationSlug, propertySlug),
+  const [searchInput, setSearchInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    OperationalStayStatus | "__all__"
+  >("__all__");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput.trim(), 300);
+
+  const query: HotelStayListQuery = {
+    ...(debouncedSearch.length >= 2 ? { search: debouncedSearch } : {}),
+    ...(statusFilter !== "__all__" ? { operationalStatus: statusFilter } : {}),
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+  };
+  const hasActiveFilters = Boolean(
+    query.search || query.operationalStatus || query.dateFrom || query.dateTo,
   );
+
+  const { data } = useQuery({
+    ...hotelStayQueries.list(organizationSlug, propertySlug, query),
+    placeholderData: keepPreviousData,
+  });
+  const stays = data?.stays ?? [];
+
   const [qrToken, setQrToken] = useState<HotelQrTokenResponse | null>(null);
   const qrMutation = useMutation(hotelStayMutations.generateQr());
 
@@ -81,21 +126,70 @@ export function HotelStaysPage({
       ) : null}
 
       <Surface>
-        <div className="flex flex-col gap-2 border-b p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-          <div>
-            <h2 className="text-lg font-semibold">Submitted check-ins</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Identity access is checked again every time a stay or document is opened.
+        <div className="flex flex-col gap-4 border-b p-5 sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Submitted check-ins</h2>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Identity access is checked again every time a stay or document is opened.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {stays.length} stay{stays.length === 1 ? "" : "s"}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {data.stays.length} stay{data.stays.length === 1 ? "" : "s"}
-          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative sm:w-[240px]">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search guest name"
+                aria-label="Search guest name"
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as OperationalStayStatus | "__all__")
+              }
+            >
+              <SelectTrigger className="sm:w-[190px]" aria-label="Filter by status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+                aria-label="From date"
+                className="sm:w-[160px]"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+                aria-label="To date"
+                className="sm:w-[160px]"
+              />
+            </div>
+          </div>
         </div>
 
-        {data.stays.length ? (
+        {stays.length ? (
           <div className="divide-y">
-            {data.stays.map((stay) => (
+            {stays.map((stay) => (
               <StayRow
                 key={stay.id}
                 stay={stay}
@@ -103,6 +197,19 @@ export function HotelStaysPage({
                 propertySlug={propertySlug}
               />
             ))}
+          </div>
+        ) : hasActiveFilters ? (
+          <div className="grid place-items-center gap-4 p-8 text-center sm:p-12">
+            <span className="grid size-12 place-items-center rounded-xl bg-muted">
+              <Search className="size-6" />
+            </span>
+            <div className="max-w-md">
+              <h3 className="text-base font-semibold">No results for this search</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Try a different name, or clear the status and date filters to
+                see all submitted check-ins.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid place-items-center gap-4 p-8 text-center sm:p-12">

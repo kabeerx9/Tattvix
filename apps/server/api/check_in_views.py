@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -35,6 +36,7 @@ from .rbac import Permission
 from .serializers import (
     GuestCheckInSubmitSerializer,
     HotelStayImageAccessSerializer,
+    HotelStayListQuerySerializer,
 )
 
 
@@ -162,12 +164,40 @@ def hotel_stay_list(
         property_slug=property_slug,
         permission=Permission.STAYS_VIEW,
     )
+    query_serializer = HotelStayListQuerySerializer(data=request.query_params)
+    query_serializer.is_valid(raise_exception=True)
+    filters = query_serializer.validated_data
+
     stays = (
         Stay.objects.filter(property=property_)
         .exclude(status=StayStatus.DRAFT)
         .select_related("identity_snapshot", "room")
-        .order_by("-submitted_at", "-created_at")[:100]
     )
+
+    # Name search matches the immutable shared snapshot's guest_data, never
+    # the guest's live profile — a guest editing their profile after
+    # check-in must not change what reception can find them by. See
+    # build_hotel_stay_list_item, which sources guestName the same way.
+    search = filters.get("search")
+    if search:
+        stays = stays.filter(
+            Q(identity_snapshot__guest_data__legalFirstName__icontains=search)
+            | Q(identity_snapshot__guest_data__legalLastName__icontains=search)
+        )
+
+    operational_status = filters.get("operational_status")
+    if operational_status:
+        stays = stays.filter(operational_status=operational_status)
+
+    date_from = filters.get("date_from")
+    if date_from:
+        stays = stays.filter(created_at__date__gte=date_from)
+
+    date_to = filters.get("date_to")
+    if date_to:
+        stays = stays.filter(created_at__date__lte=date_to)
+
+    stays = stays.order_by("-submitted_at", "-created_at")[:100]
     return Response(
         {"stays": [build_hotel_stay_list_item(stay) for stay in stays]}
     )

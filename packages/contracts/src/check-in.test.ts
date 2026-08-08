@@ -6,6 +6,7 @@ import {
   guestCheckInSubmitInputSchema,
   guestShareSchema,
   hotelStayDetailSchema,
+  hotelStayListQuerySchema,
 } from "./check-in";
 
 const submittedStay = {
@@ -119,4 +120,27 @@ test("hotel detail accepts an active immutable identity snapshot", () => {
   });
 
   assert.equal(result.success, true);
+});
+
+test("hotel stay list query accepts an empty filter set", () => {
+  const result = hotelStayListQuerySchema.safeParse({});
+
+  assert.equal(result.success, true);
+});
+
+test("hotel stay list query trims search and rejects short terms", () => {
+  const trimmed = hotelStayListQuerySchema.safeParse({ search: "  Kabeer  " });
+  assert.equal(trimmed.success, true);
+  assert.equal(trimmed.data?.search, "Kabeer");
+
+  const tooShort = hotelStayListQuerySchema.safeParse({ search: "K" });
+  assert.equal(tooShort.success, false);
+});
+
+test("hotel stay list query rejects an unknown operational status", () => {
+  const result = hotelStayListQuerySchema.safeParse({
+    operationalStatus: "ARCHIVED",
+  });
+
+  assert.equal(result.success, false);
 });

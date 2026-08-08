@@ -142,6 +142,17 @@ export const hotelStayListResponseSchema = z.object({
   stays: z.array(hotelStayListItemSchema),
 });
 
+// Query params for the hotel stay list. `search` matches against the shared
+// identity snapshot's guest name (never the live guest profile — see
+// build_hotel_stay_list_item on the server), so a name change on a guest's
+// profile after check-in does not retroactively change what search finds.
+export const hotelStayListQuerySchema = z.object({
+  search: z.string().trim().min(2).optional(),
+  operationalStatus: operationalStayStatusSchema.optional(),
+  dateFrom: z.iso.date().optional(),
+  dateTo: z.iso.date().optional(),
+});
+
 export const sharedCompanionSchema = companionProfileInputSchema.extend({
   isMinor: z.boolean().nullable(),
 });
@@ -197,6 +208,7 @@ export type HotelIdentityAccessReason = z.infer<
 >;
 export type HotelStayListItem = z.infer<typeof hotelStayListItemSchema>;
 export type HotelStayListResponse = z.infer<typeof hotelStayListResponseSchema>;
+export type HotelStayListQuery = z.infer<typeof hotelStayListQuerySchema>;
 export type SharedIdentitySnapshot = z.infer<
   typeof sharedIdentitySnapshotSchema
 >;

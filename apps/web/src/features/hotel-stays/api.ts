@@ -3,6 +3,7 @@ import {
   hotelStayDetailSchema,
   hotelStayImageAccessResponseSchema,
   hotelStayListResponseSchema,
+  type HotelStayListQuery,
   type IdentityDocumentImageSide,
 } from "@tattvix/contracts";
 
@@ -13,9 +14,27 @@ function propertyBase(organizationSlug: string, propertySlug: string) {
 }
 
 export const hotelStaysApi = {
-  list(organizationSlug: string, propertySlug: string) {
+  list(
+    organizationSlug: string,
+    propertySlug: string,
+    query: HotelStayListQuery = {},
+  ) {
+    const params = new URLSearchParams();
+    if (query.search) {
+      params.set("search", query.search);
+    }
+    if (query.operationalStatus) {
+      params.set("operationalStatus", query.operationalStatus);
+    }
+    if (query.dateFrom) {
+      params.set("dateFrom", query.dateFrom);
+    }
+    if (query.dateTo) {
+      params.set("dateTo", query.dateTo);
+    }
+    const search = params.toString();
     return apiClient.requestJson(
-      `${propertyBase(organizationSlug, propertySlug)}/stays/`,
+      `${propertyBase(organizationSlug, propertySlug)}/stays/${search ? `?${search}` : ""}`,
       hotelStayListResponseSchema,
     );
   },

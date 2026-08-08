@@ -1,14 +1,22 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { IdentityDocumentImageSide } from "@tattvix/contracts";
+import type {
+  HotelStayListQuery,
+  IdentityDocumentImageSide,
+} from "@tattvix/contracts";
 
 import { hotelStaysApi } from "./api";
 import { hotelStayKeys } from "./keys";
 
 export const hotelStayQueries = {
-  list: (organizationSlug: string, propertySlug: string) =>
+  list: (
+    organizationSlug: string,
+    propertySlug: string,
+    query: HotelStayListQuery = {},
+  ) =>
     queryOptions({
-      queryKey: hotelStayKeys.list(organizationSlug, propertySlug),
-      queryFn: () => hotelStaysApi.list(organizationSlug, propertySlug),
+      queryKey: hotelStayKeys.list(organizationSlug, propertySlug, query),
+      queryFn: () =>
+        hotelStaysApi.list(organizationSlug, propertySlug, query),
       staleTime: 30_000,
     }),
   detail: (

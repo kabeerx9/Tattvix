@@ -477,3 +477,299 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(storage_class.return_value.delete_object.call_count, 2)
         self.assertTrue(SharedIdentitySnapshot.objects.filter(stay=stay).exists())
         self.assertIn("2 deleted", output.getvalue())
+
+
+class HotelStayListSearchApiTests(APITestCase):
+    """Search/filter behavior for GET hotel-stay-list.
+
+    Reception searches by guest name; the domain rule is that this must
+    match the immutable shared identity snapshot taken at check-in time,
+    never the guest's live, editable profile.
+    """
+
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Tattvix Hotels",
+            slug="tattvix-hotels",
+        )
+        self.property = Property.objects.create(
+            organization=self.organization,
+            name="Tattvix Jaipur",
+            slug="jaipur",
+        )
+        self.other_property = Property.objects.create(
+            organization=self.organization,
+            name="Tattvix Goa",
+            slug="goa",
+        )
+        self.owner = ClerkUser.objects.create(
+            clerk_id="stay_search_owner",
+            email="search-owner@example.com",
+        )
+        Membership.objects.create(
+            user=self.owner,
+            organization=self.organization,
+            role=MembershipRole.OWNER,
+            has_all_properties=True,
+        )
+        self.qr_token = HotelQrToken.objects.create(
+            property=self.property,
+            token_digest="a" * 64,
+            token_hint="jaipur-hint",
+            created_by=self.owner,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+        self.other_qr_token = HotelQrToken.objects.create(
+            property=self.other_property,
+            token_digest="b" * 64,
+            token_hint="goa-hint",
+            created_by=self.owner,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+        self._guest_counter = 0
+
+    def authenticate(self, user):
+        self.client.force_authenticate(
+            user=SimpleNamespace(is_authenticated=True, db_user=user)
+        )
+
+    def list_url(self, property_=None):
+        return reverse(
+            "hotel-stay-list",
+            args=[self.organization.slug, (property_ or self.property).slug],
+        )
+
+    def _create_guest(self, first_name, last_name):
+        self._guest_counter += 1
+        guest = ClerkUser.objects.create(
+            clerk_id=f"stay_search_guest_{self._guest_counter}",
+            email=f"stay-search-guest-{self._guest_counter}@example.com",
+        )
+        GuestProfile.objects.create(
+            user=guest,
+            legal_first_name=first_name,
+            legal_last_name=last_name,
+            phone_number="+919876543210",
+            nationality="IN",
+            address_line_1="12 Example Road",
+            city="Kotdwar",
+            state_region="Uttarakhand",
+            postal_code="246149",
+            country="IN",
+        )
+        return guest
+
+    def _create_stay(
+        self,
+        *,
+        property_,
+        qr_token,
+        guest,
+        first_name,
+        last_name,
+        operational_status=OperationalStayStatus.PENDING_CHECK_IN,
+        created_at=None,
+    ):
+        stay = Stay.objects.create(
+            property=property_,
+            guest=guest,
+            qr_token=qr_token,
+            status=StayStatus.SUBMITTED,
+            operational_status=operational_status,
+            submitted_at=timezone.now(),
+            hotel_access_expires_at=timezone.now() + timedelta(days=30),
+        )
+        SharedIdentitySnapshot.objects.create(
+            stay=stay,
+            guest_data={
+                "legalFirstName": first_name,
+                "legalLastName": last_name,
+            },
+            companion_data=[],
+            document_data={"documentType": "AADHAAR"},
+        )
+        if created_at is not None:
+            Stay.objects.filter(id=stay.id).update(created_at=created_at)
+            stay.refresh_from_db()
+        return stay
+
+    def test_search_matches_first_and_last_name_case_insensitively(self):
+        guest = self._create_guest("Kabeer", "Joshi")
+        stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=guest,
+            first_name="Kabeer",
+            last_name="Joshi",
+        )
+        self.authenticate(self.owner)
+
+        first_name_response = self.client.get(self.list_url(), {"search": "kabeer"})
+        last_name_response = self.client.get(self.list_url(), {"search": "JOSHI"})
+
+        self.assertEqual(first_name_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [s["id"] for s in first_name_response.data["stays"]],
+            [str(stay.public_id)],
+        )
+        self.assertEqual(
+            [s["id"] for s in last_name_response.data["stays"]],
+            [str(stay.public_id)],
+        )
+
+    def test_search_matches_the_immutable_snapshot_not_the_live_profile(self):
+        guest = self._create_guest("Original", "Name")
+        stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=guest,
+            first_name="Original",
+            last_name="Name",
+        )
+        profile = GuestProfile.objects.get(user=guest)
+        profile.legal_first_name = "Changed"
+        profile.legal_last_name = "Person"
+        profile.save(update_fields=["legal_first_name", "legal_last_name"])
+        self.authenticate(self.owner)
+
+        snapshot_name_response = self.client.get(
+            self.list_url(), {"search": "Original"}
+        )
+        live_profile_name_response = self.client.get(
+            self.list_url(), {"search": "Changed"}
+        )
+
+        self.assertEqual(
+            [s["id"] for s in snapshot_name_response.data["stays"]],
+            [str(stay.public_id)],
+        )
+        self.assertEqual(live_profile_name_response.data["stays"], [])
+
+    def test_search_rejects_a_single_character_term(self):
+        self.authenticate(self.owner)
+
+        response = self.client.get(self.list_url(), {"search": "k"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_operational_status_filter(self):
+        pending_guest = self._create_guest("Asha", "Rao")
+        checked_in_guest = self._create_guest("Bala", "Rao")
+        self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=pending_guest,
+            first_name="Asha",
+            last_name="Rao",
+            operational_status=OperationalStayStatus.PENDING_CHECK_IN,
+        )
+        checked_in_stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=checked_in_guest,
+            first_name="Bala",
+            last_name="Rao",
+            operational_status=OperationalStayStatus.CHECKED_IN,
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.get(
+            self.list_url(), {"operationalStatus": "CHECKED_IN"}
+        )
+
+        self.assertEqual(
+            [s["id"] for s in response.data["stays"]],
+            [str(checked_in_stay.public_id)],
+        )
+
+    def test_date_range_filter(self):
+        now = timezone.now()
+        in_range_guest = self._create_guest("Chetan", "Verma")
+        out_of_range_guest = self._create_guest("Divya", "Verma")
+        in_range_stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=in_range_guest,
+            first_name="Chetan",
+            last_name="Verma",
+            created_at=now - timedelta(days=5),
+        )
+        self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=out_of_range_guest,
+            first_name="Divya",
+            last_name="Verma",
+            created_at=now - timedelta(days=40),
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.get(
+            self.list_url(),
+            {
+                "dateFrom": (now - timedelta(days=10)).date().isoformat(),
+                "dateTo": now.date().isoformat(),
+            },
+        )
+
+        self.assertEqual(
+            [s["id"] for s in response.data["stays"]],
+            [str(in_range_stay.public_id)],
+        )
+
+    def test_search_and_status_filters_combine(self):
+        matching_guest = self._create_guest("Esha", "Kapoor")
+        wrong_status_guest = self._create_guest("Esha", "Malhotra")
+        matching_stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=matching_guest,
+            first_name="Esha",
+            last_name="Kapoor",
+            operational_status=OperationalStayStatus.CHECKED_IN,
+        )
+        self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=wrong_status_guest,
+            first_name="Esha",
+            last_name="Malhotra",
+            operational_status=OperationalStayStatus.PENDING_CHECK_IN,
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.get(
+            self.list_url(),
+            {"search": "Esha", "operationalStatus": "CHECKED_IN"},
+        )
+
+        self.assertEqual(
+            [s["id"] for s in response.data["stays"]],
+            [str(matching_stay.public_id)],
+        )
+
+    def test_another_propertys_matching_stay_never_appears(self):
+        own_guest = self._create_guest("Kabeer", "Joshi")
+        own_stay = self._create_stay(
+            property_=self.property,
+            qr_token=self.qr_token,
+            guest=own_guest,
+            first_name="Kabeer",
+            last_name="Joshi",
+        )
+        other_guest = self._create_guest("Kabeer", "Joshi")
+        self._create_stay(
+            property_=self.other_property,
+            qr_token=self.other_qr_token,
+            guest=other_guest,
+            first_name="Kabeer",
+            last_name="Joshi",
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.get(self.list_url(), {"search": "Kabeer"})
+
+        self.assertEqual(
+            [s["id"] for s in response.data["stays"]],
+            [str(own_stay.public_id)],
+        )
