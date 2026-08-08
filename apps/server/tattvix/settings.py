@@ -96,7 +96,8 @@ DATABASES = {
         DATABASE_URL,
         conn_max_age=60,
         conn_health_checks=True,
-        ssl_require=True,
+        # Local docker Postgres has no TLS; anything remote must keep it.
+        ssl_require=env_bool("DATABASE_SSL_REQUIRE", True),
     )
 }
 
