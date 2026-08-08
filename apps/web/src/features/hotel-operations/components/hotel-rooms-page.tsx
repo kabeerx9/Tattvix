@@ -11,7 +11,7 @@ import { BedDouble, BrushCleaning, CircleCheck, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
 
 import { hotelOperationsMutations } from "../mutations";
@@ -174,16 +174,12 @@ export function HotelRoomsPage({
       </div>
 
       {!data.rooms.length ? (
-        <Surface className="grid place-items-center gap-4 p-10 text-center">
-          <span className="grid size-12 place-items-center rounded-xl bg-muted">
-            <BedDouble className="size-6" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">No rooms configured</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Add the first room before reception confirms a guest check-in.
-            </p>
-          </div>
+        <Surface>
+          <EmptyState
+            icon={BedDouble}
+            title="No rooms configured"
+            description="Add the first room before reception confirms a guest check-in."
+          />
         </Surface>
       ) : null}
     </div>

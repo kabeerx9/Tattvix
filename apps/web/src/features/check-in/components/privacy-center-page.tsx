@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -102,9 +102,12 @@ export function PrivacyCenterPage() {
                 ))}
               </div>
             ) : (
-              <Surface className="p-6 text-sm text-muted-foreground">
-                No active stay right now. Once a hotel checks you in, it will
-                show up here with your room number.
+              <Surface>
+                <EmptyState
+                  icon={Hotel}
+                  title="No active stay right now"
+                  description="Once a hotel checks you in, it will show up here with your room number."
+                />
               </Surface>
             )}
           </Section>
@@ -132,8 +135,12 @@ export function PrivacyCenterPage() {
                 ))}
               </div>
             ) : (
-              <Surface className="p-6 text-sm text-muted-foreground">
-                Past stays will appear here after checkout.
+              <Surface>
+                <EmptyState
+                  icon={History}
+                  title="No past stays yet"
+                  description="Past stays will appear here after checkout."
+                />
               </Surface>
             )}
           </Section>

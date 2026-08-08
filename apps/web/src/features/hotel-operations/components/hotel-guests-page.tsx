@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight, BedDouble, History, UserRound } from "lucide-react";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 
 import { hotelOperationsQueries } from "../queries";
 
@@ -91,7 +91,7 @@ function GuestSection({
           ))}
         </div>
       ) : (
-        <p className="p-6 text-sm text-muted-foreground">{empty}</p>
+        <EmptyState icon={Icon} title="Nothing here yet" description={empty} />
       )}
     </Surface>
   );

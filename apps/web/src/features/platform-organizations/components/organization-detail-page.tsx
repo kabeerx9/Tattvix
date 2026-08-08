@@ -17,7 +17,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { Hotel, Plus, UserRoundPlus, Users } from "lucide-react";
 import { useState } from "react";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
 import { ApiError } from "@/lib/api";
 
@@ -175,9 +175,11 @@ function PropertiesSection({
           ))}
         </div>
       ) : (
-        <p className="p-6 text-sm text-muted-foreground">
-          No properties yet. Add the first property for this organization.
-        </p>
+        <EmptyState
+          icon={Hotel}
+          title="No properties yet"
+          description="Add the first property for this organization."
+        />
       )}
     </Surface>
   );
@@ -392,9 +394,11 @@ function MembersSection({
           ))}
         </div>
       ) : (
-        <p className="p-6 text-sm text-muted-foreground">
-          No members yet. Add the first member for this organization.
-        </p>
+        <EmptyState
+          icon={Users}
+          title="No members yet"
+          description="Add the first member for this organization."
+        />
       )}
     </Surface>
   );

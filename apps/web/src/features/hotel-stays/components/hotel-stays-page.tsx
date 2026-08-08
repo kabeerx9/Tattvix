@@ -29,7 +29,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { useDebouncedValue } from "@/core/hooks/use-debounced-value";
 import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
@@ -199,31 +199,17 @@ export function HotelStaysPage({
             ))}
           </div>
         ) : hasActiveFilters ? (
-          <div className="grid place-items-center gap-4 p-8 text-center sm:p-12">
-            <span className="grid size-12 place-items-center rounded-xl bg-muted">
-              <Search className="size-6" />
-            </span>
-            <div className="max-w-md">
-              <h3 className="text-base font-semibold">No results for this search</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Try a different name, or clear the status and date filters to
-                see all submitted check-ins.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="No results for this search"
+            description="Try a different name, or clear the status and date filters to see all submitted check-ins."
+          />
         ) : (
-          <div className="grid place-items-center gap-4 p-8 text-center sm:p-12">
-            <span className="grid size-12 place-items-center rounded-xl bg-muted">
-              <UsersRound className="size-6" />
-            </span>
-            <div className="max-w-md">
-              <h3 className="text-base font-semibold">No submitted check-ins yet</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Generate the property QR. A guest will appear here only after
-                reviewing and approving their identity package.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={UsersRound}
+            title="No submitted check-ins yet"
+            description="Generate the property QR. A guest will appear here only after reviewing and approving their identity package."
+          />
         )}
       </Surface>
     </div>

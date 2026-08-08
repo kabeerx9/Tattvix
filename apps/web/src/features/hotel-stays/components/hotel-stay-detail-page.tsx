@@ -39,7 +39,7 @@ import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
@@ -658,18 +658,16 @@ function AccessPolicy({ stay }: { stay: HotelStayDetail }) {
 
 function ExpiredIdentity({ stay }: { stay: HotelStayDetail }) {
   return (
-    <Surface className="grid place-items-center gap-4 p-8 text-center sm:p-12">
-      <span className="grid size-12 place-items-center rounded-xl bg-muted">
-        <ShieldOff className="size-6" />
-      </span>
-      <div className="max-w-lg">
-        <h2 className="text-lg font-semibold">Identity access is no longer available</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          {stay.identityAccess.reason === "REVOKED"
+    <Surface>
+      <EmptyState
+        icon={ShieldOff}
+        title="Identity access is no longer available"
+        description={
+          stay.identityAccess.reason === "REVOKED"
             ? "The guest revoked consent. Staff cannot generate new document links or reopen the submitted identity snapshot."
-            : "The authorized viewing window has ended. The stay remains listed without exposing its identity package."}
-        </p>
-      </div>
+            : "The authorized viewing window has ended. The stay remains listed without exposing its identity package."
+        }
+      />
     </Surface>
   );
 }

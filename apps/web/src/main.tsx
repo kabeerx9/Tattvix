@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/react";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
+import { RouteErrorState } from "./components/design-system";
 import Loader from "./components/loader";
 import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
@@ -15,6 +16,9 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultPendingComponent: () => <Loader />,
+  defaultErrorComponent: ({ error, reset }) => (
+    <RouteErrorState error={error} reset={reset} />
+  ),
   context: {
     auth: undefined!,
     queryClient,

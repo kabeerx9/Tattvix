@@ -20,7 +20,7 @@ import { Baby, CheckCircle2, Pencil, Plus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
 import { ApiError } from "@/lib/api";
@@ -177,10 +177,14 @@ function CompanionCard({ companion, onEdit }: { companion: CompanionProfile; onE
 
 function EmptyCompanions({ onAdd }: { onAdd: () => void }) {
   return (
-    <Surface className="grid place-items-center gap-4 p-8 text-center sm:p-12">
-      <span className="grid size-12 place-items-center rounded-xl bg-accent text-primary"><Baby className="size-6" /></span>
-      <div className="max-w-md"><h2 className="text-lg font-semibold">No companions yet</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Add family members or people you travel with often. This is optional and does not add anyone to a hotel stay.</p></div>
-      <Button onClick={onAdd}><Plus />Add your first companion</Button>
+    <Surface>
+      <EmptyState
+        icon={Baby}
+        tone="accent"
+        title="No companions yet"
+        description="Add family members or people you travel with often. This is optional and does not add anyone to a hotel stay."
+        action={<Button onClick={onAdd}><Plus />Add your first companion</Button>}
+      />
     </Surface>
   );
 }

@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight, Building2, Plus, ShieldAlert } from "lucide-react";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 
 import { platformOrganizationQueries } from "../queries";
 
@@ -78,23 +78,18 @@ export function OrganizationListPage() {
           ))}
         </div>
       ) : (
-        <Surface className="grid place-items-center gap-4 p-10 text-center">
-          <span className="grid size-12 place-items-center rounded-xl bg-muted">
-            <Building2 className="size-6" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">
-              No hotels onboarded yet
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Onboard the first organization, property, and owner to get
-              started.
-            </p>
-          </div>
-          <Button nativeButton={false} render={<Link to="/admin/onboard" />}>
-            <Plus />
-            Onboard a hotel
-          </Button>
+        <Surface>
+          <EmptyState
+            icon={Building2}
+            title="No hotels onboarded yet"
+            description="Onboard the first organization, property, and owner to get started."
+            action={
+              <Button nativeButton={false} render={<Link to="/admin/onboard" />}>
+                <Plus />
+                Onboard a hotel
+              </Button>
+            }
+          />
         </Surface>
       )}
     </div>

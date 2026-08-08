@@ -2,6 +2,7 @@ import type {
   PlatformOversightAuditEntry,
   PlatformOversightPropertyStays,
 } from "@tattvix/contracts";
+import { Button } from "@tattvix/ui/components/button";
 import {
   Select,
   SelectContent,
@@ -10,10 +11,11 @@ import {
   SelectValue,
 } from "@tattvix/ui/components/select";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { ClipboardList, Hotel, ShieldAlert } from "lucide-react";
+import { ClipboardList, Hotel, RefreshCw, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { ApiError } from "@/lib/api";
 
 import { platformOversightQueries } from "../queries";
 
@@ -85,9 +87,11 @@ function StaysOverviewSection() {
           </table>
         </div>
       ) : (
-        <p className="p-6 text-sm text-muted-foreground">
-          No active properties yet. Onboard a hotel to see stay activity here.
-        </p>
+        <EmptyState
+          icon={Hotel}
+          title="No active properties yet"
+          description="Onboard a hotel to see stay activity here."
+        />
       )}
     </Surface>
   );
@@ -117,7 +121,7 @@ function PropertyRow({
 function AuditFeedSection() {
   const [organizationSlug, setOrganizationSlug] = useState("");
   const [action, setAction] = useState("");
-  const { data, isPending, isError } = useQuery(
+  const { data, isPending, isError, error, refetch, isFetching } = useQuery(
     platformOversightQueries.audit({
       organizationSlug: organizationSlug || undefined,
       action: action || undefined,
@@ -125,6 +129,8 @@ function AuditFeedSection() {
     }),
   );
   const entries = data?.entries ?? [];
+  const errorMessage =
+    error instanceof ApiError ? error.message : "The audit trail could not be loaded.";
 
   return (
     <Surface>
@@ -177,9 +183,17 @@ function AuditFeedSection() {
           Loading audit events...
         </p>
       ) : isError ? (
-        <p role="alert" className="p-6 text-sm text-destructive">
-          The audit trail could not be loaded.
-        </p>
+        <EmptyState
+          icon={ShieldAlert}
+          title="The audit trail could not be loaded"
+          description={errorMessage}
+          action={
+            <Button variant="outline" disabled={isFetching} onClick={() => refetch()}>
+              <RefreshCw />
+              {isFetching ? "Retrying..." : "Retry"}
+            </Button>
+          }
+        />
       ) : entries.length ? (
         <div className="divide-y">
           {entries.map((entry) => (
@@ -187,9 +201,11 @@ function AuditFeedSection() {
           ))}
         </div>
       ) : (
-        <p className="p-6 text-sm text-muted-foreground">
-          No audit events match these filters yet.
-        </p>
+        <EmptyState
+          icon={ClipboardList}
+          title="No audit events match these filters"
+          description="Clear the filters, or check back after the next platform action."
+        />
       )}
     </Surface>
   );
