@@ -247,6 +247,19 @@ if not DEBUG and (
         "Production object storage must use HTTPS and non-development credentials."
     )
 
+THROTTLE_PUBLIC_CHECK_IN_PER_MINUTE = env_positive_int(
+    "THROTTLE_PUBLIC_CHECK_IN_PER_MINUTE",
+    30,
+)
+THROTTLE_PUBLIC_WEBHOOK_PER_MINUTE = env_positive_int(
+    "THROTTLE_PUBLIC_WEBHOOK_PER_MINUTE",
+    60,
+)
+THROTTLE_IDENTITY_UPLOAD_PER_MINUTE = env_positive_int(
+    "THROTTLE_IDENTITY_UPLOAD_PER_MINUTE",
+    20,
+)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.ClerkAuthentication",
@@ -255,4 +268,14 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
+    # Scopes are opted into per-view via ScopedRateThrottle subclasses; a
+    # view without a matching `throttle_scope` is never throttled, so
+    # /api/health/ and every authenticated, non-upload endpoint stay
+    # unaffected by these rates.
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {
+        "public-check-in": f"{THROTTLE_PUBLIC_CHECK_IN_PER_MINUTE}/min",
+        "public-webhook": f"{THROTTLE_PUBLIC_WEBHOOK_PER_MINUTE}/min",
+        "identity-upload": f"{THROTTLE_IDENTITY_UPLOAD_PER_MINUTE}/min",
+    },
 }

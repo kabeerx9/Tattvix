@@ -3,9 +3,10 @@ import logging
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from .identity_documents import (
     IdentityDocumentImageMissing,
@@ -28,6 +29,27 @@ from .serializers import (
 
 
 logger = logging.getLogger(__name__)
+
+
+class IdentityUploadThrottle(ScopedRateThrottle):
+    """Per-user rate limit for presigned upload issuance/finalization.
+
+    ScopedRateThrottle's default get_cache_key keys authenticated requests
+    off `request.user.pk`, but our authenticated principal is the
+    ClerkPrincipal dataclass (see api.authentication.ClerkAuthentication),
+    which has no `.pk`. Key off the underlying ClerkUser row's id instead.
+
+    Note: `self.scope` here is set by ScopedRateThrottle.allow_request from
+    `view.throttle_scope` at request time, not by a class attribute — see
+    the `.cls.throttle_scope = "identity-upload"` assignments below.
+    """
+
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            ident = request.user.db_user.id
+        else:
+            ident = self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}
 
 
 @api_view(["GET", "POST"])
@@ -79,6 +101,7 @@ def guest_identity_document_detail(request, document_id: int):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+@throttle_classes([IdentityUploadThrottle])
 def guest_identity_document_upload(request, document_id: int):
     document = _owned_document(request, document_id)
     serializer = IdentityDocumentImageUploadSerializer(data=request.data)
@@ -108,8 +131,12 @@ def guest_identity_document_upload(request, document_id: int):
     )
 
 
+guest_identity_document_upload.cls.throttle_scope = "identity-upload"
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+@throttle_classes([IdentityUploadThrottle])
 def guest_identity_document_upload_complete(request, document_id: int):
     document = _owned_document(request, document_id)
     serializer = IdentityDocumentImageFinalizeSerializer(data=request.data)
@@ -133,6 +160,9 @@ def guest_identity_document_upload_complete(request, document_id: int):
         )
 
     return Response(build_identity_document_payload(updated_document))
+
+
+guest_identity_document_upload_complete.cls.throttle_scope = "identity-upload"
 
 
 @api_view(["POST"])

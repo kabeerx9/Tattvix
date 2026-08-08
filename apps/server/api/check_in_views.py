@@ -3,9 +3,10 @@ import logging
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from .check_in import (
     CheckInError,
@@ -42,10 +43,16 @@ logger = logging.getLogger(__name__)
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def check_in_context(request, raw_token: str):
     try:
         qr_token = get_valid_hotel_qr_token(raw_token)
     except CheckInError as exc:
+        # Both "no such token" and "expired/revoked/inactive" fall through
+        # the same query returning None in get_valid_hotel_qr_token, so
+        # they already raise the identical invalid_qr CheckInError here —
+        # nothing to unify, non-existent and expired tokens are already
+        # indistinguishable to the caller (same 404 status + body shape).
         return _check_in_error_response(exc, status.HTTP_404_NOT_FOUND)
 
     guest = (
@@ -54,6 +61,14 @@ def check_in_context(request, raw_token: str):
         else None
     )
     return Response(build_check_in_context(qr_token=qr_token, guest=guest))
+
+
+# ScopedRateThrottle reads `view.throttle_scope` at request time (see
+# rest_framework.throttling.ScopedRateThrottle.allow_request), not a
+# `scope` attribute on the throttle class itself. `@api_view` returns
+# `WrappedAPIView.as_view()`, whose `.cls` is the generated view class, so
+# this is the standard way to set it for a function-based view.
+check_in_context.cls.throttle_scope = "public-check-in"
 
 
 @api_view(["POST"])
