@@ -3,6 +3,7 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
@@ -133,7 +134,12 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(response.data["property"]["name"], "Tattvix Jaipur")
         self.assertEqual(
             response.data["accessPolicy"],
-            {"maximumDays": 30, "postCheckoutGraceHours": 24},
+            {
+                "maximumDays": settings.HOTEL_IDENTITY_MAX_ACCESS_DAYS,
+                "postCheckoutGraceHours": (
+                    settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS
+                ),
+            },
         )
         self.assertIsNone(response.data["existingStay"])
         self.assertNotIn("guest", response.data)
