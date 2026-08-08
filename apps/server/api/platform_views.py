@@ -12,6 +12,8 @@ from .platform_admin import (
     build_property_payload,
     create_organization_property,
     list_organizations,
+    list_platform_oversight_audit,
+    list_platform_property_stay_overview,
     update_organization_member,
 )
 from .platform_onboarding import PlatformOnboardingError, onboard_organization
@@ -20,6 +22,7 @@ from .serializers import (
     PlatformMemberAddSerializer,
     PlatformMemberUpdateSerializer,
     PlatformOrganizationOnboardingSerializer,
+    PlatformOversightAuditQuerySerializer,
     PlatformPropertyCreateSerializer,
     PlatformUserSearchQuerySerializer,
     PlatformUserSearchResultSerializer,
@@ -141,3 +144,25 @@ def platform_organization_member_detail(
             status=status.HTTP_400_BAD_REQUEST,
         )
     return Response(build_member_payload(updated))
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPlatformAdmin])
+def platform_oversight_stays(request):
+    return Response({"properties": list_platform_property_stay_overview()})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPlatformAdmin])
+def platform_oversight_audit(request):
+    query_serializer = PlatformOversightAuditQuerySerializer(
+        data=request.query_params
+    )
+    query_serializer.is_valid(raise_exception=True)
+    validated = query_serializer.validated_data
+    entries = list_platform_oversight_audit(
+        organization_slug=validated.get("organization_slug"),
+        action=validated.get("action"),
+        limit=validated.get("limit", 50),
+    )
+    return Response({"entries": entries})

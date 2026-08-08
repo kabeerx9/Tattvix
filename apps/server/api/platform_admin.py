@@ -3,12 +3,15 @@ from django.db.models import Count, Q
 
 from .models import (
     ClerkUser,
+    IdentityAccessAudit,
     Membership,
     MembershipRole,
+    OperationalStayStatus,
     Organization,
     PlatformAuditAction,
     PlatformAuditLog,
     Property,
+    StayStatus,
 )
 from .platform_onboarding import PlatformOnboardingError
 from .user_lookup import (
@@ -226,3 +229,132 @@ def update_organization_member(
         if len(update_fields) > 1:
             locked.save(update_fields=update_fields)
         return locked
+
+
+# --- Platform oversight ---
+#
+# Privacy constraint: these functions must never read or return identity
+# document images, document numbers, or presigned URLs. They aggregate stay
+# statuses (counts only) and audit metadata (who/when/what action), never
+# the SharedIdentitySnapshot/SharedIdentityDocumentImage payloads themselves.
+
+
+def list_platform_property_stay_overview() -> list[dict]:
+    """Per-property stay counts by operational status, single aggregate query.
+
+    Draft stays (never submitted to a hotel) are excluded from all counts,
+    matching the scope hotel staff already see in hotel_stay_list/hotel_guest_list.
+    """
+    properties = (
+        Property.objects.filter(is_active=True)
+        .select_related("organization")
+        .annotate(
+            pending_check_in_count=Count(
+                "stays",
+                filter=(
+                    Q(stays__operational_status=OperationalStayStatus.PENDING_CHECK_IN)
+                    & ~Q(stays__status=StayStatus.DRAFT)
+                ),
+                distinct=True,
+            ),
+            checked_in_count=Count(
+                "stays",
+                filter=Q(stays__operational_status=OperationalStayStatus.CHECKED_IN),
+                distinct=True,
+            ),
+            checked_out_count=Count(
+                "stays",
+                filter=Q(stays__operational_status=OperationalStayStatus.CHECKED_OUT),
+                distinct=True,
+            ),
+        )
+        .order_by("organization__name", "name", "id")
+    )
+
+    payload = []
+    for property_ in properties:
+        status_counts = {
+            "pendingCheckIn": property_.pending_check_in_count,
+            "checkedIn": property_.checked_in_count,
+            "checkedOut": property_.checked_out_count,
+        }
+        payload.append(
+            {
+                "propertyId": property_.id,
+                "propertyName": property_.name,
+                "organizationName": property_.organization.name,
+                "organizationSlug": property_.organization.slug,
+                "statusCounts": status_counts,
+                "totalStays": sum(status_counts.values()),
+            }
+        )
+    return payload
+
+
+def _build_identity_audit_entry(audit: IdentityAccessAudit) -> dict:
+    return {
+        "kind": "IDENTITY_ACCESS",
+        "id": f"identity-{audit.id}",
+        "at": audit.created_at,
+        "actorEmail": audit.actor.email,
+        "action": audit.action,
+        "organizationSlug": audit.stay.property.organization.slug,
+        "propertyName": audit.stay.property.name,
+        "stayId": str(audit.stay.public_id),
+    }
+
+
+def _build_platform_audit_entry(audit: PlatformAuditLog) -> dict:
+    return {
+        "kind": "PLATFORM",
+        "id": f"platform-{audit.id}",
+        "at": audit.created_at,
+        "actorEmail": audit.actor.email,
+        "action": audit.action,
+        "organizationSlug": audit.organization.slug,
+        "target": audit.target,
+    }
+
+
+def list_platform_oversight_audit(
+    *,
+    organization_slug: str | None = None,
+    action: str | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Merge the identity-access and platform-admin audit trails by recency.
+
+    Each source is queried independently (already indexed/ordered by
+    created_at) and capped at `limit` rows before merging, so this stays a
+    bounded two-query fetch rather than a full-table scan even as either
+    audit log grows.
+    """
+    identity_qs = (
+        IdentityAccessAudit.objects.select_related(
+            "actor", "stay", "stay__property", "stay__property__organization"
+        )
+        .order_by("-created_at", "-id")
+    )
+    platform_qs = (
+        PlatformAuditLog.objects.select_related("actor", "organization")
+        .order_by("-created_at", "-id")
+    )
+
+    if organization_slug:
+        identity_qs = identity_qs.filter(
+            stay__property__organization__slug=organization_slug
+        )
+        platform_qs = platform_qs.filter(organization__slug=organization_slug)
+    if action:
+        identity_qs = identity_qs.filter(action=action)
+        platform_qs = platform_qs.filter(action=action)
+
+    entries = [
+        _build_identity_audit_entry(audit) for audit in identity_qs[:limit]
+    ] + [_build_platform_audit_entry(audit) for audit in platform_qs[:limit]]
+    entries.sort(key=lambda entry: entry["at"], reverse=True)
+
+    merged = entries[:limit]
+    for entry in merged:
+        entry["at"] = entry["at"].isoformat()
+    return merged

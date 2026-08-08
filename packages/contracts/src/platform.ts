@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { identityAccessActionSchema } from "./check-in";
+
 const namedSlugSchema = z.object({
   name: z.string().trim().min(1).max(255),
   slug: z.string().trim().min(1).max(255).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -118,6 +120,110 @@ export const platformMemberUpdateInputSchema = z.object({
   (value) => value.role !== undefined || value.isActive !== undefined,
   { message: "Provide role or isActive." },
 );
+
+// --- Platform oversight ---
+//
+// Super-admin oversight is read-only and privacy-constrained: it may show
+// stay counts/statuses and audit metadata, but must NEVER expose identity
+// document images, document numbers, or presigned URLs. The audit feed
+// merges two distinct audit sources into one paginated response using a
+// discriminated "kind" field, rather than two endpoints the web client
+// would have to interleave itself:
+//   - IDENTITY_ACCESS: who viewed/downloaded a guest's identity details
+//     (from IdentityAccessAudit, stay-scoped).
+//   - PLATFORM: platform-admin actions like onboarding or membership
+//     changes (from PlatformAuditLog, organization-scoped).
+
+export const platformOversightStatusCountsSchema = z.object({
+  pendingCheckIn: z.number().int().nonnegative(),
+  checkedIn: z.number().int().nonnegative(),
+  checkedOut: z.number().int().nonnegative(),
+}).strict();
+
+export const platformOversightPropertyStaysSchema = z.object({
+  propertyId: z.number(),
+  propertyName: z.string(),
+  organizationName: z.string(),
+  organizationSlug: z.string(),
+  statusCounts: platformOversightStatusCountsSchema,
+  totalStays: z.number().int().nonnegative(),
+}).strict();
+
+export const platformOversightStaysResponseSchema = z.object({
+  properties: z.array(platformOversightPropertyStaysSchema),
+}).strict();
+
+export const platformAuditActionSchema = z.enum([
+  "PROPERTY_CREATED",
+  "MEMBER_ADDED",
+  "MEMBER_ROLE_CHANGED",
+  "MEMBER_DEACTIVATED",
+  "MEMBER_REACTIVATED",
+]);
+
+const dateTimeSchema = z.iso.datetime({ offset: true });
+
+export const platformOversightIdentityAuditEntrySchema = z.object({
+  kind: z.literal("IDENTITY_ACCESS"),
+  id: z.string(),
+  at: dateTimeSchema,
+  actorEmail: z.string(),
+  action: identityAccessActionSchema,
+  organizationSlug: z.string(),
+  propertyName: z.string(),
+  stayId: z.uuid(),
+}).strict();
+
+export const platformOversightPlatformAuditEntrySchema = z.object({
+  kind: z.literal("PLATFORM"),
+  id: z.string(),
+  at: dateTimeSchema,
+  actorEmail: z.string(),
+  action: platformAuditActionSchema,
+  organizationSlug: z.string(),
+  target: z.string(),
+}).strict();
+
+export const platformOversightAuditEntrySchema = z.discriminatedUnion("kind", [
+  platformOversightIdentityAuditEntrySchema,
+  platformOversightPlatformAuditEntrySchema,
+]);
+
+export const platformOversightAuditResponseSchema = z.object({
+  entries: z.array(platformOversightAuditEntrySchema),
+}).strict();
+
+export const platformOversightAuditQuerySchema = z.object({
+  organizationSlug: z.string().trim().min(1).max(255).optional(),
+  action: z.string().trim().min(1).max(32).optional(),
+  limit: z.coerce.number().int().positive().max(200).optional(),
+}).strict();
+
+export type PlatformOversightStatusCounts = z.infer<
+  typeof platformOversightStatusCountsSchema
+>;
+export type PlatformOversightPropertyStays = z.infer<
+  typeof platformOversightPropertyStaysSchema
+>;
+export type PlatformOversightStaysResponse = z.infer<
+  typeof platformOversightStaysResponseSchema
+>;
+export type PlatformAuditAction = z.infer<typeof platformAuditActionSchema>;
+export type PlatformOversightIdentityAuditEntry = z.infer<
+  typeof platformOversightIdentityAuditEntrySchema
+>;
+export type PlatformOversightPlatformAuditEntry = z.infer<
+  typeof platformOversightPlatformAuditEntrySchema
+>;
+export type PlatformOversightAuditEntry = z.infer<
+  typeof platformOversightAuditEntrySchema
+>;
+export type PlatformOversightAuditResponse = z.infer<
+  typeof platformOversightAuditResponseSchema
+>;
+export type PlatformOversightAuditQuery = z.infer<
+  typeof platformOversightAuditQuerySchema
+>;
 
 export type PlatformMembershipRole = z.infer<typeof platformMembershipRoleSchema>;
 export type PlatformOrganizationSummary = z.infer<

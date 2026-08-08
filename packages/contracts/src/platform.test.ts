@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   platformOrganizationOnboardingInputSchema,
   platformOrganizationOnboardingResponseSchema,
+  platformOversightAuditResponseSchema,
+  platformOversightStaysResponseSchema,
   platformUserSearchParamsSchema,
   platformUserSearchResponseSchema,
 } from "./platform.ts";
@@ -70,5 +72,80 @@ describe("platform user search contracts", () => {
 
   it("rejects searches shorter than three characters", () => {
     assert.throws(() => platformUserSearchParamsSchema.parse({ email: "ow" }));
+  });
+});
+
+describe("platform oversight contracts", () => {
+  it("accepts a stays overview response with only status counts", () => {
+    const response = {
+      properties: [{
+        propertyId: 1,
+        propertyName: "Tattvix Jaipur",
+        organizationName: "Tattvix Hotels",
+        organizationSlug: "tattvix-hotels",
+        statusCounts: { pendingCheckIn: 1, checkedIn: 2, checkedOut: 3 },
+        totalStays: 6,
+      }],
+    };
+    assert.deepEqual(platformOversightStaysResponseSchema.parse(response), response);
+  });
+
+  it("accepts a merged audit feed with both entry kinds", () => {
+    const response = {
+      entries: [
+        {
+          kind: "IDENTITY_ACCESS",
+          id: "identity-1",
+          at: "2024-01-01T00:00:00+00:00",
+          actorEmail: "staff@example.com",
+          action: "DOCUMENT_VIEWED",
+          organizationSlug: "tattvix-hotels",
+          propertyName: "Tattvix Jaipur",
+          stayId: "12345678-1234-4123-8123-123456789012",
+        },
+        {
+          kind: "PLATFORM",
+          id: "platform-1",
+          at: "2024-01-01T00:00:01+00:00",
+          actorEmail: "admin@example.com",
+          action: "MEMBER_ADDED",
+          organizationSlug: "tattvix-hotels",
+          target: "staff@example.com",
+        },
+      ],
+    };
+    assert.deepEqual(platformOversightAuditResponseSchema.parse(response), response);
+  });
+
+  it("rejects audit and stays payloads that leak identity document fields", () => {
+    const withDocumentNumber = {
+      entries: [
+        {
+          kind: "IDENTITY_ACCESS",
+          id: "identity-1",
+          at: "2024-01-01T00:00:00+00:00",
+          actorEmail: "staff@example.com",
+          action: "DOCUMENT_VIEWED",
+          organizationSlug: "tattvix-hotels",
+          propertyName: "Tattvix Jaipur",
+          stayId: "12345678-1234-4123-8123-123456789012",
+          documentNumber: "X1234567",
+        },
+      ],
+    };
+    assert.throws(() => platformOversightAuditResponseSchema.parse(withDocumentNumber));
+
+    const withObjectKey = {
+      properties: [{
+        propertyId: 1,
+        propertyName: "Tattvix Jaipur",
+        organizationName: "Tattvix Hotels",
+        organizationSlug: "tattvix-hotels",
+        statusCounts: { pendingCheckIn: 1, checkedIn: 2, checkedOut: 3 },
+        totalStays: 6,
+        objectKey: "leaked/key.jpg",
+      }],
+    };
+    assert.throws(() => platformOversightStaysResponseSchema.parse(withObjectKey));
   });
 });

@@ -65,6 +65,20 @@ class PlatformMemberUpdateSerializer(serializers.Serializer):
         return attrs
 
 
+class PlatformOversightAuditQuerySerializer(serializers.Serializer):
+    organizationSlug = serializers.RegexField(
+        regex=SLUG_PATTERN,
+        source="organization_slug",
+        required=False,
+    )
+    action = serializers.CharField(
+        max_length=32,
+        required=False,
+        trim_whitespace=True,
+    )
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=200)
+
+
 class GuestProfileSerializer(serializers.ModelSerializer):
     legalFirstName = serializers.CharField(
         source="legal_first_name", allow_blank=True, max_length=150

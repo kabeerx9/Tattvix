@@ -1,7 +1,7 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, Plus } from "lucide-react";
+import { ArrowRight, Building2, Plus, ShieldAlert } from "lucide-react";
 
 import { PageHeader, Surface } from "@/components/design-system";
 
@@ -17,13 +17,23 @@ export function OrganizationListPage() {
         title="Organizations"
         description="Every hotel business onboarded to Tattvix, with its properties and members."
         action={
-          <Button
-            nativeButton={false}
-            render={<Link to="/admin/onboard" />}
-          >
-            <Plus />
-            Onboard a hotel
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link to="/admin/oversight" />}
+            >
+              <ShieldAlert />
+              Oversight
+            </Button>
+            <Button
+              nativeButton={false}
+              render={<Link to="/admin/onboard" />}
+            >
+              <Plus />
+              Onboard a hotel
+            </Button>
+          </div>
         }
       />
 
