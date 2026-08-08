@@ -106,7 +106,7 @@ def guest_stay_list(request):
     stays = (
         Stay.objects.filter(guest=request.user.db_user)
         .exclude(status=StayStatus.DRAFT)
-        .select_related("property__organization")
+        .select_related("property__organization", "room")
         .prefetch_related("identity_access_events")
         .order_by("-submitted_at", "-created_at")
     )
@@ -150,7 +150,7 @@ def hotel_stay_list(
     stays = (
         Stay.objects.filter(property=property_)
         .exclude(status=StayStatus.DRAFT)
-        .select_related("identity_snapshot")
+        .select_related("identity_snapshot", "room")
         .order_by("-submitted_at", "-created_at")[:100]
     )
     return Response(
@@ -173,7 +173,7 @@ def hotel_stay_detail(
         permission=Permission.STAYS_VIEW,
     )
     stay = get_object_or_404(
-        Stay.objects.select_related("identity_snapshot").prefetch_related(
+        Stay.objects.select_related("identity_snapshot", "room").prefetch_related(
             "identity_snapshot__document_images"
         ),
         public_id=stay_id,

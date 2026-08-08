@@ -10,8 +10,12 @@ import {
 const submittedStay = {
   id: "9f04591d-2cc7-4ed0-b84a-f41ca62b0c10",
   status: "SUBMITTED",
+  operationalStatus: "PENDING_CHECK_IN",
+  room: null,
   submittedAt: "2026-07-18T12:00:00Z",
   closedAt: null,
+  checkedInAt: null,
+  checkedOutAt: null,
   hotelAccessExpiresAt: "2026-08-17T12:00:00Z",
 } as const;
 

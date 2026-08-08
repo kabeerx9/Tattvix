@@ -23,6 +23,13 @@ from .identity_document_views import (
     guest_identity_document_upload,
     guest_identity_document_upload_complete,
 )
+from .hotel_operation_views import (
+    hotel_guest_list,
+    hotel_room_list,
+    hotel_room_status,
+    hotel_stay_check_in,
+    hotel_stay_checkout,
+)
 from .platform_views import platform_organization_list, platform_user_list
 from .views import clerk_webhook, health, me
 
@@ -105,6 +112,24 @@ urlpatterns = [
         name="hotel-stay-list",
     ),
     path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/rooms/",
+        hotel_room_list,
+        name="hotel-room-list",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "rooms/<int:room_id>/status/"
+        ),
+        hotel_room_status,
+        name="hotel-room-status",
+    ),
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/guests/",
+        hotel_guest_list,
+        name="hotel-guest-list",
+    ),
+    path(
         (
             "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
             "stays/<uuid:stay_id>/"
@@ -127,6 +152,22 @@ urlpatterns = [
         ),
         hotel_stay_close,
         name="hotel-stay-close",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "stays/<uuid:stay_id>/check-in/"
+        ),
+        hotel_stay_check_in,
+        name="hotel-stay-check-in",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "stays/<uuid:stay_id>/checkout/"
+        ),
+        hotel_stay_checkout,
+        name="hotel-stay-checkout",
     ),
     path("api/platform/users/", platform_user_list, name="platform-user-list"),
     path("api/webhooks/clerk/", clerk_webhook, name="clerk-webhook"),

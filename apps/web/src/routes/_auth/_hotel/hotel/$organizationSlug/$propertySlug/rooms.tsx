@@ -1,15 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { HotelRoomsPage } from "@/features/hotel-operations/components/hotel-rooms-page";
+import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 
 export const Route = createFileRoute(
   "/_auth/_hotel/hotel/$organizationSlug/$propertySlug/rooms",
 )({
-  component: () => (
-    <PlaceholderPage
-      eyebrow="Property inventory"
-      title="Rooms"
-      description="Room inventory, readiness, housekeeping state, and maintenance for this property."
-    />
-  ),
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(
+      hotelOperationsQueries.rooms(
+        params.organizationSlug,
+        params.propertySlug,
+      ),
+    ),
+  component: PropertyRoomsRoute,
 });
+
+function PropertyRoomsRoute() {
+  const params = Route.useParams();
+  const { activeMembership, activeProperty } = Route.useRouteContext();
+  return (
+    <HotelRoomsPage
+      organizationSlug={params.organizationSlug}
+      propertySlug={params.propertySlug}
+      propertyName={activeProperty.name}
+      canManage={activeMembership.permissions.includes("rooms:manage")}
+    />
+  );
+}

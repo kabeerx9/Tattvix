@@ -300,6 +300,50 @@ class StayStatus(models.TextChoices):
     REVOKED = "REVOKED", "Consent revoked"
 
 
+class RoomStatus(models.TextChoices):
+    VACANT = "VACANT", "Vacant"
+    OCCUPIED = "OCCUPIED", "Occupied"
+    CLEANING = "CLEANING", "Cleaning"
+    MAINTENANCE = "MAINTENANCE", "Maintenance"
+
+
+class Room(models.Model):
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.PROTECT,
+        related_name="rooms",
+    )
+    number = models.CharField(max_length=32)
+    floor = models.CharField(max_length=32, blank=True, default="")
+    room_type = models.CharField(max_length=100, blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=RoomStatus.choices,
+        default=RoomStatus.VACANT,
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["number", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["property", "number"],
+                name="unique_room_number_per_property",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.property} — Room {self.number}"
+
+
+class OperationalStayStatus(models.TextChoices):
+    PENDING_CHECK_IN = "PENDING_CHECK_IN", "Pending check-in"
+    CHECKED_IN = "CHECKED_IN", "Checked in"
+    CHECKED_OUT = "CHECKED_OUT", "Checked out"
+
+
 class Stay(models.Model):
     public_id = models.UUIDField(default=uuid4, unique=True, editable=False)
     property = models.ForeignKey(
@@ -322,8 +366,24 @@ class Stay(models.Model):
         choices=StayStatus.choices,
         default=StayStatus.DRAFT,
     )
+    operational_status = models.CharField(
+        max_length=24,
+        choices=OperationalStayStatus.choices,
+        default=OperationalStayStatus.PENDING_CHECK_IN,
+        db_default=OperationalStayStatus.PENDING_CHECK_IN,
+    )
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.PROTECT,
+        related_name="stays",
+        null=True,
+        blank=True,
+        db_constraint=False,
+    )
     submitted_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
     hotel_access_expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -335,6 +395,13 @@ class Stay(models.Model):
                 fields=["guest", "qr_token"],
                 condition=models.Q(status=StayStatus.DRAFT),
                 name="unique_draft_stay_per_guest_qr",
+            ),
+            models.UniqueConstraint(
+                fields=["room"],
+                condition=models.Q(
+                    operational_status=OperationalStayStatus.CHECKED_IN
+                ),
+                name="unique_checked_in_stay_per_room",
             ),
         ]
 

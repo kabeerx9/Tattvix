@@ -17,6 +17,28 @@ export const stayStatusSchema = z.enum([
   "REVOKED",
 ]);
 
+export const operationalStayStatusSchema = z.enum([
+  "PENDING_CHECK_IN",
+  "CHECKED_IN",
+  "CHECKED_OUT",
+]);
+
+export const roomStatusSchema = z.enum([
+  "VACANT",
+  "OCCUPIED",
+  "CLEANING",
+  "MAINTENANCE",
+]);
+
+export const roomSummarySchema = z.object({
+  id: z.number().int().positive(),
+  number: z.string().min(1).max(32),
+  floor: z.string().max(32),
+  roomType: z.string().max(100),
+  status: roomStatusSchema,
+  isActive: z.boolean(),
+});
+
 export const checkInPropertySchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1),
@@ -31,8 +53,12 @@ export const checkInPropertySchema = z.object({
 export const guestStaySchema = z.object({
   id: z.uuid(),
   status: stayStatusSchema,
+  operationalStatus: operationalStayStatusSchema,
+  room: roomSummarySchema.nullable(),
   submittedAt: dateTimeSchema.nullable(),
   closedAt: dateTimeSchema.nullable(),
+  checkedInAt: dateTimeSchema.nullable(),
+  checkedOutAt: dateTimeSchema.nullable(),
   hotelAccessExpiresAt: dateTimeSchema.nullable(),
 });
 
@@ -136,6 +162,11 @@ export const hotelStayImageAccessResponseSchema =
   identityDocumentImageAccessResponseSchema;
 
 export type StayStatus = z.infer<typeof stayStatusSchema>;
+export type OperationalStayStatus = z.infer<
+  typeof operationalStayStatusSchema
+>;
+export type RoomStatus = z.infer<typeof roomStatusSchema>;
+export type RoomSummary = z.infer<typeof roomSummarySchema>;
 export type CheckInProperty = z.infer<typeof checkInPropertySchema>;
 export type GuestStay = z.infer<typeof guestStaySchema>;
 export type IdentityAccessAction = z.infer<typeof identityAccessActionSchema>;

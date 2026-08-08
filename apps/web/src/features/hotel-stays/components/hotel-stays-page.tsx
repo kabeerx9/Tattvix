@@ -200,6 +200,7 @@ function StayRow({
             Submitted {stay.submittedAt ? formatDateTime(stay.submittedAt) : "—"}
             {" · "}
             {stay.companionCount} companion{stay.companionCount === 1 ? "" : "s"}
+            {stay.room ? ` · Room ${stay.room.number}` : ""}
           </p>
         </div>
       </div>
@@ -221,13 +222,16 @@ function StayRow({
 }
 
 function StatusPill({ stay }: { stay: HotelStayListItem }) {
-  const label = stay.identityAccess.isActive
-    ? stay.status === "CLOSED"
-      ? "Review complete"
-      : "Identity available"
-    : stay.identityAccess.reason === "REVOKED"
-      ? "Consent revoked"
-      : "Access expired";
+  const label =
+    stay.operationalStatus === "CHECKED_IN"
+      ? "Checked in"
+      : stay.operationalStatus === "CHECKED_OUT"
+        ? "Checked out"
+        : stay.identityAccess.isActive
+          ? "Pending check-in"
+          : stay.identityAccess.reason === "REVOKED"
+            ? "Consent revoked"
+            : "Identity expired";
   return (
     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
       {label}

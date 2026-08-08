@@ -398,8 +398,12 @@ def build_guest_stay_payload(stay: Stay) -> dict:
     return {
         "id": str(stay.public_id),
         "status": stay.status,
+        "operationalStatus": stay.operational_status,
+        "room": _room_payload(stay.room) if stay.room_id else None,
         "submittedAt": _isoformat(stay.submitted_at),
         "closedAt": _isoformat(stay.closed_at),
+        "checkedInAt": _isoformat(stay.checked_in_at),
+        "checkedOutAt": _isoformat(stay.checked_out_at),
         "hotelAccessExpiresAt": _isoformat(stay.hotel_access_expires_at),
     }
 
@@ -512,6 +516,17 @@ def _property_payload(property_) -> dict:
             "name": property_.organization.name,
             "slug": property_.organization.slug,
         },
+    }
+
+
+def _room_payload(room) -> dict:
+    return {
+        "id": room.id,
+        "number": room.number,
+        "floor": room.floor,
+        "roomType": room.room_type,
+        "status": room.status,
+        "isActive": room.is_active,
     }
 
 

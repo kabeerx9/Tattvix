@@ -242,3 +242,32 @@ class GuestCheckInSubmitSerializer(serializers.Serializer):
 
 class HotelStayImageAccessSerializer(serializers.Serializer):
     side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
+
+
+class HotelRoomCreateSerializer(serializers.Serializer):
+    number = serializers.CharField(max_length=32, trim_whitespace=True)
+    floor = serializers.CharField(
+        max_length=32,
+        trim_whitespace=True,
+        allow_blank=True,
+        required=False,
+        default="",
+    )
+    roomType = serializers.CharField(
+        source="room_type",
+        max_length=100,
+        trim_whitespace=True,
+        allow_blank=True,
+        required=False,
+        default="",
+    )
+
+
+class HotelRoomStatusSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=("VACANT", "CLEANING", "MAINTENANCE")
+    )
+
+
+class HotelStayCheckInSerializer(serializers.Serializer):
+    roomId = serializers.IntegerField(source="room_id", min_value=1)
