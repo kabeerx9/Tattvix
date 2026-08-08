@@ -41,9 +41,56 @@ def env_positive_int(name: str, default: int) -> int:
     return value
 
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-replace-me")
+DEV_INSECURE_SECRET_KEY = "dev-insecure-replace-me"
+
+
+def validate_production_settings(
+    *, debug: bool, secret_key: str, allowed_hosts_env: str | None
+) -> None:
+    """Fail fast on unsafe defaults when running with DJANGO_DEBUG=false.
+
+    Pure function (no env/module access) so tests can exercise it directly
+    with arbitrary inputs instead of re-importing the settings module.
+    """
+    if debug:
+        return
+
+    if not secret_key or secret_key == DEV_INSECURE_SECRET_KEY:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be set to a non-default value via DJANGO_SECRET_KEY "
+            "when DJANGO_DEBUG=false."
+        )
+
+    if allowed_hosts_env is None or not allowed_hosts_env.strip():
+        raise ImproperlyConfigured(
+            "DJANGO_ALLOWED_HOSTS must be explicitly set when DJANGO_DEBUG=false. "
+            "The development default host list must not be used in production."
+        )
+
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEV_INSECURE_SECRET_KEY)
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0")
+
+validate_production_settings(
+    debug=DEBUG,
+    secret_key=SECRET_KEY,
+    allowed_hosts_env=os.environ.get("DJANGO_ALLOWED_HOSTS"),
+)
+
+if not DEBUG:
+    # HTTPS is terminated at the proxy; trust its forwarded-proto header when
+    # deciding whether the original request was secure.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+
 DATABASE_URL = env_required("DATABASE_URL")
 
 if not DATABASE_URL.startswith(("postgres://", "postgresql://")):
