@@ -30,6 +30,12 @@ from .hotel_operation_views import (
     hotel_stay_check_in,
     hotel_stay_checkout,
 )
+from .hotel_report_views import (
+    hotel_report_in_house,
+    hotel_report_occupancy,
+    hotel_report_register,
+    hotel_report_status_counts,
+)
 from .platform_views import (
     platform_organization_detail,
     platform_organization_list,
@@ -177,6 +183,38 @@ urlpatterns = [
         ),
         hotel_stay_checkout,
         name="hotel-stay-checkout",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "reports/register/"
+        ),
+        hotel_report_register,
+        name="hotel-report-register",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "reports/in-house/"
+        ),
+        hotel_report_in_house,
+        name="hotel-report-in-house",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "reports/occupancy/"
+        ),
+        hotel_report_occupancy,
+        name="hotel-report-occupancy",
+    ),
+    path(
+        (
+            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
+            "reports/status-counts/"
+        ),
+        hotel_report_status_counts,
+        name="hotel-report-status-counts",
     ),
     path(
         "api/platform/organizations/<slug:organization_slug>/",

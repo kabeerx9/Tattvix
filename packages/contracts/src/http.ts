@@ -80,6 +80,28 @@ export function createApiClient(options: ApiClientOptions) {
       return parsed.data;
     },
 
+    // For endpoints that return a file (e.g. a CSV export) rather than
+    // JSON — auth still goes through the same bearer-token `request()`
+    // path, which a plain <a href> download can't do, so callers trigger
+    // the save themselves (e.g. via a blob: object URL).
+    async requestBlob(
+      path: string,
+      init?: RequestInit,
+    ): Promise<{ blob: Blob; filename: string | null }> {
+      const response = await request(path, init);
+
+      if (!response.ok) {
+        await throwApiError(response);
+      }
+
+      const disposition = response.headers.get("Content-Disposition");
+      const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
+      return {
+        blob: await response.blob(),
+        filename: filenameMatch?.[1] ?? null,
+      };
+    },
+
     async requestVoid(path: string, init?: RequestInit): Promise<void> {
       const response = await request(path, init);
 

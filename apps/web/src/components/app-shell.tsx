@@ -10,6 +10,7 @@ import {
   Gauge,
   Hotel,
   ShieldCheck,
+  BarChart3,
   Search,
   Settings,
   Users,
@@ -235,6 +236,20 @@ function HotelNavigation() {
                   }}
                 />
               </SidebarMenuItem>
+              {membership.permissions.includes("reports:view") ? (
+                <SidebarMenuItem>
+                  <ScopedSidebarLink
+                    label="Reports"
+                    icon={BarChart3}
+                    isActive={location.pathname.endsWith("/reports")}
+                    to="/hotel/$organizationSlug/$propertySlug/reports"
+                    params={{
+                      organizationSlug: membership.organization.slug,
+                      propertySlug: property.slug,
+                    }}
+                  />
+                </SidebarMenuItem>
+              ) : null}
             </>
           ) : null}
         </SidebarMenu>
@@ -258,7 +273,8 @@ function ScopedSidebarLink({
     | "/hotel/$organizationSlug/$propertySlug/dashboard"
     | "/hotel/$organizationSlug/$propertySlug/stays"
     | "/hotel/$organizationSlug/$propertySlug/guests"
-    | "/hotel/$organizationSlug/$propertySlug/rooms";
+    | "/hotel/$organizationSlug/$propertySlug/rooms"
+    | "/hotel/$organizationSlug/$propertySlug/reports";
   params: { organizationSlug: string; propertySlug?: string };
 }) {
   const { setOpenMobile } = useSidebar();

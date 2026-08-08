@@ -61,4 +61,98 @@ export type HotelGuestListResponse = z.infer<
   typeof hotelGuestListResponseSchema
 >;
 
+// --- Hotel operational reports ---
+//
+// Privacy-constrained by design: reports surface only what operations staff
+// need to run the front desk — names (from the shared snapshot, same
+// derivation as hotelGuestStaySchema), room numbers, timestamps, and
+// statuses. Never document numbers or other identity-document fields. The
+// register is the one report with a CSV export (see the web reports
+// feature), and that export must carry exactly these fields too.
+
+export const hotelReportDateRangeQuerySchema = z.object({
+  dateFrom: z.iso.date().optional(),
+  dateTo: z.iso.date().optional(),
+});
+
+export const hotelReportRegisterEntrySchema = z.object({
+  stayId: z.uuid(),
+  guestName: z.string().min(1),
+  companionCount: z.number().int().nonnegative(),
+  roomNumber: z.string().nullable(),
+  checkedInAt: dateTimeSchema.nullable(),
+  checkedOutAt: dateTimeSchema.nullable(),
+  operationalStatus: operationalStayStatusSchema,
+});
+
+export const hotelReportRegisterResponseSchema = z.object({
+  dateFrom: z.iso.date(),
+  dateTo: z.iso.date(),
+  entries: z.array(hotelReportRegisterEntrySchema),
+});
+
+export const hotelReportInHouseEntrySchema = z.object({
+  stayId: z.uuid(),
+  guestName: z.string().min(1),
+  roomNumber: z.string().nullable(),
+  checkedInAt: dateTimeSchema.nullable(),
+});
+
+export const hotelReportInHouseResponseSchema = z.object({
+  entries: z.array(hotelReportInHouseEntrySchema),
+});
+
+export const hotelReportRoomStatusCountsSchema = z.object({
+  VACANT: z.number().int().nonnegative(),
+  OCCUPIED: z.number().int().nonnegative(),
+  CLEANING: z.number().int().nonnegative(),
+  MAINTENANCE: z.number().int().nonnegative(),
+});
+
+export const hotelReportOccupancyResponseSchema = z.object({
+  occupiedRooms: z.number().int().nonnegative(),
+  activeRooms: z.number().int().nonnegative(),
+  statusCounts: hotelReportRoomStatusCountsSchema,
+});
+
+export const hotelReportStayStatusCountsSchema = z.object({
+  pendingCheckIn: z.number().int().nonnegative(),
+  checkedIn: z.number().int().nonnegative(),
+  checkedOut: z.number().int().nonnegative(),
+});
+
+export const hotelReportStatusCountsResponseSchema = z.object({
+  dateFrom: z.iso.date(),
+  dateTo: z.iso.date(),
+  counts: hotelReportStayStatusCountsSchema,
+});
+
+export type HotelReportDateRangeQuery = z.infer<
+  typeof hotelReportDateRangeQuerySchema
+>;
+export type HotelReportRegisterEntry = z.infer<
+  typeof hotelReportRegisterEntrySchema
+>;
+export type HotelReportRegisterResponse = z.infer<
+  typeof hotelReportRegisterResponseSchema
+>;
+export type HotelReportInHouseEntry = z.infer<
+  typeof hotelReportInHouseEntrySchema
+>;
+export type HotelReportInHouseResponse = z.infer<
+  typeof hotelReportInHouseResponseSchema
+>;
+export type HotelReportRoomStatusCounts = z.infer<
+  typeof hotelReportRoomStatusCountsSchema
+>;
+export type HotelReportOccupancyResponse = z.infer<
+  typeof hotelReportOccupancyResponseSchema
+>;
+export type HotelReportStayStatusCounts = z.infer<
+  typeof hotelReportStayStatusCountsSchema
+>;
+export type HotelReportStatusCountsResponse = z.infer<
+  typeof hotelReportStatusCountsResponseSchema
+>;
+
 export { roomStatusSchema };

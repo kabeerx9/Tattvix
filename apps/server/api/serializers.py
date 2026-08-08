@@ -333,3 +333,17 @@ class HotelStayListQuerySerializer(serializers.Serializer):
                 "Search must be at least 2 characters."
             )
         return value or None
+
+
+class HotelReportDateRangeQuerySerializer(serializers.Serializer):
+    dateFrom = serializers.DateField(source="date_from", required=False)
+    dateTo = serializers.DateField(source="date_to", required=False)
+
+    def validate(self, attrs):
+        date_from = attrs.get("date_from")
+        date_to = attrs.get("date_to")
+        if date_from and date_to and date_from > date_to:
+            raise serializers.ValidationError(
+                "dateFrom must not be after dateTo."
+            )
+        return attrs
