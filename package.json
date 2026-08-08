@@ -24,7 +24,8 @@
     "storage:down": "docker compose down",
     "storage:logs": "docker compose logs -f minio",
     "storage:check": "pnpm --filter server storage:check",
-    "identity:purge": "pnpm --filter server identity:purge"
+    "identity:purge": "pnpm --filter server identity:purge",
+    "seed": "pnpm --filter server run seed --"
   },
   "devDependencies": {
     "@tattvix/config": "workspace:*",

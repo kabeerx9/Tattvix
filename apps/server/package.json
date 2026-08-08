@@ -9,6 +9,7 @@
     "test": "sh scripts/manage.sh test",
     "migrate": "sh scripts/manage.sh migrate",
     "storage:check": "sh scripts/manage.sh check_object_storage",
-    "identity:purge": "sh scripts/manage.sh purge_expired_identity_images"
+    "identity:purge": "sh scripts/manage.sh purge_expired_identity_images",
+    "seed": "sh scripts/manage.sh seed_dev"
   }
 }
