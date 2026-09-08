@@ -2,18 +2,10 @@
 
 ## Code Change Explanations
 
-Whenever an agent writes or changes code, the final response must explain the work file by file.
-
-For each changed file:
-
-- State the file's purpose in the change.
-- Explain the important implementation decisions and behavior.
-- Mention meaningful security, data-model, API, routing, or testing implications.
-- Do not explain every line or restate obvious syntax.
-
-Also report the verification performed and its result. If verification could not be completed, explain why.
-
-Documentation-only edits can be summarized together when a file-by-file breakdown would add no useful information.
+Explain decisions and behavioral changes first, then give a file map grouped
+by layer and name the one or two files worth reading. Report verification that
+actually ran, remaining gaps, and meaningful tradeoffs. Explain cross-layer
+flow when it helps assess the change; keep mechanical changes brief.
 
 ## Web Design System
 
