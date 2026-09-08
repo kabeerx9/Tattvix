@@ -7,8 +7,7 @@
     ".": "./src/index.ts",
     "./http": "./src/http.ts",
     "./me": "./src/me.ts",
-    "./account": "./src/account.ts",
-    "./example-projects": "./src/example-projects.ts"
+    "./account": "./src/account.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",

@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { formatDoctorReport, runDoctor } from "./doctor.ts";
-import { applyReplacements } from "./init-project.ts";
-import { STARTER_DEFAULTS } from "./project-config.ts";
 
 function writeHealthyFixture(root: string): void {
   mkdirSync(join(root, "apps/web"), { recursive: true });
@@ -208,20 +206,3 @@ describe("doctor", () => {
   });
 });
 
-describe("doctor starter scan helper", () => {
-  it("flags starter values after replacement baseline", () => {
-    const sample = applyReplacements(
-      `${STARTER_DEFAULTS.displayName} ${STARTER_DEFAULTS.packageScope}/ui`,
-      {
-        displayName: "Acme Tasks",
-        slug: "acme-tasks",
-        packageScope: "@acme-tasks",
-        scheme: "acme-tasks",
-        bundleIdentifier: "com.acme.tasks",
-      },
-    );
-
-    assert.doesNotMatch(sample, /App Starter/);
-    assert.doesNotMatch(sample, /@app-starter/);
-  });
-});

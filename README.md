@@ -247,9 +247,11 @@ cp apps/server/.env.example apps/server/.env
 cp apps/web/.env.example apps/web/.env
 cp apps/native/.env.example apps/native/.env
 pnpm run setup
+pnpm run db:up
 pnpm run storage:up
 pnpm run db:migrate
 pnpm run doctor
+pnpm run seed -- --email=you@example.com
 pnpm run dev
 ```
 
