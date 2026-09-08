@@ -1,6 +1,5 @@
+import { UserProfile } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
-
-import { PlaceholderPage } from "@/components/placeholder-page";
 
 export const Route = createFileRoute("/_auth/settings")({
   component: SettingsPage,
@@ -8,10 +7,8 @@ export const Route = createFileRoute("/_auth/settings")({
 
 function SettingsPage() {
   return (
-    <PlaceholderPage
-      eyebrow="Guest account"
-      title="Account settings"
-      description="A future configuration area for account security, personal preferences, privacy, and data controls."
-    />
+    <div className="mx-auto grid max-w-[1400px] gap-7">
+      <UserProfile routing="hash" />
+    </div>
   );
 }

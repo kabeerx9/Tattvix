@@ -11,7 +11,6 @@ import {
   Hotel,
   ShieldCheck,
   BarChart3,
-  Search,
   Settings,
   Users,
 } from "lucide-react";
@@ -82,12 +81,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden h-10 w-64 items-center gap-2 rounded-xl border bg-card px-3 text-muted-foreground shadow-sm md:flex">
-                <Search className="size-4" /><span className="text-xs">Search workspace...</span>
-                <kbd className="ml-auto text-[10px]">⌘K</kbd>
-              </div>
               <ModeToggle />
-              <div className="rounded-full ring-4 ring-card"><UserButton /></div>
+              <div className="rounded-full ring-4 ring-card"><UserButton userProfileMode="navigation" userProfileUrl="/settings" /></div>
             </div>
           </header>
           <main className="flex-1 p-4 sm:p-7 lg:p-8">{children}</main>

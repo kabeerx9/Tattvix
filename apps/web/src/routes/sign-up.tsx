@@ -16,7 +16,7 @@ export const Route = createFileRoute("/sign-up")({
   component: SignUpPage,
 });
 
-function SignUpPage() {
+export function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const search = Route.useSearch();
   // The SSO callback is a layout child of this route; render it standalone
