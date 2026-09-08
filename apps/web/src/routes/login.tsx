@@ -1,7 +1,9 @@
 import { SignIn, useAuth } from "@clerk/react";
-import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { Navigate, Outlet, createFileRoute, useMatch } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { z } from "zod";
 import Loader from "@/components/loader";
+import { stashPostLoginRedirect } from "@/utils/post-login-redirect";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
@@ -17,6 +19,22 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const search = Route.useSearch();
+  // The SSO callback is a layout child of this route; render it standalone
+  // instead of the form (which has no Outlet and would swallow it).
+  const ssoCallbackMatch = useMatch({
+    from: "/login/sso-callback",
+    shouldThrow: false,
+  });
+
+  // `?redirect=` does not survive the Google round trip; stash it for the
+  // SSO callback route. Cleared whenever login opens without one.
+  useEffect(() => {
+    stashPostLoginRedirect(search.redirect);
+  }, [search.redirect]);
+
+  if (ssoCallbackMatch) {
+    return <Outlet />;
+  }
 
   if (!isLoaded) {
     return <Loader />;
