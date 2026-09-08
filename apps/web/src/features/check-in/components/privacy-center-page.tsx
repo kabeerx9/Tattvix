@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -26,15 +26,17 @@ import { ApiError } from "@/lib/api";
 export function PrivacyCenterPage() {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(checkInQueries.shares());
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<GuestShare | null>(null);
   const revokeMutation = useMutation(checkInMutations.revoke(queryClient));
 
-  function revoke(stayId: string) {
+  function revoke() {
+    if (!revokeTarget) return;
+    const stayId = revokeTarget.id;
     revokeMutation.mutate(
       { stayId },
       {
         onSuccess: () => {
-          setConfirmingId(null);
+          setRevokeTarget(null);
           toast.success("Hotel identity access revoked");
         },
       },
@@ -90,14 +92,11 @@ export function PrivacyCenterPage() {
                   <ShareCard
                     key={stay.id}
                     stay={stay}
-                    confirming={confirmingId === stay.id}
                     isRevoking={
                       revokeMutation.isPending &&
                       revokeMutation.variables?.stayId === stay.id
                     }
-                    onAskRevoke={() => setConfirmingId(stay.id)}
-                    onCancelRevoke={() => setConfirmingId(null)}
-                    onRevoke={() => revoke(stay.id)}
+                    onAskRevoke={() => setRevokeTarget(stay)}
                   />
                 ))}
               </div>
@@ -123,14 +122,11 @@ export function PrivacyCenterPage() {
                   <ShareCard
                     key={stay.id}
                     stay={stay}
-                    confirming={confirmingId === stay.id}
                     isRevoking={
                       revokeMutation.isPending &&
                       revokeMutation.variables?.stayId === stay.id
                     }
-                    onAskRevoke={() => setConfirmingId(stay.id)}
-                    onCancelRevoke={() => setConfirmingId(null)}
-                    onRevoke={() => revoke(stay.id)}
+                    onAskRevoke={() => setRevokeTarget(stay)}
                   />
                 ))}
               </div>
@@ -159,6 +155,19 @@ export function PrivacyCenterPage() {
           </div>
         </Surface>
       )}
+      <ConfirmDialog
+        open={revokeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTarget(null);
+        }}
+        title={`Revoke ${revokeTarget?.property.name ?? "hotel"} access?`}
+        description="The hotel immediately loses access to your shared identity and document images. Your stay history remains for your own record."
+        confirmLabel="Revoke access"
+        cancelLabel="Keep sharing"
+        tone="destructive"
+        onConfirm={revoke}
+        pending={revokeMutation.isPending}
+      />
     </div>
   );
 }
@@ -194,18 +203,12 @@ function Section({
 
 function ShareCard({
   stay,
-  confirming,
   isRevoking,
   onAskRevoke,
-  onCancelRevoke,
-  onRevoke,
 }: {
   stay: GuestShare;
-  confirming: boolean;
   isRevoking: boolean;
   onAskRevoke: () => void;
-  onCancelRevoke: () => void;
-  onRevoke: () => void;
 }) {
   const accessActive =
     stay.status !== "REVOKED" &&
@@ -250,34 +253,15 @@ function ShareCard({
         </div>
 
         {accessActive ? (
-          confirming ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="w-full text-xs text-destructive sm:w-auto">
-                End future access now?
-              </p>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={isRevoking}
-                onClick={onCancelRevoke}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={isRevoking}
-                onClick={onRevoke}
-              >
-                {isRevoking ? "Revoking..." : "Confirm revoke"}
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="sm" onClick={onAskRevoke}>
-              <ShieldOff />
-              Revoke access
-            </Button>
-          )
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isRevoking}
+            onClick={onAskRevoke}
+          >
+            <ShieldOff />
+            {isRevoking ? "Revoking..." : "Revoke access"}
+          </Button>
         ) : null}
       </div>
 
@@ -308,22 +292,27 @@ function ShareCard({
           <p className="text-xs font-medium">Recorded activity</p>
           {stay.accessEvents.length ? (
             <div className="mt-2 grid gap-2">
-              {stay.accessEvents.slice(0, 8).map((event, index) => (
-                <div
-                  key={`${event.createdAt}-${index}`}
-                  className="flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                  {event.action === "DOCUMENT_VIEWED" ? (
-                    <FileImage className="size-3.5" />
-                  ) : (
-                    <Eye className="size-3.5" />
-                  )}
-                  <span>{activityLabel(event.action, event.imageSide)}</span>
-                  <span className="ml-auto whitespace-nowrap">
-                    {formatDateTime(event.createdAt)}
-                  </span>
-                </div>
-              ))}
+              {groupAccessEvents(stay.accessEvents)
+                .slice(0, 8)
+                .map((group, index) => (
+                  <div
+                    key={`${group.lastAt}-${index}`}
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                  >
+                    {group.action === "DOCUMENT_VIEWED" ? (
+                      <FileImage className="size-3.5" />
+                    ) : (
+                      <Eye className="size-3.5" />
+                    )}
+                    <span>
+                      {activityLabel(group.action, group.imageSide)}
+                      {group.count > 1 ? ` ×${group.count}` : ""}
+                    </span>
+                    <span className="ml-auto whitespace-nowrap">
+                      {formatDateTime(group.lastAt)}
+                    </span>
+                  </div>
+                ))}
             </div>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
@@ -334,6 +323,43 @@ function ShareCard({
       </div>
     </Surface>
   );
+}
+
+type AccessEvent = GuestShare["accessEvents"][number];
+
+type AccessEventGroup = {
+  action: IdentityAccessAction;
+  imageSide: "FRONT" | "BACK" | null;
+  count: number;
+  lastAt: string;
+};
+
+// Collapse repeat views per record: a review session opens details plus
+// each image, and refetches (tab refocus, reload) audit again — the guest
+// wants "how often was each record opened", not every issuance row.
+function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
+  const groups = new Map<string, AccessEventGroup>();
+  for (const event of events) {
+    const key = `${event.action}:${event.imageSide ?? ""}`;
+    const current = groups.get(key);
+    if (current) {
+      current.count += 1;
+      if (
+        new Date(event.createdAt).getTime() >
+        new Date(current.lastAt).getTime()
+      ) {
+        current.lastAt = event.createdAt;
+      }
+    } else {
+      groups.set(key, {
+        action: event.action,
+        imageSide: event.imageSide,
+        count: 1,
+        lastAt: event.createdAt,
+      });
+    }
+  }
+  return [...groups.values()];
 }
 
 function activityLabel(

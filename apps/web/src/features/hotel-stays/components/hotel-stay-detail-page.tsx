@@ -39,7 +39,7 @@ import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
@@ -184,14 +184,10 @@ export function HotelStayDetailPage({
     );
   }
 
+  const [checkoutConfirmOpen, setCheckoutConfirmOpen] = useState(false);
+
   function completeCheckout() {
-    if (
-      !window.confirm(
-        `Check out ${stay.guestName}? Room ${stay.room?.number ?? ""} will move to cleaning.`,
-      )
-    ) {
-      return;
-    }
+    setCheckoutConfirmOpen(false);
     checkoutMutation.mutate(
       { organizationSlug, propertySlug, stayId },
       {
@@ -269,9 +265,18 @@ export function HotelStayDetailPage({
           selectedRoomId={selectedRoomId}
           onRoomChange={setSelectedRoomId}
           onCheckIn={confirmCheckIn}
-          onCheckout={completeCheckout}
+          onCheckout={() => setCheckoutConfirmOpen(true)}
           isCheckingIn={checkInMutation.isPending}
           isCheckingOut={checkoutMutation.isPending}
+        />
+        <ConfirmDialog
+          open={checkoutConfirmOpen}
+          onOpenChange={setCheckoutConfirmOpen}
+          title={`Check out ${stay.guestName}?`}
+          description={`Room ${stay.room?.number ?? "—"} will move to cleaning, and the hotel's identity access starts its shorter wind-down window.`}
+          confirmLabel="Check out"
+          onConfirm={completeCheckout}
+          pending={checkoutMutation.isPending}
         />
 
         {stay.snapshot ? (

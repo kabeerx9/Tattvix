@@ -2,6 +2,14 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@tattvix/ui/lib/utils";
 import { Card } from "@tattvix/ui/components/card";
 import { Button } from "@tattvix/ui/components/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@tattvix/ui/components/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
@@ -56,6 +64,58 @@ export function EmptyState({
       </div>
       {action}
     </div>
+  );
+}
+
+/**
+ * Shared confirmation dialog for consequential actions (checkout, revoking
+ * consent, removing access). Use this instead of `window.confirm` and
+ * instead of hand-rolled inline confirm states, so destructive actions share
+ * one interruption grammar. The dialog is controlled; `pending` disables
+ * both buttons while the mutation runs.
+ */
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel = "Keep as is",
+  onConfirm,
+  pending = false,
+  tone = "default",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  pending?: boolean;
+  tone?: "default" | "destructive";
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
+            {cancelLabel}
+          </Button>
+          <Button
+            variant={tone === "destructive" ? "destructive" : "default"}
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {confirmLabel}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
