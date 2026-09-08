@@ -7,8 +7,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
-
 from .check_in import (
     CheckInError,
     build_check_in_context,
@@ -33,6 +31,7 @@ from .models import (
 )
 from .object_storage import PrivateObjectStorage
 from .rbac import Permission
+from .throttling import ClerkPrincipalScopedThrottle
 from .serializers import (
     GuestCheckInSubmitSerializer,
     HotelStayImageAccessSerializer,
@@ -43,9 +42,13 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+class PublicCheckInThrottle(ClerkPrincipalScopedThrottle):
+    """Per-user/per-IP rate limit for the public QR context endpoint."""
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
-@throttle_classes([ScopedRateThrottle])
+@throttle_classes([PublicCheckInThrottle])
 def check_in_context(request, raw_token: str):
     try:
         qr_token = get_valid_hotel_qr_token(raw_token)

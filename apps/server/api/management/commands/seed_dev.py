@@ -491,6 +491,13 @@ class Command(BaseCommand):
                 "expires_at": timezone.now() + timedelta(days=3650),
             },
         )
+        # Re-running the seed must heal the printed QR URLs: an older
+        # regenerate-then-revoke cycle (or a lapsed expiry) otherwise leaves
+        # get_or_create returning a dead row and the seed lying about validity.
+        if token.revoked_at is not None or token.expires_at <= timezone.now():
+            token.revoked_at = None
+            token.expires_at = timezone.now() + timedelta(days=3650)
+            token.save(update_fields=["revoked_at", "expires_at"])
         return token, raw_token
 
     # -- stays ---------------------------------------------------------------

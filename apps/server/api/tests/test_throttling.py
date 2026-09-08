@@ -67,6 +67,26 @@ class ThrottlingTests(APITestCase):
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_authenticated_check_in_context_request_succeeds_under_throttle(self):
+        # Regression: stock ScopedRateThrottle keyed authed requests off
+        # request.user.pk, which ClerkPrincipal lacks — every logged-in QR
+        # open 500'd. Must stay 200 (per-user key via db_user.id).
+        user = ClerkUser.objects.create(
+            clerk_id="guest_context_throttle",
+            email="guest-context-throttle@example.com",
+        )
+        self.client.force_authenticate(
+            user=SimpleNamespace(is_authenticated=True, db_user=user)
+        )
+        with patch.dict(
+            ScopedRateThrottle.THROTTLE_RATES, {"public-check-in": "30/min"}
+        ):
+            response = self.client.get(
+                reverse("check-in-context", args=[self.raw_token])
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_identity_upload_endpoint_throttles_after_configured_rate(self):
         user = ClerkUser.objects.create(
             clerk_id="user_upload_throttle",

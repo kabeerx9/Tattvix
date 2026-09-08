@@ -183,11 +183,14 @@ When a signed-in web user calls `GET /api/me/`, the backend verifies the Clerk r
 
 ## Run The App
 
-Start MinIO, the Django API, web app, and native Metro server:
+Backend (Postgres + MinIO + Django API) runs in Docker; web and native run natively:
 
 ```bash
-pnpm run dev
+docker compose up --build -d
+pnpm run dev:web
 ```
+
+The server entrypoint applies migrations on boot. `pnpm run dev` still works as a fully native alternative (stop the compose `server` first to avoid a port clash on `:3000`).
 
 Local URLs:
 
@@ -246,13 +249,10 @@ pnpm install
 cp apps/server/.env.example apps/server/.env
 cp apps/web/.env.example apps/web/.env
 cp apps/native/.env.example apps/native/.env
-pnpm run setup
-pnpm run db:up
-pnpm run storage:up
-pnpm run db:migrate
+docker compose up --build -d
 pnpm run doctor
-pnpm run seed -- --email=you@example.com
-pnpm run dev
+docker compose run --rm server python manage.py seed_dev --email=you@example.com
+pnpm run dev:web
 ```
 
 For native development, also run `pnpm --filter native ios` or `pnpm --filter native android` once to install the development build.
