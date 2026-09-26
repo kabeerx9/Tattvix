@@ -53,7 +53,7 @@ export function CheckInPage({ token }: { token: string }) {
               <Hotel className="size-5" />
             </span>
             <div>
-              <p className="text-sm font-semibold">Tattvix</p>
+              <p className="text-sm font-semibold">Tattwix</p>
               <p className="text-xs text-muted-foreground">Secure hotel check-in</p>
             </div>
           </div>

@@ -82,7 +82,7 @@ export function OrganizationOnboardingPage() {
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Onboard a hotel</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Create the organization, its first property, and an initial owner in one
-          operation. Search for an existing Tattvix account to assign as owner.
+          operation. Search for an existing Tattwix account to assign as owner.
         </p>
       </div>
 

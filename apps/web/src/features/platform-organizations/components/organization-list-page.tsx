@@ -15,7 +15,7 @@ export function OrganizationListPage() {
       <PageHeader
         eyebrow="Platform administration"
         title="Organizations"
-        description="Every hotel business onboarded to Tattvix, with its properties and members."
+        description="Every hotel business onboarded to Tattwix, with its properties and members."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Button

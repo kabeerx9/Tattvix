@@ -137,14 +137,14 @@ def add_organization_member(
         raise PlatformOnboardingError(
             code="member_not_found",
             message=(
-                "No Tattvix account exists for this email. The member must sign in "
+                "No Tattwix account exists for this email. The member must sign in "
                 "once before being added."
             ),
         ) from exc
     except AmbiguousExistingUser as exc:
         raise PlatformOnboardingError(
             code="ambiguous_member",
-            message="Multiple Tattvix accounts use this email.",
+            message="Multiple Tattwix accounts use this email.",
         ) from exc
 
     try:

@@ -48,7 +48,7 @@ function CheckInRoute() {
     <CheckInUnavailablePage
       eyebrow="Check-in unavailable"
       title="This QR code is no longer active"
-      description="Ask the front desk for the property’s current Tattvix check-in QR and scan it again."
+      description="Ask the front desk for the property’s current Tattwix check-in QR and scan it again."
     />
   );
 }
@@ -80,7 +80,7 @@ function CheckInUnavailablePage({
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
               <Hotel className="size-5" />
             </span>
-            <p className="text-sm font-semibold">Tattvix</p>
+            <p className="text-sm font-semibold">Tattwix</p>
           </div>
           <ModeToggle />
         </div>
@@ -100,7 +100,7 @@ function CheckInUnavailablePage({
             </p>
           </div>
           <Button nativeButton={false} variant="outline" render={<Link to="/" />}>
-            Return to Tattvix
+            Return to Tattwix
           </Button>
         </Surface>
       </main>

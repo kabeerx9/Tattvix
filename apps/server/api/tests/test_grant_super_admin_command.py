@@ -53,5 +53,5 @@ class GrantSuperAdminCommandTests(TestCase):
         ClerkUser.objects.create(clerk_id="user_1", email="duplicate@example.com")
         ClerkUser.objects.create(clerk_id="user_2", email="DUPLICATE@example.com")
 
-        with self.assertRaisesMessage(CommandError, "Multiple Tattvix accounts"):
+        with self.assertRaisesMessage(CommandError, "Multiple Tattwix accounts"):
             call_command("grant_super_admin", email="duplicate@example.com")

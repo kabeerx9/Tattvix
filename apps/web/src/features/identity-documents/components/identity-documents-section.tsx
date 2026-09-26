@@ -133,7 +133,7 @@ export function IdentityDocumentsSection() {
           <div>
             <h2 className="text-base font-semibold">Government identity documents</h2>
             <p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">
-              Images stay private. Tattvix creates short-lived access only when
+              Images stay private. Tattwix creates short-lived access only when
               you choose to view or share them.
             </p>
           </div>
@@ -185,7 +185,7 @@ export function IdentityDocumentsSection() {
               {editor === "new" ? "Add identity document" : "Edit identity document"}
             </SheetTitle>
             <SheetDescription>
-              Metadata is saved in Tattvix. Images upload directly to private
+              Metadata is saved in Tattwix. Images upload directly to private
               storage and are verified before becoming part of your profile.
             </SheetDescription>
           </SheetHeader>

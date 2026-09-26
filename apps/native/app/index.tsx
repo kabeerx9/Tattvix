@@ -17,7 +17,7 @@ export default function WelcomeRoute() {
         <SafeAreaView style={styles.safeArea}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-              <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={[styles.logoText, { color: colors.primaryForeground }]}>T</Text></View><Text style={[styles.brandName, { color: colors.foreground }]}>Tattvix</Text></View>
+              <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={[styles.logoText, { color: colors.primaryForeground }]}>T</Text></View><Text style={[styles.brandName, { color: colors.foreground }]}>Tattwix</Text></View>
               <View style={styles.hero}><Text style={[styles.kicker, { color: colors.primary }]}>Your stay, simplified</Text><Text style={[styles.title, { color: colors.foreground }]}>Arrive ready. Feel at home.</Text><Text style={[styles.copy, { color: colors.mutedForeground }]}>Keep your guest profile, companions, and privacy choices together for a smoother hotel experience.</Text></View>
               <SignInForm />
             </ScrollView>

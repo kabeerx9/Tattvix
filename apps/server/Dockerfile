@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Tattvix Django API. Two targets:
+# Tattwix Django API. Two targets:
 #   development — runserver with live reload against a bind mount (local dev)
 #   production  — gunicorn serving collected static via WhiteNoise (VPS)
 # psycopg[binary] bundles libpq, so no apt packages are needed.

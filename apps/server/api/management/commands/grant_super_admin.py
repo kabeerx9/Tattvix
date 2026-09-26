@@ -9,13 +9,13 @@ from api.user_lookup import (
 
 
 class Command(BaseCommand):
-    help = "Grant the Tattvix super-admin platform role to an existing Clerk user."
+    help = "Grant the Tattwix super-admin platform role to an existing Clerk user."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--email",
             required=True,
-            help="Email address of an existing Clerk-synced Tattvix account.",
+            help="Email address of an existing Clerk-synced Tattwix account.",
         )
 
     def handle(self, *args, **options):
@@ -27,12 +27,12 @@ class Command(BaseCommand):
             user = get_unique_existing_user_by_email(email)
         except ExistingUserNotFound:
             raise CommandError(
-                "No Tattvix account exists for this email. The user must sign in once "
+                "No Tattwix account exists for this email. The user must sign in once "
                 "before super-admin access can be granted."
             )
         except AmbiguousExistingUser:
             raise CommandError(
-                "Multiple Tattvix accounts use this email; resolve the duplicate before "
+                "Multiple Tattwix accounts use this email; resolve the duplicate before "
                 "granting privileged access."
             )
 

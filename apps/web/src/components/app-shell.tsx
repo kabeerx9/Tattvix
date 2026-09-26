@@ -111,7 +111,7 @@ function AppSidebar() {
             <Hotel className="size-5" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-base font-semibold tracking-[-0.02em]">Tattvix</span>
+            <span className="block truncate text-base font-semibold tracking-[-0.02em]">Tattwix</span>
             <span className="block truncate text-[11px] text-sidebar-foreground/55">Hotel workspace</span>
           </span>
         </Link>

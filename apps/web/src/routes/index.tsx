@@ -60,7 +60,7 @@ function HomePage() {
     <div className="min-h-svh bg-background">
       <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-white">
         <Link to="/" className="text-lg font-semibold tracking-tight">
-          Tattvix
+          Tattwix
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link to="/login" className="text-white/80 hover:text-white">
@@ -100,7 +100,7 @@ function HomePage() {
                 to="/login"
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-black shadow-xl hover:bg-white/90"
               >
-                Login to Tattvix
+                Login to Tattwix
                 <ArrowRight className="size-4" />
               </Link>
               <Link

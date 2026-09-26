@@ -23,14 +23,14 @@ def onboard_organization(*, organization, property, owner_email):
         raise PlatformOnboardingError(
             code="owner_not_found",
             message=(
-                "No Tattvix account exists for the owner email. The owner must sign in "
+                "No Tattwix account exists for the owner email. The owner must sign in "
                 "once before onboarding."
             ),
         ) from exc
     except AmbiguousExistingUser as exc:
         raise PlatformOnboardingError(
             code="ambiguous_owner",
-            message="Multiple Tattvix accounts use the owner email.",
+            message="Multiple Tattwix accounts use the owner email.",
         ) from exc
 
     if Organization.objects.filter(slug=organization["slug"]).exists():
