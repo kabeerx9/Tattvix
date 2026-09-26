@@ -47,7 +47,7 @@ from .platform_views import (
     platform_oversight_weekly_check_ins,
     platform_user_list,
 )
-from .views import clerk_webhook, health, me
+from .views import clerk_webhook, cron_purge_identity_images, health, me
 
 urlpatterns = [
     path("", health, name="root-health"),
@@ -257,4 +257,9 @@ urlpatterns = [
         name="platform-oversight-weekly-check-ins",
     ),
     path("api/webhooks/clerk/", clerk_webhook, name="clerk-webhook"),
+    path(
+        "api/cron/purge-identity-images/",
+        cron_purge_identity_images,
+        name="cron-purge-identity-images",
+    ),
 ]

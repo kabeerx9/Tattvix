@@ -1,0 +1,66 @@
+# Self-hosted production stack (VPS upgrade path, see docs/deploy.md).
+# Caddy terminates TLS for api.tattwix.in and proxies to gunicorn.
+# Postgres (Supabase) and object
+# storage (S3) are managed services, so nothing stateful runs here
+# except Caddy's certificates. Run from this directory:
+#   docker compose up -d --build
+
+name: tattvix-prod
+
+services:
+  server:
+    build:
+      context: ../../apps/server
+      dockerfile: Dockerfile
+      target: production
+    env_file:
+      - .env
+    # Overrides the Dockerfile CMD: 2 workers fit a 1 GB droplet
+    # (roughly (2 x vCPU) + 1 would be 3, but memory binds first here).
+    command:
+      - gunicorn
+      - tattvix.wsgi:application
+      - --bind=0.0.0.0:3000
+      - --workers=2
+      - --timeout=30
+      - --access-logfile=-
+    # Not published to the host; only Caddy reaches it on the compose network.
+    expose:
+      - "3000"
+    # The probe must look like a proxied request: DEBUG=false rejects Hosts
+    # outside ALLOWED_HOSTS and 301s anything not marked https.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import os, urllib.request as u;
+          host = os.environ['DJANGO_ALLOWED_HOSTS'].split(',')[0].strip();
+          u.urlopen(u.Request('http://127.0.0.1:3000/api/health/',
+          headers={'Host': host, 'X-Forwarded-Proto': 'https'}), timeout=3)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  # Holds issued TLS certificates and the ACME account key; losing it means
+  # re-issuing, which Let's Encrypt rate-limits.
+  caddy-data:
+  caddy-config:

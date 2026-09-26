@@ -1,7 +1,35 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from tattvix.settings import DEV_INSECURE_SECRET_KEY, validate_production_settings
+from tattvix.settings import (
+    DEV_INSECURE_SECRET_KEY,
+    build_database_config,
+    validate_production_settings,
+)
+
+SUPABASE_POOLER_URL = "postgresql://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+
+
+class BuildDatabaseConfigTests(SimpleTestCase):
+    def test_default_keeps_persistent_connections_and_server_side_cursors(self):
+        config = build_database_config(
+            SUPABASE_POOLER_URL, ssl_require=True, transaction_pooler=False
+        )
+
+        self.assertEqual(config["CONN_MAX_AGE"], 60)
+        self.assertFalse(config.get("DISABLE_SERVER_SIDE_CURSORS", False))
+        self.assertEqual(config["OPTIONS"]["sslmode"], "require")
+
+    def test_transaction_pooler_drops_state_that_does_not_survive_pooling(self):
+        # In transaction mode each transaction may land on a different
+        # backend: named cursors and held connections both break.
+        config = build_database_config(
+            SUPABASE_POOLER_URL, ssl_require=True, transaction_pooler=True
+        )
+
+        self.assertEqual(config["CONN_MAX_AGE"], 0)
+        self.assertTrue(config["DISABLE_SERVER_SIDE_CURSORS"])
+        self.assertNotIn("prepare_threshold", config["OPTIONS"])
 
 
 class ValidateProductionSettingsTests(SimpleTestCase):

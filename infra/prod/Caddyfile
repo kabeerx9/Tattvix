@@ -1,0 +1,10 @@
+# Caddy obtains and renews the Let's Encrypt certificate automatically once
+# api.tattwix.in resolves to this droplet (DNS-only, not Cloudflare-proxied).
+# It sets X-Forwarded-Proto, and sets X-Forwarded-For to the connecting IP
+# (client-supplied values are dropped because no trusted_proxies are set).
+# Django (SECURE_PROXY_SSL_HEADER) and DRF (TRUSTED_PROXY_COUNT=1) read these.
+
+api.tattwix.in {
+	encode zstd gzip
+	reverse_proxy server:3000
+}

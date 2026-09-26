@@ -139,13 +139,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "tattvix.wsgi.application"
 
-DATABASES = {
-    "default": dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=60,
-        conn_health_checks=True,
+def build_database_config(
+    url: str, *, ssl_require: bool, transaction_pooler: bool
+) -> dict:
+    """Postgres config for a long-lived server or a transaction-mode pooler.
+
+    Behind a transaction pooler (Supabase :6543, PgBouncer) each transaction
+    may run on a different backend, so a held connection buys nothing and
+    named server-side cursors (QuerySet.iterator) break. Django already leaves
+    psycopg's prepare_threshold at None, so prepared statements stay off.
+    """
+    config = dj_database_url.parse(
+        url,
+        conn_max_age=0 if transaction_pooler else 60,
+        conn_health_checks=not transaction_pooler,
         # Local docker Postgres has no TLS; anything remote must keep it.
+        ssl_require=ssl_require,
+    )
+    if transaction_pooler:
+        config["DISABLE_SERVER_SIDE_CURSORS"] = True
+    return config
+
+
+DATABASES = {
+    "default": build_database_config(
+        DATABASE_URL,
         ssl_require=env_bool("DATABASE_SSL_REQUIRE", True),
+        transaction_pooler=env_bool("DATABASE_TRANSACTION_POOLER", False),
     )
 }
 
@@ -185,7 +205,11 @@ CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")
 CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
 
-COMPANION_MINOR_AGE_YEARS = env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
+# Shared secret Vercel Cron sends as `Authorization: Bearer <CRON_SECRET>`.
+# Empty disables the cron endpoints (they fail closed with 503).
+CRON_SECRET = os.environ.get("CRON_SECRET", "").strip()
+
+COMPANION_MINOR_AGE_YEARS =env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 HOTEL_QR_TOKEN_TTL_DAYS = env_positive_int("HOTEL_QR_TOKEN_TTL_DAYS", 365)
 HOTEL_IDENTITY_MAX_ACCESS_DAYS = env_positive_int(
     "HOTEL_IDENTITY_MAX_ACCESS_DAYS",
@@ -266,7 +290,17 @@ THROTTLE_IDENTITY_UPLOAD_PER_MINUTE = env_positive_int(
     20,
 )
 
+# Reverse proxies in front of gunicorn (1 = Caddy in production). DRF then keys
+# anonymous throttles on the client IP the proxy appended to X-Forwarded-For
+# instead of the whole, client-spoofable header. Unset for direct connections.
+TRUSTED_PROXY_COUNT = (
+    env_positive_int("TRUSTED_PROXY_COUNT", 1)
+    if os.environ.get("TRUSTED_PROXY_COUNT", "").strip()
+    else None
+)
+
 REST_FRAMEWORK = {
+    "NUM_PROXIES": TRUSTED_PROXY_COUNT,
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.ClerkAuthentication",
     ],

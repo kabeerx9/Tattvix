@@ -2,7 +2,9 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -156,6 +158,33 @@ class ThrottlingTests(APITestCase):
         self.assertNotEqual(
             not_throttled.status_code, status.HTTP_429_TOO_MANY_REQUESTS
         )
+
+    def test_anonymous_throttle_keys_on_proxy_appended_client_ip(self):
+        # Production runs behind one reverse proxy (Caddy), which appends the
+        # real client IP to X-Forwarded-For. A client-supplied leftmost entry
+        # must not mint a fresh throttle bucket, and distinct real clients
+        # must not share Caddy's REMOTE_ADDR bucket.
+        rest_framework_settings = {**settings.REST_FRAMEWORK, "NUM_PROXIES": 1}
+        url = reverse("check-in-context", args=[self.raw_token])
+        with (
+            override_settings(REST_FRAMEWORK=rest_framework_settings),
+            patch.dict(
+                ScopedRateThrottle.THROTTLE_RATES, {"public-check-in": "2/min"}
+            ),
+        ):
+            spoofed = [
+                self.client.get(
+                    url, HTTP_X_FORWARDED_FOR=f"10.0.0.{n}, 203.0.113.7"
+                )
+                for n in range(3)
+            ]
+            other_client = self.client.get(
+                url, HTTP_X_FORWARDED_FOR="198.51.100.9"
+            )
+
+        self.assertEqual(spoofed[1].status_code, status.HTTP_200_OK)
+        self.assertEqual(spoofed[2].status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(other_client.status_code, status.HTTP_200_OK)
 
     def test_health_endpoint_is_never_throttled(self):
         with patch.dict(
