@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["bom1"],
+  "regions": [
+    "bom1"
+  ],
+  "installCommand": "uv sync --locked",
+  "buildCommand": "python scripts/vercel_build.py",
   "ignoreCommand": "[ \"$VERCEL_ENV\" != production ]",
   "functions": {
     "tattvix/wsgi.py": {
