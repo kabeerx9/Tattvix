@@ -26,7 +26,6 @@ import {
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
-  Eye,
   FileImage,
   FileKey2,
   Pencil,
@@ -38,6 +37,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Surface } from "@/components/design-system";
+import {
+  DocumentImageField,
+  type ImageSelection,
+} from "@/features/identity-documents/components/document-image-field";
 import { identityDocumentsApi } from "@/features/identity-documents/api";
 import {
   IdentityDocumentSaveError,
@@ -46,9 +49,6 @@ import {
 } from "@/features/identity-documents/mutations";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
 import { ApiError } from "@/lib/api";
-
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const documentTypeLabels: Record<IdentityDocumentType, string> = {
   AADHAAR: "Aadhaar",
@@ -298,6 +298,12 @@ function DocumentEditor({
 }) {
   const [documentType, setDocumentType] = useState(document?.documentType ?? "");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<
+    Partial<Record<IdentityDocumentImageSide, ImageSelection>>
+  >({});
+  const [imageErrors, setImageErrors] = useState<
+    Partial<Record<IdentityDocumentImageSide, string>>
+  >({});
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const [preview, setPreview] = useState<{
     side: IdentityDocumentImageSide;
@@ -319,6 +325,11 @@ function DocumentEditor({
   const requirements = documentType
     ? documentRequirements[documentType as IdentityDocumentType]
     : { expiryDateRequired: false, backImageRequired: false };
+  const showBackImage =
+    requirements.backImageRequired || Boolean(document?.images.back.isUploaded);
+  const isPreparingImage = Object.values(images).some(
+    (selection) => selection.status === "processing",
+  );
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -338,28 +349,40 @@ function DocumentEditor({
       }
     }
 
-    const files: Partial<Record<IdentityDocumentImageSide, File>> = {};
-    const frontImage = selectedFile(formData, "frontImage");
-    const backImage = selectedFile(formData, "backImage");
-    if (frontImage) {
-      const error = validateImage(frontImage);
-      if (error) nextErrors.frontImage = error;
-      else files.FRONT = frontImage;
-    }
-    if (backImage) {
-      const error = validateImage(backImage);
-      if (error) nextErrors.backImage = error;
-      else files.BACK = backImage;
-    }
-
     setFieldErrors(nextErrors);
-    if (!parsed.success || Object.keys(nextErrors).length) return;
+    if (!parsed.success || isPreparingImage) return;
+
+    const files: Partial<Record<IdentityDocumentImageSide, File>> = {};
+    for (const [side, selection] of Object.entries(images) as [
+      IdentityDocumentImageSide,
+      ImageSelection,
+    ][]) {
+      // A back photo picked before switching to a front-only type is dropped.
+      if (side === "BACK" && !showBackImage) continue;
+      if (selection.status === "ready") files[side] = selection.file;
+    }
 
     onSubmit({
       ...(document ? { documentId: document.id } : {}),
       input: parsed.data,
       files,
     });
+  }
+
+  function imageFieldHandlers(side: IdentityDocumentImageSide) {
+    return {
+      selection: images[side] ?? null,
+      error: imageErrors[side],
+      onSelectionChange: (selection: ImageSelection | null) =>
+        setImages((current) => {
+          const next = { ...current };
+          if (selection) next[side] = selection;
+          else delete next[side];
+          return next;
+        }),
+      onError: (message: string | undefined) =>
+        setImageErrors((current) => ({ ...current, [side]: message })),
+    };
   }
 
   const accessError =
@@ -463,8 +486,8 @@ function DocumentEditor({
         <div>
           <h3 className="text-sm font-semibold">Private document images</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            JPEG, PNG, or WebP up to 8 MB. Selecting a replacement keeps the
-            current image available until the new one is verified.
+            Take a clear photo of the whole card, or choose one from your
+            files. Photos are resized on this device before upload.
           </p>
         </div>
         <DocumentImageField
@@ -472,7 +495,7 @@ function DocumentEditor({
           label="Front image"
           required
           uploaded={document?.images.front.isUploaded ?? false}
-          error={fieldErrors.frontImage}
+          {...imageFieldHandlers("FRONT")}
           isAccessPending={
             accessMutation.isPending &&
             accessMutation.variables?.side === "FRONT"
@@ -487,13 +510,13 @@ function DocumentEditor({
               : undefined
           }
         />
-        {requirements.backImageRequired || document?.images.back.isUploaded ? (
+        {showBackImage ? (
           <DocumentImageField
             name="backImage"
             label="Back image"
             required={requirements.backImageRequired}
             uploaded={document?.images.back.isUploaded ?? false}
-            error={fieldErrors.backImage}
+            {...imageFieldHandlers("BACK")}
             isAccessPending={
               accessMutation.isPending &&
               accessMutation.variables?.side === "BACK"
@@ -546,7 +569,7 @@ function DocumentEditor({
         </p>
       ) : null}
 
-      <SheetFooter className="mt-0 border-t px-0 pt-4">
+      <SheetFooter className="sticky bottom-0 z-10 mt-0 border-t bg-popover px-0 pt-4">
         {onRemove ? (
           confirmingRemoval ? (
             <div className="flex w-full items-center justify-between gap-2">
@@ -587,78 +610,18 @@ function DocumentEditor({
           )
         ) : null}
         {!confirmingRemoval ? (
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving || isPreparingImage}>
             {isSaving
               ? "Saving and uploading..."
-              : document
+              : isPreparingImage
+                ? "Preparing photo..."
+                : document
                 ? "Save changes"
                 : "Add document"}
           </Button>
         ) : null}
       </SheetFooter>
     </form>
-  );
-}
-
-function DocumentImageField({
-  name,
-  label,
-  required,
-  uploaded,
-  error,
-  isAccessPending,
-  onView,
-}: {
-  name: string;
-  label: string;
-  required: boolean;
-  uploaded: boolean;
-  error?: string;
-  isAccessPending: boolean;
-  onView?: () => void;
-}) {
-  return (
-    <div className="grid gap-2 rounded-2xl border p-3">
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={name}>
-          {label}
-          {required ? <span className="text-destructive">*</span> : null}
-        </Label>
-        {uploaded ? (
-          <span className="inline-flex items-center gap-1 text-xs text-primary">
-            <CheckCircle2 className="size-3.5" />
-            Uploaded
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">Not uploaded</span>
-        )}
-      </div>
-      <Input
-        id={name}
-        name={name}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        aria-invalid={Boolean(error)}
-      />
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {uploaded ? "Choose a file only to replace it." : "Choose an image to upload."}
-        </p>
-        {onView ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            disabled={isAccessPending}
-            onClick={onView}
-          >
-            <Eye />
-            {isAccessPending ? "Opening..." : "View"}
-          </Button>
-        ) : null}
-      </div>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
-    </div>
   );
 }
 
@@ -689,21 +652,6 @@ function EditorField({
       ) : null}
     </div>
   );
-}
-
-function selectedFile(formData: FormData, name: string): File | null {
-  const value = formData.get(name);
-  return value instanceof File && value.size > 0 ? value : null;
-}
-
-function validateImage(file: File): string | null {
-  if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
-    return "Use a JPEG, PNG, or WebP image.";
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return "Image must be 8 MB or smaller.";
-  }
-  return null;
 }
 
 function maskDocumentNumber(value: string): string {
