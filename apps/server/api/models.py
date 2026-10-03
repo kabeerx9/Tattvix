@@ -708,3 +708,26 @@ class HotelRegistrationRequest(models.Model):
                 name="hotel_request_review_state",
             ),
         ]
+
+
+class PropertyPhoto(models.Model):
+    class Kind(models.TextChoices):
+        COVER = "COVER", "Cover"
+        ROOM_TYPE = "ROOM_TYPE", "Room type"
+
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="photos")
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    room_type = models.CharField(max_length=100, blank=True, default="")
+    object_key = models.CharField(max_length=512, blank=True, default="")
+    pending_object_key = models.CharField(max_length=512, blank=True, default="")
+    pending_content_type = models.CharField(max_length=100, blank=True, default="")
+    pending_content_length = models.PositiveIntegerField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["property", "kind", "room_type"],
+                name="unique_property_photo_slot",
+            ),
+        ]

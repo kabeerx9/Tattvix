@@ -3,6 +3,7 @@ import csv
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,7 +14,9 @@ from .hotel_reports import (
     build_register_entries,
     build_status_counts,
 )
-from .rbac import Permission
+from .hotel_overview import build_overview_summary
+from .models import Membership
+from .rbac import Permission, permissions_for_membership_role
 from .serializers import HotelReportDateRangeQuerySerializer
 
 
@@ -146,3 +149,28 @@ def hotel_report_status_counts(request, organization_slug: str, property_slug: s
             "counts": counts,
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def hotel_overview_summary(request, organization_slug: str, property_slug: str):
+    property_ = get_accessible_property(
+        user=request.user.db_user,
+        organization_slug=organization_slug,
+        property_slug=property_slug,
+        permission=Permission.STAYS_VIEW,
+    )
+    try:
+        days = int(request.query_params.get("days", "7"))
+    except ValueError:
+        days = 0
+    if not 1 <= days <= 31:
+        raise ValidationError({"days": ["days must be between 1 and 31."]})
+    membership = Membership.objects.get(
+        user=request.user.db_user, organization=property_.organization, is_active=True,
+    )
+    include_revenue = Permission.REPORTS_VIEW in permissions_for_membership_role(membership.role)
+    return Response(build_overview_summary(
+        property_=property_, today=timezone.localdate(), days=days,
+        include_revenue=include_revenue,
+    ))

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 from django.urls import reverse
@@ -281,3 +281,44 @@ class HotelOperationsApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], RoomStatus.VACANT)
+
+
+class ExpectedCheckOutDateTests(APITestCase):
+    setUp = HotelOperationsApiTests.setUp
+    authenticate = HotelOperationsApiTests.authenticate
+
+    def _list_item(self):
+        response = self.client.get(reverse(
+            "hotel-stay-list", args=[self.organization.slug, self.property.slug]
+        ))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return next(item for item in response.json()["stays"]
+                    if item["id"] == str(self.stay.public_id))
+
+    def test_checked_in_stay_reports_check_in_date_plus_billed_nights(self):
+        self.authenticate(self.owner)
+        response = self.client.post(reverse(
+            "hotel-stay-check-in",
+            args=[self.organization.slug, self.property.slug, self.stay.public_id],
+        ), {"roomId": self.room.id, "nights": 3}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        Stay.objects.filter(id=self.stay.id).update(
+            checked_in_at=timezone.make_aware(datetime(2026, 10, 1, 14, 20))
+        )
+        self.assertEqual(self._list_item()["expectedCheckOutDate"], "2026-10-04")
+        detail = self.client.get(reverse("hotel-stay-detail", args=[
+            self.organization.slug, self.property.slug, self.stay.public_id,
+        ]))
+        self.assertEqual(detail.json()["expectedCheckOutDate"], "2026-10-04")
+
+    def test_pending_stay_has_no_expected_check_out_date(self):
+        self.authenticate(self.owner)
+        self.assertIsNone(self._list_item()["expectedCheckOutDate"])
+
+    def test_checked_in_stay_without_billed_nights_has_no_expected_date(self):
+        self.authenticate(self.owner)
+        Stay.objects.filter(id=self.stay.id).update(
+            operational_status=OperationalStayStatus.CHECKED_IN,
+            checked_in_at=timezone.now(), billing_nights=None,
+        )
+        self.assertIsNone(self._list_item()["expectedCheckOutDate"])

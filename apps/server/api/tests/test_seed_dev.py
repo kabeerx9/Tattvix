@@ -109,12 +109,14 @@ class SeedDevCommandTests(TestCase):
     def test_checked_in_stay_room_is_occupied(self):
         self._run_seed()
 
-        checked_in_stay = Stay.objects.get(
+        checked_in_stays = Stay.objects.filter(
             operational_status=OperationalStayStatus.CHECKED_IN,
             property__slug="jaipur",
-        )
-        self.assertIsNotNone(checked_in_stay.room)
-        self.assertEqual(checked_in_stay.room.status, RoomStatus.OCCUPIED)
+        ).select_related("room")
+        self.assertTrue(checked_in_stays.exists())
+        for stay in checked_in_stays:
+            self.assertIsNotNone(stay.room)
+            self.assertEqual(stay.room.status, RoomStatus.OCCUPIED)
 
     def test_prints_check_in_urls_and_dev_access_hint(self):
         output = self._run_seed()

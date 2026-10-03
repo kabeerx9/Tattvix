@@ -168,6 +168,41 @@ GUESTS = [
 ]
 
 
+
+# A week of front-desk activity at Sunrise Jaipur so the overview, stays and
+# rooms screens are seen at realistic density (24 rooms, ~10 in house).
+# (key, first, last, room, checked-in days ago, nights, checked out?)
+BUSY_WEEK = [
+    ("busy_01", "Aarav", "Mehta", "105", 2, 3, False),
+    ("busy_02", "Neha", "Gupta", "106", 1, 1, False),
+    ("busy_03", "Vikram", "Rao", "203", 3, 5, False),
+    ("busy_04", "Ananya", "Iyer", "204", 1, 4, False),
+    ("busy_05", "Kabir", "Malhotra", "205", 0, 1, False),
+    ("busy_06", "Meera", "Nair", "301", 4, 4, False),
+    ("busy_07", "Rohan", "Verma", "302", 0, 2, False),
+    ("busy_08", "Fatima", "Khan", "303", 2, 2, False),
+    ("busy_09", "Ishaan", "Bose", "304", 5, 6, False),
+    ("busy_10", "Tara", "Menon", "305", 0, 3, False),
+    ("busy_11", "Dev", "Patel", "206", 6, 2, True),
+    ("busy_12", "Sana", "Qureshi", "207", 5, 1, True),
+    ("busy_13", "Riya", "Kapoor", "306", 4, 2, True),
+    ("busy_14", "Aditya", "Joshi", "107", 3, 1, True),
+    ("busy_15", "Pooja", "Reddy", "307", 2, 1, True),
+    ("busy_16", "Nikhil", "Das", None, None, None, False),
+]
+
+BUSY_ROOMS = [
+    ("105", "1", "Deluxe", 350000), ("106", "1", "Deluxe", 350000),
+    ("107", "1", "Standard", 250000), ("108", "1", "Standard", 250000),
+    ("203", "2", "Suite", 550000), ("204", "2", "Deluxe", 350000),
+    ("205", "2", "Deluxe", 350000), ("206", "2", "Standard", 250000),
+    ("207", "2", "Standard", 250000), ("208", "2", "Suite", 550000),
+    ("301", "3", "Suite", 550000), ("302", "3", "Deluxe", 350000),
+    ("303", "3", "Deluxe", 350000), ("304", "3", "Suite", 550000),
+    ("305", "3", "Standard", 250000), ("306", "3", "Standard", 250000),
+    ("307", "3", "Deluxe", 350000), ("308", "3", "Standard", 250000),
+]
+
 class Command(BaseCommand):
     help = (
         "Seed a full local dataset — org, properties, staff, guests, rooms, "
@@ -295,6 +330,17 @@ class Command(BaseCommand):
                     "cannot submit a check-in."
                 )
             )
+
+        busy_count = 0
+        if storage_ok:
+            busy_count = self._seed_busy_week(
+                jaipur=jaipur,
+                qr_token=jaipur_token,
+                actor=reception,
+                storage=storage,
+                now=now,
+            )
+            self.stdout.write(f"Busy-week stays at Sunrise Jaipur: {busy_count}")
 
         dev_user = self._grant_dev_access(options["email"], organization=organization)
 
@@ -472,6 +518,98 @@ class Command(BaseCommand):
             "udaipur_101": room(udaipur, "101", "1", "Lake View", RoomStatus.VACANT),
             "udaipur_102": room(udaipur, "102", "1", "Lake View", RoomStatus.VACANT),
         }
+
+    # -- busy week -------------------------------------------------------------
+
+    def _seed_busy_week(
+        self,
+        *,
+        jaipur: Property,
+        qr_token: HotelQrToken,
+        actor: ClerkUser,
+        storage: PrivateObjectStorage,
+        now,
+    ) -> int:
+        rooms = {}
+        for number, floor, room_type, rate in BUSY_ROOMS:
+            rooms[number], _ = Room.objects.get_or_create(
+                property=jaipur,
+                number=number,
+                defaults={
+                    "floor": floor,
+                    "room_type": room_type,
+                    "nightly_rate_minor": rate,
+                    "status": RoomStatus.VACANT,
+                },
+            )
+
+        seeded = 0
+        for index, (key, first, last, room_number, days_ago, nights, checked_out) in enumerate(BUSY_WEEK):
+            guest_data = {
+                "key": key,
+                "first_name": first,
+                "last_name": last,
+                "email": f"{key.replace('_', '.')}@example.com",
+                "phone": f"+9198{index:08d}",
+                "dob": date(1985 + index % 12, 1 + index % 12, 1 + index % 27),
+                "city": "Jaipur",
+                "state": "Rajasthan",
+                "postal": "302001",
+                "doc_type": "AADHAAR",
+                "doc_number": f"XXXX-BUSY-{index:04d}",
+                "companion": None,
+            }
+            guest = self._create_guest(guest_data, storage=storage, storage_ok=True)
+
+            stay = (
+                Stay.objects.filter(qr_token=qr_token, guest=guest)
+                .exclude(status=StayStatus.DRAFT)
+                .order_by("-created_at")
+                .first()
+            )
+            if stay is None:
+                document = IdentityDocument.objects.get(user=guest, document_type="AADHAAR")
+                try:
+                    stay = submit_guest_identity(
+                        qr_token=qr_token,
+                        guest=guest,
+                        identity_document_id=document.id,
+                        companion_ids=[],
+                        storage=storage,
+                    )
+                except CheckInError as exc:
+                    self.stdout.write(self.style.WARNING(f"Could not submit {key}: {exc.message}"))
+                    continue
+            seeded += 1
+            if room_number is None:
+                continue  # stays waiting for a room
+
+            if stay.operational_status == OperationalStayStatus.PENDING_CHECK_IN:
+                stay = confirm_hotel_check_in(
+                    property_=jaipur,
+                    stay=stay,
+                    room_id=rooms[room_number].id,
+                    actor=actor,
+                    nights=nights,
+                )
+            if checked_out and stay.operational_status == OperationalStayStatus.CHECKED_IN:
+                stay = checkout_hotel_stay(property_=jaipur, stay=stay, actor=actor)
+
+            # Domain functions stamp "now"; spread the week so arrival and
+            # departure charts have shape. Re-runs re-apply the same offsets.
+            checked_in_at = (now - timedelta(days=days_ago)).replace(
+                hour=10 + index % 8, minute=(index * 7) % 60, second=0, microsecond=0
+            )
+            updates = {
+                "submitted_at": checked_in_at - timedelta(minutes=20),
+                "checked_in_at": checked_in_at,
+            }
+            if checked_out:
+                updates["checked_out_at"] = min(
+                    checked_in_at + timedelta(days=nights, hours=1), now
+                )
+            Stay.objects.filter(id=stay.id).update(**updates)
+        return seeded
 
     # -- QR tokens ---------------------------------------------------------
 

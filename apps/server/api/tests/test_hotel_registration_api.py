@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from types import SimpleNamespace
@@ -71,7 +72,7 @@ class HotelRegistrationApiTests(APITestCase):
         self.assertEqual(self.client.get("/api/me/").data["memberships"], [])
         self.assertEqual(
             self.client.get(
-                f"/api/hotel/lake-hotel-request-{response.data['id']}/hotel/rooms/"
+                "/api/hotel/lake-hotel/main/rooms/"
             ).status_code,
             404,
         )
@@ -169,7 +170,7 @@ class HotelRegistrationApiTests(APITestCase):
         )
         self.assertEqual(
             self.client.get(
-                f"/api/hotel/{response.data['organization']['slug']}/hotel/rooms/"
+                f"/api/hotel/{response.data['organization']['slug']}/main/rooms/"
             ).status_code,
             200,
         )
@@ -222,7 +223,7 @@ class HotelRegistrationApiTests(APITestCase):
                 )
             ),
             [
-                ("PROPERTY_CREATED", "hotel", self.admin.id, organization.id),
+                ("PROPERTY_CREATED", "main", self.admin.id, organization.id),
                 ("MEMBER_ADDED", "owner@example.com", self.admin.id, organization.id),
             ],
         )
@@ -346,12 +347,18 @@ class HotelRegistrationConcurrencyTests(TransactionTestCase):
 
     def test_existing_manual_slug_does_not_block_approval(self):
         item = submit_request(applicant=self.applicant, **self.fields)
-        Organization.objects.create(
-            name="Manual", slug=f"concurrent-hotel-request-{item.id}"
-        )
+        Organization.objects.create(name="Manual", slug=slugify(self.fields["hotel_name"]))
         approved = review_request(
             request_id=item.id, reviewer=self.admin, decision="APPROVE"
         )
         self.assertEqual(
-            approved.organization.slug, f"concurrent-hotel-request-{item.id}-1"
+            approved.organization.slug, f"{slugify(self.fields['hotel_name'])}-2"
         )
+
+    def test_approval_uses_a_clean_hotel_slug_and_main_property(self):
+        item = submit_request(applicant=self.applicant, **self.fields)
+        approved = review_request(
+            request_id=item.id, reviewer=self.admin, decision="APPROVE"
+        )
+        self.assertEqual(approved.organization.slug, slugify(self.fields["hotel_name"]))
+        self.assertEqual(approved.property.slug, "main")

@@ -471,6 +471,14 @@ def build_guest_share_payload(stay: Stay) -> dict:
     }
 
 
+def _expected_check_out_date(stay: Stay) -> str | None:
+    """Local check-in calendar date plus billed nights; checkout time is separate."""
+    if stay.checked_in_at is None or not stay.billing_nights:
+        return None
+    start = timezone.localtime(stay.checked_in_at).date()
+    return (start + timedelta(days=stay.billing_nights)).isoformat()
+
+
 def build_hotel_stay_list_item(stay: Stay) -> dict:
     snapshot = getattr(stay, "identity_snapshot", None)
     guest_data = snapshot.guest_data if snapshot is not None else {}
@@ -486,6 +494,7 @@ def build_hotel_stay_list_item(stay: Stay) -> dict:
         )
         or "Guest",
         "companionCount": len(snapshot.companion_data) if snapshot else 0,
+        "expectedCheckOutDate": _expected_check_out_date(stay),
         "identityAccess": {
             **hotel_identity_access_state(stay),
             "expiresAt": _isoformat(stay.hotel_access_expires_at),

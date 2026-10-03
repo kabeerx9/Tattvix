@@ -76,15 +76,14 @@ def review_request(*, request_id, reviewer, decision, rejection_reason=""):
                     "This request has already received a different decision."
                 )
             if decision == "APPROVE":
-                suffix = f"-request-{item.id}"
-                base = slugify(item.hotel_name) or "hotel"
-                candidate = f"{base[: 255 - len(suffix)].rstrip('-')}{suffix}"
-                # Existing manually onboarded slugs can occupy the deterministic name.
-                # A nested savepoint handles a concurrent manual creation as well.
-                attempt = 0
+                # Clean, readable slug from the hotel name; "-2", "-3"… only when
+                # the name is already taken (manual onboarding or a namesake). A
+                # nested savepoint handles a concurrent creation as well.
+                candidate = (slugify(item.hotel_name) or "hotel")[:250].rstrip("-")
+                attempt = 1
                 while True:
-                    extra = f"-{attempt}" if attempt else ""
-                    slug = f"{candidate[: 255 - len(extra)]}{extra}"
+                    extra = f"-{attempt}" if attempt > 1 else ""
+                    slug = f"{candidate}{extra}"
                     try:
                         with transaction.atomic():
                             item.organization = Organization.objects.create(
@@ -96,7 +95,7 @@ def review_request(*, request_id, reviewer, decision, rejection_reason=""):
                             raise
                         attempt += 1
                 item.property = Property.objects.create(
-                    organization=item.organization, name=item.hotel_name, slug="hotel",
+                    organization=item.organization, name=item.hotel_name, slug="main",
                     address=item.address, contact_phone=item.contact_phone
                 )
                 Membership.objects.create(
