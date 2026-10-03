@@ -1,97 +1,133 @@
 # Tattvix Web Design System
 
-This document is the implementation contract for all Tattvix web UI. It allows a contributor to create a visually consistent screen without access to the original visual references.
+This document is the implementation contract for all Tattvix web UI. Decision record:
+`docs/adr/0001-web-visual-language.md`. Visual reference: `docs/design/reference/`.
+
 
 ## Product character
 
-Tattvix should feel calm, capable, warm, and operational. The interface is a premium hospitality workspace, not a generic admin template. It combines a warm mineral canvas with soft ivory surfaces, deep charcoal typography, and restrained botanical green. Green indicates brand and calm direction—not decoration.
+A calm, precise front-desk tool. White canvas, one deep-teal accent, cool greys. Density is a
+feature: staff use it all day. Imagery adds warmth only where it comes from real data.
+
+**Light theme only** until further notice. Do not add `dark:` variants.
 
 ## Foundation
 
-Use shadcn components from `@tattvix/ui` as the first building block. They are source-owned and theme-aware, so extend them centrally when the product needs a different visual treatment.
+Build with shadcn components from `@tattvix/ui`, then the composed patterns in
+`apps/web/src/components/design-system.tsx`:
 
-Preferred hierarchy:
+1. Existing `@tattvix/ui` component.
+2. A pattern from `design-system.tsx` (`PageHeader`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`).
+3. A feature component composed from those.
+4. A new shared primitive only when none of the above can express the interaction.
 
-1. Existing `@tattvix/ui` shadcn component.
-2. A composed pattern from `apps/web/src/components/design-system.tsx`.
-3. A feature-owned component composed from those primitives.
-4. A new shared primitive only when the first three cannot express the interaction.
+No route-local buttons, cards, inputs, dialogs, dropdowns, comboboxes, sheets, tooltips, pills or empty states.
 
-Do not create route-local versions of buttons, cards, inputs, dialogs, dropdowns, comboboxes, sheets, tooltips, or empty states.
+## Colour
 
-## Theme rules
+Tokens live in `packages/ui/src/styles/globals.css`. Use them by name; never hardcode hex or raw
+Tailwind palette colours (`emerald-*`, `amber-*`, `gray-*`) in feature code.
 
-- Use semantic tokens: `background`, `foreground`, `card`, `muted`, `primary`, `accent`, `border`, and their foreground variants.
-- Structural UI must never use fixed white, black, gray, purple, or green values.
-- Purple gradients, neon accents, multicolor metric cards, and decorative glow effects are not part of this system.
-- Semantic status colors may use emerald, amber, sky, or destructive colors, and must include dark-theme variants.
-- Theme values live in `packages/ui/src/styles/globals.css`.
-- Every screen must remain readable in light, dark, and system themes.
+| Role | Token |
+|---|---|
+| Canvas, panels | `background`, `card` (white) |
+| Text | `foreground` · `muted-foreground` (secondary) · `subtle-foreground` (labels, meta) |
+| Lines | `border` (panels, controls) · `border-soft` (dividers inside a panel) |
+| Fills | `muted` (table header, neutral pill) · `accent` (**neutral grey** — generic hover/highlight used by menus and selects) · `primary-tint` (KPI icon tile only) |
+| Brand / action | `primary` (deep teal) — primary button, active nav text, links, chart series 1 |
+| Status | `success` · `warning` · `destructive`, each with a `-tint` background |
+| Charts | `chart-1` (teal) primary · `chart-2` (grey) comparison · `chart-3..5` room statuses |
+
+Teal is the **only** accent, and it is rare: primary button, active nav item (`sidebar-accent`), links, success pills, KPI icon tiles. Everything else is white and grey. Do not use `accent`/`text-primary` to tint icons or boxes. Status colours carry meaning, never decoration. No gradients, glows,
+multicolour metric cards, or purple.
 
 ## Shape and elevation
 
-- Controls: 10–12px radius.
-- Cards and panels: 16px radius.
-- Feature or hero panels: 20–24px radius.
-- Pills are reserved for statuses, filters, and compact metadata.
-- Default surfaces use a thin low-contrast border and very soft shadow. Avoid heavy drop shadows.
-- Nested surfaces should normally use `bg-muted/60` rather than another elevated card.
+- Radius 8px for panels and controls (`rounded-lg`); 6px for icon tiles and thumbnails; status pills fully rounded.
+- Panels: 1px `border` + `0 1px 2px rgb(16 24 40 / 0.04)`. No other shadows.
+- **No box in a box.** Sections inside a panel are separated by `border-soft` dividers, never by nested cards.
 
 ## Typography
 
-- Page title: 30–36px, semibold, tight tracking.
-- Section title: 18–20px, semibold.
-- Body: 14px with relaxed line height.
-- Supporting text: 12–13px using `text-muted-foreground`.
-- Eyebrows use the shared `app-kicker` pattern: 11px, semibold, uppercase, tracked, primary color.
-- Use sentence case. Avoid excessive uppercase outside eyebrows and small status labels.
+Inter (variable) with `cv11`, `ss01`; `tabular-nums` for every number column, KPI and money value.
+
+| Element | Size / weight |
+|---|---|
+| Page title | 22px / 600 — date or count beside it in 14px `subtle-foreground` |
+| Panel / section title | 14px / 600, optional 16px line icon |
+| Body | 14px |
+| Label (above a value) | 12px `subtle-foreground` |
+| KPI value | 28px / 600 |
+
+Sentence case everywhere. No uppercase eyebrows.
 
 ## Layout and spacing
 
-- Application content uses a maximum width of roughly 1400px.
-- Page sections are separated by 24–32px.
-- Card padding is 16px for compact cards and 24px for normal panels.
-- Use 12–16px gaps inside related groups.
-- Prefer asymmetric dashboard grids: a wider operational area and a narrower context panel.
-- Desktop density should be efficient; mobile layouts must collapse to one readable column.
+- Content max width ~1400px. Page padding 32px (16px on mobile).
+- 24px between panels, 20–24px inside panels, 12–16px inside related groups.
+- Lists: 44px rows; bill/ledger: 52px rows. Table header `bg-muted`, 12px labels.
+- Mobile collapses to one column; side panels move below the main column.
 
 ## Page anatomy
 
-Most authenticated screens should use:
+1. **Header row:** title (+ meta) on the left, at most one primary action on the right. No eyebrow, no description paragraph, no hero.
+2. **Optional `KpiStrip`:** one bordered container with vertical dividers — not separate cards.
+3. **Work area.** Detail screens use **main + side** (~64/36): the task (bill, table, form) in main; context (guest, companions, identity, activity) in a single side `Panel` with divided sections.
 
-1. `PageHeader` with eyebrow, outcome-oriented title, short description, and at most one primary action.
-2. Optional metric row using `MetricCard`.
-3. One main `Card`/`Surface` containing the primary workflow.
-4. A secondary context or activity panel only when it helps the task.
+## Density over austerity
 
-Do not place every concept in its own floating card. Group related information into clear regions.
+Screens should feel full and alive at real data volumes (see `docs/design/reference/overview.jpg`):
+avatars on people, neutral category tiles on destinations, KPI strips above lists, status pills,
+charts where there is a trend, imagery where real photos exist, and a short orienting line where
+a newcomer would wonder what an area is for. The rules below remove **noise** (boxes in boxes,
+repeated facts, internals copy, teal tints) — never **information**. Judge a screen with seeded
+data (`pnpm seed -- --email <you>`), not an empty dev database.
+
+## Composition rules
+
+1. **One fact, one place.** Room, rate, dates or status shown in the header don't repeat below.
+2. **One primary action per page.** Secondary actions sit where they apply ("Add charge" on the bill).
+3. **Rare content collapses** behind a link ("View images").
+4. **Row actions appear on hover/focus**, never permanently on every row.
+5. **Dashboards show data.** No tiles that only link elsewhere.
+6. **Facts rows are plain text** (label over value), not bordered cells.
 
 ## Components and interactions
 
-- Buttons: one primary action per region; secondary actions use outline or ghost variants.
-- Inputs: labels are always visible. Placeholder text is an example, not the label.
-- Search: use a shadcn Combobox for selection from remote records and show loading, empty, and error states.
-- Tables/lists: use a muted header, comfortable rows, subtle separators, and status pills.
-- Empty states: explain what belongs in the area and provide one useful next action.
-- Navigation: active items use the accent surface and primary-colored icon/text; inactive items remain quiet.
-- Icons: Lucide, normally 16–20px. Put important category icons in a softly tinted 40–48px container.
+- Buttons: `default` (teal) for the one primary; `outline` for secondary; `ghost` for tertiary (Print).
+- Inputs: visible labels; placeholder is an example, not the label. Selects must render the selected option's **label**, never its raw value.
+- Remote-record selection uses a shadcn Combobox with loading, empty and error states.
+- Whole rows/cards that navigate are the link — not just a small arrow inside them.
+- Empty states: what belongs here + one useful next action.
+- Navigation: active item = `sidebar-accent` fill (teal tint) + `primary` text; inactive items quiet.
+- Icons: Lucide, 16px, stroke 1.75, `muted-foreground`. The only tinted icon tile is the 28px KPI icon (`bg-primary-tint text-primary`).
+
+## Imagery
+
+- Only real data: room-type photos, property cover (once those fields exist).
+- Never present stock imagery as the hotel's own. Without data, omit the image slot rather than showing a large placeholder.
+- People get initials avatars; we don't store photos of guests.
 
 ## Content style
 
-Write concise operational language. Prefer “12 arrivals today” over “Reservation records available.” Titles describe the user’s task or situation. Supporting copy should clarify the next decision, not explain implementation details.
+Operational and short: "3 waiting for a room", "Due 11:00". Never explain how authorization,
+auditing or storage work in staff UI — one short line at most ("ID access ends 4 Oct, 17:17"). Never describe an audit or
+action the UI doesn't actually have.
 
 ## Review checklist
 
-- Built from shadcn/shared components rather than route-local primitives.
-- Uses semantic tokens and works in light/dark themes.
-- Matches the spacing, radius, typography, and elevation rules above.
-- Has a clear primary task and no competing primary buttons.
-- Includes loading, empty, error, disabled, and narrow-screen behavior where relevant.
-- Does not expose implementation/debug data in user-facing UI.
+- Built from `@tattvix/ui` + `design-system.tsx` patterns; no route-local primitives.
+- Semantic tokens only; no raw palette classes, no `dark:` variants.
+- No hero header, no eyebrow, no box in a box, each fact once, one primary action.
+- Numbers tabular; selects show labels; clickable rows are fully clickable.
+- Loading, empty, error, disabled and narrow-screen states covered.
+- No implementation/debug detail in user-facing copy.
 
 ## Native application
 
 The native app uses the same product character and semantic decisions, adapted for touch interfaces. Its implementation lives in `apps/native/src/design-system`.
+
+> Not yet updated for the 2026-10 web redesign; native visuals intentionally diverge from web for now.
 
 - Use `useAppTheme()` instead of hardcoded structural colors.
 - Use `Screen`, `Card`, `PageHeader`, `IconTile`, `AppButton`, `AppInput`, and `GuestPage` before creating new native primitives.

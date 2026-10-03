@@ -14,7 +14,7 @@ Before creating or changing web or native UI, read and follow `docs/design-syste
 - Build with the shared shadcn components from `@tattvix/ui` before creating new primitives.
 - Use semantic theme tokens such as `bg-card`, `text-muted-foreground`, and `bg-primary`; do not hardcode brand colors for structural UI.
 - Add reusable patterns to the shared UI package or the web design-system layer instead of duplicating long class strings across routes.
-- New screens must work in light and dark themes and preserve the visual grammar documented in the design system.
+- Web is light-theme only until further notice (see `docs/adr/0001-web-visual-language.md`); do not add `dark:` variants. Preserve the visual grammar documented in the design system.
 - The native app is guest-only. Do not add platform-admin, owner, manager, reception, or hotel-operations navigation without an explicit product-scope change.
 
 ## Agent skills
