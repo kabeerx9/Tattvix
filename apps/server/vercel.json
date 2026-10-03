@@ -5,7 +5,6 @@
   ],
   "installCommand": "uv sync --locked",
   "buildCommand": "python scripts/vercel_build.py",
-  "ignoreCommand": "[ \"$VERCEL_ENV\" != production ]",
   "functions": {
     "tattvix/wsgi.py": {
       "maxDuration": 60
@@ -16,5 +15,11 @@
       "path": "/api/cron/purge-identity-images/",
       "schedule": "30 21 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "**": false
+    }
+  }
 }

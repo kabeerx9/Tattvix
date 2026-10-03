@@ -15,8 +15,11 @@ global CDN.
 | DNS | GoDaddy | | |
 
 Both Vercel projects are Git-connected to `kabeerx9/Tattvix`; pushing `main`
-deploys both. The API's `ignoreCommand` skips every non-production build, so
-branch previews never build (or migrate) the API.
+deploys both. The API's `git.deploymentEnabled` (`{"main": true, "**": false}`)
+means only `main` creates API deployments, so branch previews never build (or
+migrate) the API; `scripts/vercel_build.py` also refuses to migrate outside
+production. (An earlier `ignoreCommand` made Vercel cancel every git-triggered
+production build at creation for a week — 2026-09-26 to 2026-10-03.)
 
 ## How the API runs on Vercel
 
