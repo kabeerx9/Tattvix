@@ -18,7 +18,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, PageHeader, Panel, PanelHeader, StatusPill, KpiStrip, Kpi } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { travelImages } from "@/lib/travel-images";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -67,6 +68,7 @@ export function PrivacyCenterPage() {
       <PageHeader
         title="Hotel access history"
       />
+      <PageCover src={travelImages.privacy} />
 
       <KpiStrip>
         <Kpi icon={Hotel} label="Current stays" value={currentStays.length} />

@@ -11,7 +11,8 @@ import { CheckCircle2, ContactRound, HeartHandshake, MapPin } from "lucide-react
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { PageCover, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { travelImages } from "@/lib/travel-images";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -91,6 +92,7 @@ export function GuestProfilePage() {
       <PageHeader
         title="Your travel profile"
       />
+      <PageCover src={travelImages.profile} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid gap-6">

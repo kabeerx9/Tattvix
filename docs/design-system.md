@@ -104,8 +104,15 @@ data (`pnpm seed -- --email <you>`), not an empty dev database.
 
 ## Imagery
 
-- Only real data: room-type photos, property cover (once those fields exist).
-- Never present stock imagery as the hotel's own. Without data, omit the image slot rather than showing a large placeholder.
+- **Hotel imagery is real data only:** property cover and room-type photos uploaded in Property
+  settings. Without a photo, omit the slot rather than showing a placeholder.
+- **Guest-facing pages may use decorative travel photography** to feel alive: the guest home hero,
+  destination cards, and a `PageCover` strip under personal page headers. Sources live in
+  `apps/web/public/images/travel` (self-hosted WebP, credits in `CREDITS.md`), referenced through
+  `lib/travel-images.ts`. Decorative images use `alt=""` and never carry information.
+- Never present stock imagery as a hotel's own property or rooms.
+- Text over a photo needs a scrim (`bg-gradient-to-t from-black/60`) for legibility; that's the only
+  gradient allowed.
 - People get initials avatars; we don't store photos of guests.
 
 ## Content style

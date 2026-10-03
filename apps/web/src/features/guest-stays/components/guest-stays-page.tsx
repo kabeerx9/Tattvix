@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@tattvix/ui/components/button";
 import { Hotel, Clock3, BedDouble, LogOut, ChevronRight } from "lucide-react";
-import { EmptyState, PageHeader, Panel, PanelHeader, StatusPill, KpiStrip, Kpi } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { travelImages } from "@/lib/travel-images";
 import { checkInQueries } from "@/features/check-in/queries";
 import { guestStayStatusLabel } from "../status";
 
@@ -16,6 +17,7 @@ export function GuestStaysPage() {
       <PageHeader
         title="My stays"
       />
+      <PageCover src={travelImages.stays} />
       {query.isPending ? (
         <Panel className="p-6">
           <p role="status">Loading your stays...</p>

@@ -20,7 +20,8 @@ import { Baby, CheckCircle2, FileKey2, Pencil, Plus, UsersRound } from "lucide-r
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { travelImages } from "@/lib/travel-images";
 import { getInitials } from "@/lib/initials";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
@@ -97,6 +98,7 @@ export function CompanionsPage() {
         title="Travel companions"
         actions={<Button size="lg" onClick={() => setEditor("new")}><Plus />Add companion</Button>}
       />
+      <PageCover src={travelImages.companions} />
 
       <KpiStrip><Kpi icon={UsersRound} label="Companions" value={data.companions.length} /><Kpi icon={CheckCircle2} label="Ready" value={data.companions.filter((companion) => companion.readiness.isReady).length} /><Kpi icon={FileKey2} label="Incomplete" value={data.companions.filter((companion) => !companion.readiness.isReady).length} /></KpiStrip>
       {data.companions.length ? (

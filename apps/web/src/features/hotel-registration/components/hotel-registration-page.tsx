@@ -8,7 +8,8 @@ import { Building2, CheckCircle2, CircleAlert, Clock3, RefreshCw, Send } from "l
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Panel, PanelHeader, PanelSection, StatusPill, KpiStrip, Kpi } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { travelImages } from "@/lib/travel-images";
 import { currentUserKeys } from "@/features/current-user/keys";
 import { ApiError } from "@/lib/api";
 
@@ -89,6 +90,7 @@ export function HotelRegistrationPage() {
           </Button>
         }
       />
+      <PageCover src={travelImages.hotelOwner} />
 
       {requestQuery.data ? <KpiStrip><Kpi icon={Clock3} label="Pending" value={requests.filter((request) => request.status === "PENDING").length} /><Kpi icon={CheckCircle2} label="Approved" value={requests.filter((request) => request.status === "APPROVED").length} /><Kpi icon={CircleAlert} label="Rejected" value={requests.filter((request) => request.status === "REJECTED").length} /></KpiStrip> : null}
       {requestQuery.isPending ? <LoadingState /> : null}
