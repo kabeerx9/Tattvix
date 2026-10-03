@@ -8,11 +8,12 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { BedDouble, BrushCleaning, CircleCheck, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
+import { formatMoneyMinor, parseMoneyMinor } from "@/lib/money";
 
 import { hotelOperationsMutations } from "../mutations";
 import { hotelOperationsQueries } from "../queries";
@@ -21,6 +22,7 @@ const EMPTY_ROOM: HotelRoomCreateInput = {
   number: "",
   floor: "",
   roomType: "",
+  nightlyRateMinor: null,
 };
 
 export function HotelRoomsPage({
@@ -40,24 +42,33 @@ export function HotelRoomsPage({
   );
   const [showForm, setShowForm] = useState(false);
   const [roomInput, setRoomInput] = useState(EMPTY_ROOM);
+  const [newRoomRate, setNewRoomRate] = useState("");
   const createMutation = useMutation(
     hotelOperationsMutations.createRoom(queryClient),
   );
   const statusMutation = useMutation(
     hotelOperationsMutations.updateRoomStatus(queryClient),
   );
+  const rateMutation = useMutation(
+    hotelOperationsMutations.updateRoomRate(queryClient),
+  );
 
   function createRoom(event: React.FormEvent) {
     event.preventDefault();
+    const nightlyRateMinor = newRoomRate.trim()
+      ? parseMoneyMinor(newRoomRate)
+      : null;
+    if (newRoomRate.trim() && nightlyRateMinor === null) return;
     createMutation.mutate(
       {
         organizationSlug,
         propertySlug,
-        input: roomInput,
+        input: { ...roomInput, nightlyRateMinor },
       },
       {
         onSuccess: () => {
           setRoomInput(EMPTY_ROOM);
+          setNewRoomRate("");
           setShowForm(false);
           toast.success(`Room ${roomInput.number.trim()} added`);
         },
@@ -77,7 +88,26 @@ export function HotelRoomsPage({
     );
   }
 
-  const error = [createMutation.error, statusMutation.error].find(Boolean);
+  function updateRate(room: HotelRoom, nightlyRateMinor: number | null) {
+    rateMutation.mutate(
+      {
+        organizationSlug,
+        propertySlug,
+        roomId: room.id,
+        input: { nightlyRateMinor },
+      },
+      {
+        onSuccess: () =>
+          toast.success(`Nightly rate saved for room ${room.number}`),
+      },
+    );
+  }
+
+  const error = [
+    createMutation.error,
+    statusMutation.error,
+    rateMutation.error,
+  ].find(Boolean);
   const errorMessage =
     error instanceof ApiError
       ? error.message
@@ -104,7 +134,7 @@ export function HotelRoomsPage({
       {showForm ? (
         <Surface className="p-5 sm:p-6">
           <form
-            className="grid gap-4 md:grid-cols-[1fr_1fr_1.5fr_auto] md:items-end"
+            className="grid gap-4 md:grid-cols-[1fr_1fr_1.5fr_1.5fr_auto] md:items-end"
             onSubmit={createRoom}
           >
             <Field label="Room number">
@@ -145,6 +175,18 @@ export function HotelRoomsPage({
                 placeholder="Deluxe"
               />
             </Field>
+            <Field label="Nightly rate (INR)">
+              <Input
+                value={newRoomRate}
+                onChange={(event) => setNewRoomRate(event.target.value)}
+                placeholder="₹2,500.00"
+                inputMode="decimal"
+                aria-invalid={
+                  Boolean(newRoomRate.trim()) &&
+                  parseMoneyMinor(newRoomRate) === null
+                }
+              />
+            </Field>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Adding..." : "Save room"}
             </Button>
@@ -167,8 +209,11 @@ export function HotelRoomsPage({
             key={room.id}
             room={room}
             canManage={canManage}
-            isUpdating={statusMutation.isPending}
+            isUpdating={statusMutation.isPending || rateMutation.isPending}
             onMarkReady={() => markReady(room)}
+            onUpdateRate={(nightlyRateMinor) =>
+              updateRate(room, nightlyRateMinor)
+            }
           />
         ))}
       </div>
@@ -191,12 +236,25 @@ function RoomCard({
   canManage,
   isUpdating,
   onMarkReady,
+  onUpdateRate,
 }: {
   room: HotelRoom;
   canManage: boolean;
   isUpdating: boolean;
   onMarkReady: () => void;
+  onUpdateRate: (nightlyRateMinor: number | null) => void;
 }) {
+  const [rate, setRate] = useState(
+    room.nightlyRateMinor === null ? "" : moneyInput(room.nightlyRateMinor),
+  );
+  useEffect(() => {
+    setRate(
+      room.nightlyRateMinor === null ? "" : moneyInput(room.nightlyRateMinor),
+    );
+  }, [room.nightlyRateMinor]);
+  const parsedRate = rate.trim() ? parseMoneyMinor(rate) : null;
+  const invalidRate = Boolean(rate.trim()) && parsedRate === null;
+
   return (
     <Surface className="p-5">
       <div className="flex items-start justify-between gap-4">
@@ -211,6 +269,41 @@ function RoomCard({
           .filter(Boolean)
           .join(" · ") || "Standard room"}
       </p>
+      {canManage ? (
+        <div className="mt-5 grid gap-2">
+          <Label htmlFor={`room-${room.id}-nightly-rate`}>
+            Nightly rate (INR)
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id={`room-${room.id}-nightly-rate`}
+              value={rate}
+              onChange={(event) => setRate(event.target.value)}
+              placeholder="Not set"
+              inputMode="decimal"
+              aria-invalid={invalidRate}
+            />
+            <Button
+              variant="outline"
+              disabled={isUpdating || invalidRate}
+              onClick={() => onUpdateRate(parsedRate)}
+            >
+              Save
+            </Button>
+          </div>
+          {invalidRate ? (
+            <p className="text-xs text-destructive">
+              Enter a valid amount in rupees.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-5 text-sm text-muted-foreground">
+          {room.nightlyRateMinor === null
+            ? "Nightly rate not set"
+            : `${formatMoneyMinor(room.nightlyRateMinor)} per night`}
+        </p>
+      )}
       {canManage && room.status === "CLEANING" ? (
         <Button
           className="mt-5 w-full"
@@ -234,6 +327,10 @@ function RoomCard({
       ) : null}
     </Surface>
   );
+}
+
+function moneyInput(amount: number) {
+  return `${Math.floor(amount / 100)}.${String(amount % 100).padStart(2, "0")}`;
 }
 
 function Field({

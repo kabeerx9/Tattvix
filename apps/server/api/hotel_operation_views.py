@@ -104,6 +104,8 @@ def hotel_stay_check_in(
             property_=property_,
             stay=stay,
             room_id=serializer.validated_data["room_id"],
+            nights=serializer.validated_data["nights"],
+            actor=request.user.db_user,
         )
     except CheckInError as exc:
         return _operations_error_response(exc)

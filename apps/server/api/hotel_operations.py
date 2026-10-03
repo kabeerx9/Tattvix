@@ -15,6 +15,7 @@ from .models import (
     RoomStatus,
     Stay,
     StayStatus,
+    StayCharge,
 )
 
 
@@ -26,6 +27,7 @@ def build_room_payload(room: Room) -> dict:
         "roomType": room.room_type,
         "status": room.status,
         "isActive": room.is_active,
+        "nightlyRateMinor": room.nightly_rate_minor,
     }
 
 
@@ -35,6 +37,7 @@ def create_room(
     number: str,
     floor: str,
     room_type: str,
+    nightly_rate_minor: int | None = None,
 ) -> Room:
     try:
         return Room.objects.create(
@@ -42,6 +45,7 @@ def create_room(
             number=number,
             floor=floor,
             room_type=room_type,
+            nightly_rate_minor=nightly_rate_minor,
         )
     except IntegrityError as exc:
         raise CheckInError(
@@ -76,15 +80,19 @@ def confirm_hotel_check_in(
     property_: Property,
     stay: Stay,
     room_id: int,
+    actor: ClerkUser,
+    nights: int = 1,
 ) -> Stay:
     try:
         with transaction.atomic():
-            locked_stay = (
-                Stay.objects.select_for_update()
-                .get(id=stay.id, property=property_)
+            locked_stay = Stay.objects.select_for_update().get(
+                id=stay.id, property=property_
             )
             if locked_stay.operational_status == OperationalStayStatus.CHECKED_IN:
-                if locked_stay.room_id == room_id:
+                if (
+                    locked_stay.room_id == room_id
+                    and locked_stay.billing_nights == nights
+                ):
                     return locked_stay
                 raise CheckInError(
                     "stay_already_checked_in",
@@ -117,9 +125,25 @@ def confirm_hotel_check_in(
                     "Choose a vacant room before confirming check-in.",
                 )
 
+            if room.nightly_rate_minor is None:
+                raise CheckInError(
+                    "room_rate_missing",
+                    "Set a nightly rate before confirming check-in.",
+                )
+
             now = timezone.now()
             room.status = RoomStatus.OCCUPIED
             room.save(update_fields=["status", "updated_at"])
+            locked_stay.billing_nights = nights
+            locked_stay.nightly_rate_minor = room.nightly_rate_minor
+            StayCharge.objects.create(
+                stay=locked_stay,
+                kind=StayCharge.Kind.ROOM,
+                description=f"Room {room.number}",
+                quantity=nights,
+                unit_price_minor=room.nightly_rate_minor,
+                created_by=actor,
+            )
             locked_stay.room = room
             locked_stay.operational_status = OperationalStayStatus.CHECKED_IN
             locked_stay.checked_in_at = now
@@ -127,6 +151,8 @@ def confirm_hotel_check_in(
             locked_stay.save(
                 update_fields=[
                     "room",
+                    "billing_nights",
+                    "nightly_rate_minor",
                     "operational_status",
                     "checked_in_at",
                     "checked_out_at",

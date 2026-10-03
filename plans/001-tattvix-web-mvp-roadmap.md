@@ -450,3 +450,9 @@ Stop and ask for product clarification if:
 - Use organization/property foreign keys early even if the first pilot has one hotel.
 - Use Django admin for emergency internal operations, but build the MVP super admin dashboard for normal platform operations.
 - Treat RBAC as domain architecture, not just a Django group configuration problem.
+
+## Approved stay-billing extension (2026-10-03)
+
+Guest QR pages show property details and the range of configured nightly rates. Guests submit identity and companions without choosing a room type. Reception assigns a room and enters nights; confirmation snapshots the configured nightly rate and creates the initial room charge atomically. Room inventory and availability remain staff-only.
+
+Hotel staff can add itemized extras during the stay or void an extra with an audited reason. Checkout freezes the bill. Guests see operational status, assigned room and the itemized bill under My stays, independently of QR expiry and identity-access revocation. This extension uses INR integer paise and does not collect payments or generate tax invoices. Historical stays receive no invented charges.

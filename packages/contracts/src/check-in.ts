@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moneyMinorSchema, propertyDetailsSchema } from "./billing";
 
 import { guestProfileInputSchema } from "./guest-profile";
 import {
@@ -37,6 +38,7 @@ export const roomSummarySchema = z.object({
   roomType: z.string().max(100),
   status: roomStatusSchema,
   isActive: z.boolean(),
+  nightlyRateMinor: moneyMinorSchema.nullable().optional().default(null),
 });
 
 // A stay's assigned room, as embedded in stay payloads (guest and hotel
@@ -52,6 +54,7 @@ export const stayRoomSummarySchema = z.object({
 });
 
 export const checkInPropertySchema = z.object({
+  details: propertyDetailsSchema.optional(),
   id: z.number().int().positive(),
   name: z.string().min(1),
   slug: z.string().min(1),
@@ -108,23 +111,37 @@ export const checkInContextSchema = z.object({
   existingStay: guestStaySchema.nullable(),
 });
 
-export const guestCheckInSubmitInputSchema = z.object({
-  identityDocumentId: z.number().int().positive(),
-  companionIds: z.array(z.number().int().positive()).max(20),
-  companionDocuments: z.array(z.object({
-    companionId: z.number().int().positive(),
+export const guestCheckInSubmitInputSchema = z
+  .object({
     identityDocumentId: z.number().int().positive(),
-  })).max(20).optional(),
-  consentAccepted: z.literal(true),
-}).superRefine((input, ctx) => {
-  const seen = new Set<number>();
-  for (const [index, choice] of (input.companionDocuments ?? []).entries()) {
-    if (!input.companionIds.includes(choice.companionId) || seen.has(choice.companionId)) {
-      ctx.addIssue({ code: "custom", path: ["companionDocuments", index, "companionId"], message: "Choose at most one document for each selected companion." });
+    companionIds: z.array(z.number().int().positive()).max(20),
+    companionDocuments: z
+      .array(
+        z.object({
+          companionId: z.number().int().positive(),
+          identityDocumentId: z.number().int().positive(),
+        }),
+      )
+      .max(20)
+      .optional(),
+    consentAccepted: z.literal(true),
+  })
+  .superRefine((input, ctx) => {
+    const seen = new Set<number>();
+    for (const [index, choice] of (input.companionDocuments ?? []).entries()) {
+      if (
+        !input.companionIds.includes(choice.companionId) ||
+        seen.has(choice.companionId)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["companionDocuments", index, "companionId"],
+          message: "Choose at most one document for each selected companion.",
+        });
+      }
+      seen.add(choice.companionId);
     }
-    seen.add(choice.companionId);
-  }
-});
+  });
 
 export const hotelQrTokenResponseSchema = z.object({
   token: z.string().min(32),
@@ -179,7 +196,9 @@ export const sharedCompanionSchema = companionProfileInputSchema.extend({
   isMinor: z.boolean().nullable(),
   id: z.number().int().positive().optional(),
   document: sharedDocumentSchema.nullable().optional(),
-  images: z.array(z.object({ side: identityDocumentImageSideSchema })).default([]),
+  images: z
+    .array(z.object({ side: identityDocumentImageSideSchema }))
+    .default([]),
 });
 
 export const sharedIdentitySnapshotSchema = z.object({
@@ -202,9 +221,7 @@ export const hotelStayImageAccessResponseSchema =
   identityDocumentImageAccessResponseSchema;
 
 export type StayStatus = z.infer<typeof stayStatusSchema>;
-export type OperationalStayStatus = z.infer<
-  typeof operationalStayStatusSchema
->;
+export type OperationalStayStatus = z.infer<typeof operationalStayStatusSchema>;
 export type RoomStatus = z.infer<typeof roomStatusSchema>;
 export type RoomSummary = z.infer<typeof roomSummarySchema>;
 export type StayRoomSummary = z.infer<typeof stayRoomSummarySchema>;

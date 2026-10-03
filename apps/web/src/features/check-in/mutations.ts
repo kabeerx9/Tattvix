@@ -13,9 +13,9 @@ export const checkInMutations = {
       token: string;
       input: GuestCheckInSubmitInput;
     }) => checkInApi.submit(token, input),
-    onSuccess: (_stay: unknown, variables: { token: string }) =>
+    onSuccess: () =>
       queryClient.invalidateQueries({
-        queryKey: checkInKeys.context(variables.token),
+        queryKey: checkInKeys.all,
       }),
   }),
   revoke: (queryClient: QueryClient) => ({
@@ -31,7 +31,7 @@ export const checkInMutations = {
             ]
           : []),
         queryClient.invalidateQueries({
-          queryKey: checkInKeys.shares(),
+          queryKey: checkInKeys.all,
         }),
       ]),
   }),

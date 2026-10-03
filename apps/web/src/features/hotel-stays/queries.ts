@@ -15,23 +15,13 @@ export const hotelStayQueries = {
   ) =>
     queryOptions({
       queryKey: hotelStayKeys.list(organizationSlug, propertySlug, query),
-      queryFn: () =>
-        hotelStaysApi.list(organizationSlug, propertySlug, query),
+      queryFn: () => hotelStaysApi.list(organizationSlug, propertySlug, query),
       staleTime: 30_000,
     }),
-  detail: (
-    organizationSlug: string,
-    propertySlug: string,
-    stayId: string,
-  ) =>
+  detail: (organizationSlug: string, propertySlug: string, stayId: string) =>
     queryOptions({
-      queryKey: hotelStayKeys.detail(
-        organizationSlug,
-        propertySlug,
-        stayId,
-      ),
-      queryFn: () =>
-        hotelStaysApi.get(organizationSlug, propertySlug, stayId),
+      queryKey: hotelStayKeys.detail(organizationSlug, propertySlug, stayId),
+      queryFn: () => hotelStaysApi.get(organizationSlug, propertySlug, stayId),
       staleTime: 10_000,
     }),
   imageAccess: (
@@ -61,5 +51,12 @@ export const hotelStayQueries = {
       gcTime: 0,
       retry: false,
       refetchOnWindowFocus: false,
+    }),
+  bill: (organizationSlug: string, propertySlug: string, stayId: string) =>
+    queryOptions({
+      queryKey: hotelStayKeys.bill(organizationSlug, propertySlug, stayId),
+      queryFn: () =>
+        hotelStaysApi.getBill(organizationSlug, propertySlug, stayId),
+      staleTime: 10_000,
     }),
 };

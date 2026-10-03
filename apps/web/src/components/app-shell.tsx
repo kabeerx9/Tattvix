@@ -51,6 +51,7 @@ type NavItem = {
   label: string;
   to:
     | "/guest"
+    | "/stays"
     | "/profile"
     | "/companions"
     | "/privacy"
@@ -64,6 +65,7 @@ type NavItem = {
 
 const guestNav: NavItem[] = [
   { label: "Overview", to: "/guest", icon: Contact },
+  { label: "My stays", to: "/stays", icon: ClipboardCheck },
   { label: "Travel profile", to: "/profile", icon: IdCard },
   { label: "Companions", to: "/companions", icon: UsersRound },
   { label: "Privacy center", to: "/privacy", icon: ShieldCheck },
@@ -336,6 +338,15 @@ function HotelNavigation() {
                   params={params}
                 />
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <ScopedSidebarLink
+                  label="Hotel details"
+                  icon={Building2}
+                  isActive={pathname.endsWith("/details")}
+                  to="/hotel/$organizationSlug/$propertySlug/details"
+                  params={params}
+                />
+              </SidebarMenuItem>
               {membership?.permissions.includes("reports:view") ? (
                 <SidebarMenuItem>
                   <ScopedSidebarLink
@@ -390,7 +401,8 @@ function ScopedSidebarLink({
     | "/hotel/$organizationSlug/$propertySlug/stays"
     | "/hotel/$organizationSlug/$propertySlug/guests"
     | "/hotel/$organizationSlug/$propertySlug/rooms"
-    | "/hotel/$organizationSlug/$propertySlug/reports";
+    | "/hotel/$organizationSlug/$propertySlug/reports"
+    | "/hotel/$organizationSlug/$propertySlug/details";
   params: { organizationSlug: string; propertySlug?: string };
 }) {
   const { setOpenMobile } = useSidebar();
@@ -443,7 +455,9 @@ function SidebarNavGroup({
 function SidebarNavLink({ item }: { item: NavItem }) {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
-  const isActive = location.pathname === item.to;
+  const isActive =
+    location.pathname === item.to ||
+    (item.to === "/stays" && location.pathname.startsWith("/stays/"));
 
   return (
     <SidebarMenuButton

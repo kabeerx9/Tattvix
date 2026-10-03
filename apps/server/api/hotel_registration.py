@@ -96,7 +96,8 @@ def review_request(*, request_id, reviewer, decision, rejection_reason=""):
                             raise
                         attempt += 1
                 item.property = Property.objects.create(
-                    organization=item.organization, name=item.hotel_name, slug="hotel"
+                    organization=item.organization, name=item.hotel_name, slug="hotel",
+                    address=item.address, contact_phone=item.contact_phone
                 )
                 Membership.objects.create(
                     user_id=item.applicant_id,

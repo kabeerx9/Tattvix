@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moneyMinorSchema } from "./billing";
 
 import {
   operationalStayStatusSchema,
@@ -14,19 +15,30 @@ export const hotelRoomListResponseSchema = z.object({
   rooms: z.array(hotelRoomSchema),
 });
 
-export const hotelRoomCreateInputSchema = z.object({
-  number: z.string().trim().min(1).max(32),
-  floor: z.string().trim().max(32),
-  roomType: z.string().trim().max(100),
-});
+export const hotelRoomCreateInputSchema = z
+  .object({
+    number: z.string().trim().min(1).max(32),
+    floor: z.string().trim().max(32),
+    roomType: z.string().trim().max(100),
+    nightlyRateMinor: moneyMinorSchema.nullable().optional(),
+  })
+  .strict();
+
+export const hotelRoomRateInputSchema = z
+  .object({ nightlyRateMinor: moneyMinorSchema.nullable() })
+  .strict();
+export type HotelRoomRateInput = z.infer<typeof hotelRoomRateInputSchema>;
 
 export const hotelRoomStatusInputSchema = z.object({
   status: z.enum(["VACANT", "CLEANING", "MAINTENANCE"]),
 });
 
-export const hotelStayCheckInInputSchema = z.object({
-  roomId: z.number().int().positive(),
-});
+export const hotelStayCheckInInputSchema = z
+  .object({
+    roomId: z.number().int().positive(),
+    nights: z.number().int().min(1).max(365).default(1),
+  })
+  .strict();
 
 export const hotelGuestStaySchema = z.object({
   id: z.uuid(),
@@ -44,18 +56,10 @@ export const hotelGuestListResponseSchema = z.object({
 });
 
 export type HotelRoom = z.infer<typeof hotelRoomSchema>;
-export type HotelRoomListResponse = z.infer<
-  typeof hotelRoomListResponseSchema
->;
-export type HotelRoomCreateInput = z.infer<
-  typeof hotelRoomCreateInputSchema
->;
-export type HotelRoomStatusInput = z.infer<
-  typeof hotelRoomStatusInputSchema
->;
-export type HotelStayCheckInInput = z.infer<
-  typeof hotelStayCheckInInputSchema
->;
+export type HotelRoomListResponse = z.infer<typeof hotelRoomListResponseSchema>;
+export type HotelRoomCreateInput = z.infer<typeof hotelRoomCreateInputSchema>;
+export type HotelRoomStatusInput = z.infer<typeof hotelRoomStatusInputSchema>;
+export type HotelStayCheckInInput = z.infer<typeof hotelStayCheckInInputSchema>;
 export type HotelGuestStay = z.infer<typeof hotelGuestStaySchema>;
 export type HotelGuestListResponse = z.infer<
   typeof hotelGuestListResponseSchema

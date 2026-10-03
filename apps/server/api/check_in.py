@@ -565,7 +565,10 @@ def _document_snapshot_payload(document: IdentityDocument) -> dict:
 
 
 def _property_payload(property_) -> dict:
+    from .property_details import build_property_details
+
     return {
+        "details": build_property_details(property_),
         "id": property_.id,
         "name": property_.name,
         "slug": property_.slug,

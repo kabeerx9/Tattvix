@@ -35,6 +35,7 @@ function PropertyStayDetailRoute() {
       propertySlug={params.propertySlug}
       propertyName={activeProperty.name}
       stayId={params.stayId}
+      canManageBill={activeMembership.permissions.includes("stays:update")}
       canAssign={activeMembership.permissions.includes("rooms:assign")}
       canCheckout={activeMembership.permissions.includes("stays:update")}
     />

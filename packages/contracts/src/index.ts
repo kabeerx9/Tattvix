@@ -1,4 +1,9 @@
-export { ApiError, createApiClient, type ApiClient, type ApiClientOptions } from "./http";
+export {
+  ApiError,
+  createApiClient,
+  type ApiClient,
+  type ApiClientOptions,
+} from "./http";
 export {
   checkInContextSchema,
   checkInPropertySchema,
@@ -209,3 +214,20 @@ export {
   type HotelRegistrationStatus,
   type PlatformHotelRegistrationRequest,
 } from "./hotel-registration";
+
+export {
+  stayBillSchema,
+  stayBillChargeInputSchema,
+  stayBillVoidInputSchema,
+  propertyDetailsSchema,
+  propertyDetailsInputSchema,
+  type StayBill,
+  type StayBillChargeInput,
+  type StayBillVoidInput,
+  type PropertyDetails,
+  type PropertyDetailsInput,
+} from "./billing";
+export {
+  hotelRoomRateInputSchema,
+  type HotelRoomRateInput,
+} from "./hotel-operations";

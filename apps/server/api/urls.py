@@ -54,9 +54,44 @@ from .platform_views import (
 )
 from .views import clerk_webhook, cron_purge_identity_images, health, me
 
+from .billing_views import (hotel_room_rate, hotel_property_details, hotel_stay_bill,
+    hotel_stay_charge_void, guest_stay_detail, guest_stay_bill)
+
 urlpatterns = [
-    path("api/guest/hotel-requests/", guest_hotel_requests, name="guest-hotel-requests"),
-    path("api/platform/hotel-requests/", platform_hotel_requests, name="platform-hotel-requests"),
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/details/",
+        hotel_property_details,
+        name="hotel-property-details",
+    ),
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/rooms/<int:room_id>/rate/",
+        hotel_room_rate,
+        name="hotel-room-rate",
+    ),
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/stays/<uuid:stay_id>/bill/",
+        hotel_stay_bill,
+        name="hotel-stay-bill",
+    ),
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/stays/<uuid:stay_id>/bill/<uuid:item_id>/void/",
+        hotel_stay_charge_void,
+        name="hotel-stay-charge-void",
+    ),
+    path(
+        "api/guest/stays/<uuid:stay_id>/", guest_stay_detail, name="guest-stay-detail"
+    ),
+    path(
+        "api/guest/stays/<uuid:stay_id>/bill/", guest_stay_bill, name="guest-stay-bill"
+    ),
+    path(
+        "api/guest/hotel-requests/", guest_hotel_requests, name="guest-hotel-requests"
+    ),
+    path(
+        "api/platform/hotel-requests/",
+        platform_hotel_requests,
+        name="platform-hotel-requests",
+    ),
     path(
         "api/platform/hotel-requests/<int:request_id>/review/",
         platform_hotel_request_review,
@@ -152,10 +187,7 @@ urlpatterns = [
         name="platform-organization-list",
     ),
     path(
-        (
-            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
-            "check-in-tokens/"
-        ),
+        ("api/hotel/<slug:organization_slug>/<slug:property_slug>/check-in-tokens/"),
         hotel_check_in_token_create,
         name="hotel-check-in-token-create",
     ),
@@ -223,26 +255,17 @@ urlpatterns = [
         name="hotel-stay-checkout",
     ),
     path(
-        (
-            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
-            "reports/register/"
-        ),
+        ("api/hotel/<slug:organization_slug>/<slug:property_slug>/reports/register/"),
         hotel_report_register,
         name="hotel-report-register",
     ),
     path(
-        (
-            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
-            "reports/in-house/"
-        ),
+        ("api/hotel/<slug:organization_slug>/<slug:property_slug>/reports/in-house/"),
         hotel_report_in_house,
         name="hotel-report-in-house",
     ),
     path(
-        (
-            "api/hotel/<slug:organization_slug>/<slug:property_slug>/"
-            "reports/occupancy/"
-        ),
+        ("api/hotel/<slug:organization_slug>/<slug:property_slug>/reports/occupancy/"),
         hotel_report_occupancy,
         name="hotel-report-occupancy",
     ),

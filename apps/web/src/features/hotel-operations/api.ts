@@ -4,6 +4,7 @@ import {
   hotelRoomSchema,
   hotelStayDetailSchema,
   type HotelRoomCreateInput,
+  type HotelRoomRateInput,
   type HotelRoomStatusInput,
   type HotelStayCheckInInput,
 } from "@tattvix/contracts";
@@ -44,6 +45,18 @@ export const hotelOperationsApi = {
       { method: "PATCH", body: JSON.stringify(input) },
     );
   },
+  updateRoomRate(
+    organizationSlug: string,
+    propertySlug: string,
+    roomId: number,
+    input: HotelRoomRateInput,
+  ) {
+    return apiClient.requestJson(
+      `${propertyBase(organizationSlug, propertySlug)}/rooms/${roomId}/rate/`,
+      hotelRoomSchema,
+      { method: "PATCH", body: JSON.stringify(input) },
+    );
+  },
   checkIn(
     organizationSlug: string,
     propertySlug: string,
@@ -56,11 +69,7 @@ export const hotelOperationsApi = {
       { method: "POST", body: JSON.stringify(input) },
     );
   },
-  checkout(
-    organizationSlug: string,
-    propertySlug: string,
-    stayId: string,
-  ) {
+  checkout(organizationSlug: string, propertySlug: string, stayId: string) {
     return apiClient.requestJson(
       `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/checkout/`,
       hotelStayDetailSchema,

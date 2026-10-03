@@ -450,6 +450,7 @@ class Command(BaseCommand):
                 defaults={
                     "floor": floor,
                     "room_type": room_type,
+                    "nightly_rate_minor": 200000,
                     "status": status,
                 },
             )
@@ -566,7 +567,7 @@ class Command(BaseCommand):
         stay = submit("guest_3", jaipur_token)
         if stay is not None:
             stay = self._ensure_checked_in(
-                property_=jaipur, stay=stay, room_id=rooms["jaipur_101"].id
+                property_=jaipur, stay=stay, room_id=rooms["jaipur_101"].id, actor=reception
             )
             self._record_audit_views(stay=stay, actor=reception)
         created["guest_3_checked_in"] = stay
@@ -603,14 +604,14 @@ class Command(BaseCommand):
         stay = submit("guest_6", udaipur_token)
         if stay is not None:
             stay = self._ensure_checked_in(
-                property_=udaipur, stay=stay, room_id=rooms["udaipur_101"].id
+                property_=udaipur, stay=stay, room_id=rooms["udaipur_101"].id, actor=reception
             )
         created["guest_6_udaipur_checked_in"] = stay
 
         return created
 
     def _ensure_checked_in(
-        self, *, property_: Property, stay: Stay, room_id: int
+        self, *, property_: Property, stay: Stay, room_id: int, actor: ClerkUser
     ) -> Stay:
         # Guarded because `confirm_hotel_check_in` rejects a stay that has
         # already moved to CHECKED_IN (different room) or CHECKED_OUT — on
@@ -620,12 +621,12 @@ class Command(BaseCommand):
             OperationalStayStatus.CHECKED_OUT,
         ):
             return stay
-        return confirm_hotel_check_in(property_=property_, stay=stay, room_id=room_id)
+        return confirm_hotel_check_in(property_=property_, stay=stay, room_id=room_id, actor=actor)
 
     def _ensure_checked_out(
         self, *, property_: Property, stay: Stay, room_id: int, actor: ClerkUser
     ) -> Stay:
-        stay = self._ensure_checked_in(property_=property_, stay=stay, room_id=room_id)
+        stay = self._ensure_checked_in(property_=property_, stay=stay, room_id=room_id, actor=actor)
         if stay.operational_status == OperationalStayStatus.CHECKED_OUT:
             return stay
         return checkout_hotel_stay(property_=property_, stay=stay, actor=actor)

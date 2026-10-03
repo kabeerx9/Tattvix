@@ -1,4 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type {
+  StayBillChargeInput,
+  StayBillVoidInput,
+} from "@tattvix/contracts";
 
 import { hotelStaysApi } from "./api";
 import { hotelStayKeys } from "./keys";
@@ -18,11 +22,7 @@ export const hotelStayMutations = {
       hotelStaysApi.generateQr(organizationSlug, propertySlug),
   }),
   close: (queryClient: QueryClient) => ({
-    mutationFn: ({
-      organizationSlug,
-      propertySlug,
-      stayId,
-    }: StayScope) =>
+    mutationFn: ({ organizationSlug, propertySlug, stayId }: StayScope) =>
       hotelStaysApi.close(organizationSlug, propertySlug, stayId),
     onSuccess: (_stay: unknown, variables: StayScope) =>
       Promise.all([
@@ -40,5 +40,51 @@ export const hotelStayMutations = {
           ),
         }),
       ]),
+  }),
+  addBillCharge: (queryClient: QueryClient) => ({
+    mutationFn: ({
+      organizationSlug,
+      propertySlug,
+      stayId,
+      input,
+    }: StayScope & { input: StayBillChargeInput }) =>
+      hotelStaysApi.addBillCharge(
+        organizationSlug,
+        propertySlug,
+        stayId,
+        input,
+      ),
+    onSuccess: (_bill: unknown, variables: StayScope) =>
+      queryClient.invalidateQueries({
+        queryKey: hotelStayKeys.bill(
+          variables.organizationSlug,
+          variables.propertySlug,
+          variables.stayId,
+        ),
+      }),
+  }),
+  voidBillItem: (queryClient: QueryClient) => ({
+    mutationFn: ({
+      organizationSlug,
+      propertySlug,
+      stayId,
+      itemId,
+      input,
+    }: StayScope & { itemId: string; input: StayBillVoidInput }) =>
+      hotelStaysApi.voidBillItem(
+        organizationSlug,
+        propertySlug,
+        stayId,
+        itemId,
+        input,
+      ),
+    onSuccess: (_bill: unknown, variables: StayScope) =>
+      queryClient.invalidateQueries({
+        queryKey: hotelStayKeys.bill(
+          variables.organizationSlug,
+          variables.propertySlug,
+          variables.stayId,
+        ),
+      }),
   }),
 };

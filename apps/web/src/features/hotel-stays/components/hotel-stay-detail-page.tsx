@@ -5,6 +5,8 @@ import type {
   IdentityDocumentImageSide,
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
+import { Input } from "@tattvix/ui/components/input";
+import { Label } from "@tattvix/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -39,11 +41,19 @@ import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, PageHeader, Surface } from "@/components/design-system";
+import {
+  ConfirmDialog,
+  EmptyState,
+  PageHeader,
+  Surface,
+} from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
+import { formatMoneyMinor } from "@/lib/money";
+
+import { StayBillPanel } from "./stay-bill-panel";
 
 const STAY_PRINT_PAGE_STYLE = `
   @page {
@@ -105,6 +115,7 @@ export function HotelStayDetailPage({
   propertyName,
   stayId,
   canAssign,
+  canManageBill,
   canCheckout,
 }: {
   organizationSlug: string;
@@ -112,6 +123,7 @@ export function HotelStayDetailPage({
   propertyName: string;
   stayId: string;
   canAssign: boolean;
+  canManageBill: boolean;
   canCheckout: boolean;
 }) {
   const printContentRef = useRef<HTMLDivElement>(null);
@@ -125,12 +137,25 @@ export function HotelStayDetailPage({
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
     stay.room?.id ?? null,
   );
+  const [nights, setNights] = useState("1");
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false);
   const imageQueries = useQueries({
     queries:
-      (stay.snapshot ? [
-        ...stay.snapshot.images.map((image) => ({ ...image, companionId: undefined as number | undefined })),
-        ...stay.snapshot.companions.flatMap((companion) => companion.images.map((image) => ({ ...image, companionId: companion.id }))),
-      ] : []).map(({ side, companionId }) =>
+      (stay.snapshot
+        ? [
+            ...stay.snapshot.images.map((image) => ({
+              ...image,
+              companionId: undefined as number | undefined,
+            })),
+            ...stay.snapshot.companions.flatMap((companion) =>
+              companion.images.map((image) => ({
+                ...image,
+                companionId: companion.id,
+              })),
+            ),
+          ]
+        : []
+      ).map(({ side, companionId }) =>
         hotelStayQueries.imageAccess(
           organizationSlug,
           propertySlug,
@@ -172,14 +197,23 @@ export function HotelStayDetailPage({
     },
   });
 
+  const selectedRoom = roomData.rooms.find(
+    (room) => room.id === selectedRoomId,
+  );
+  const nightCount = Number(nights);
+  const validNightCount =
+    Number.isInteger(nightCount) && nightCount >= 1 && nightCount <= 365;
+
   function confirmCheckIn() {
-    if (!selectedRoomId) return;
+    if (!selectedRoomId || !validNightCount) return;
+    setCheckInConfirmOpen(false);
     checkInMutation.mutate(
       {
         organizationSlug,
         propertySlug,
         stayId,
         roomId: selectedRoomId,
+        nights: nightCount,
       },
       {
         onSuccess: () =>
@@ -268,10 +302,27 @@ export function HotelStayDetailPage({
           canCheckout={canCheckout}
           selectedRoomId={selectedRoomId}
           onRoomChange={setSelectedRoomId}
-          onCheckIn={confirmCheckIn}
+          nights={nights}
+          onNightsChange={setNights}
+          onRequestCheckIn={() => setCheckInConfirmOpen(true)}
           onCheckout={() => setCheckoutConfirmOpen(true)}
           isCheckingIn={checkInMutation.isPending}
           isCheckingOut={checkoutMutation.isPending}
+        />
+        <ConfirmDialog
+          open={checkInConfirmOpen}
+          onOpenChange={setCheckInConfirmOpen}
+          title={`Check in ${stay.guestName}?`}
+          description={
+            selectedRoom &&
+            validNightCount &&
+            selectedRoom.nightlyRateMinor !== null
+              ? `Assign room ${selectedRoom.number} for ${nightCount} ${nightCount === 1 ? "night" : "nights"}. Room charge: ${formatMoneyMinor(selectedRoom.nightlyRateMinor * nightCount)}.`
+              : "Choose an active vacant room with a nightly rate, then enter 1 to 365 nights before confirming."
+          }
+          confirmLabel="Confirm check-in"
+          onConfirm={confirmCheckIn}
+          pending={checkInMutation.isPending}
         />
         <ConfirmDialog
           open={checkoutConfirmOpen}
@@ -283,17 +334,25 @@ export function HotelStayDetailPage({
           pending={checkoutMutation.isPending}
         />
 
+        <StayBillPanel
+          organizationSlug={organizationSlug}
+          propertySlug={propertySlug}
+          stayId={stayId}
+          stay={stay}
+          canManage={canManageBill}
+        />
+
         {stay.snapshot ? (
           <div className="stay-print-layout grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="grid gap-5">
               <GuestIdentity stay={stay} />
-              <DocumentIdentity
-                stay={stay}
-                imageQueries={imageQueries}
-              />
+              <DocumentIdentity stay={stay} imageQueries={imageQueries} />
             </div>
             <div className="grid h-fit gap-5">
-              <CompanionIdentity stay={stay} imageQueries={imageQueries.slice(stay.snapshot.images.length)} />
+              <CompanionIdentity
+                stay={stay}
+                imageQueries={imageQueries.slice(stay.snapshot.images.length)}
+              />
               <AccessPolicy stay={stay} />
             </div>
           </div>
@@ -312,7 +371,9 @@ function OperationalStayPanel({
   canCheckout,
   selectedRoomId,
   onRoomChange,
-  onCheckIn,
+  nights,
+  onNightsChange,
+  onRequestCheckIn,
   onCheckout,
   isCheckingIn,
   isCheckingOut,
@@ -323,12 +384,23 @@ function OperationalStayPanel({
   canCheckout: boolean;
   selectedRoomId: number | null;
   onRoomChange: (roomId: number | null) => void;
-  onCheckIn: () => void;
+  nights: string;
+  onNightsChange: (nights: string) => void;
+  onRequestCheckIn: () => void;
   onCheckout: () => void;
   isCheckingIn: boolean;
   isCheckingOut: boolean;
 }) {
-  const vacantRooms = rooms.filter((room) => room.status === "VACANT");
+  const vacantRooms = rooms.filter(
+    (room) => room.status === "VACANT" && room.isActive,
+  );
+  const selectedRoom = rooms.find((room) => room.id === selectedRoomId);
+  const nightCount = Number(nights);
+  const validNightCount =
+    Number.isInteger(nightCount) && nightCount >= 1 && nightCount <= 365;
+  const hasRate =
+    selectedRoom?.nightlyRateMinor !== null &&
+    selectedRoom?.nightlyRateMinor !== undefined;
 
   if (stay.operationalStatus === "CHECKED_IN") {
     return (
@@ -377,8 +449,7 @@ function OperationalStayPanel({
             {stay.checkedOutAt
               ? formatDateTime(stay.checkedOutAt)
               : "Checkout time unavailable"}
-            . The room moved to cleaning and this stay is now in guest
-            history.
+            . The room moved to cleaning and this stay is now in guest history.
           </p>
         </div>
       </Surface>
@@ -403,7 +474,7 @@ function OperationalStayPanel({
         </div>
       </div>
       {canAssign ? (
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px_auto]">
           <Select
             value={selectedRoomId ? String(selectedRoomId) : ""}
             onValueChange={(value) =>
@@ -422,22 +493,54 @@ function OperationalStayPanel({
               ))}
             </SelectContent>
           </Select>
+          <div className="grid gap-2">
+            <Label htmlFor="stay-nights">Nights</Label>
+            <Input
+              id="stay-nights"
+              required
+              type="number"
+              min="1"
+              max="365"
+              value={nights}
+              onChange={(event) => onNightsChange(event.target.value)}
+              aria-invalid={Boolean(nights) && !validNightCount}
+            />
+          </div>
           <Button
             disabled={
               !selectedRoomId ||
               !vacantRooms.length ||
               isCheckingIn ||
-              !stay.identityAccess.isActive
+              !stay.identityAccess.isActive ||
+              !validNightCount ||
+              !hasRate
             }
-            onClick={onCheckIn}
+            onClick={onRequestCheckIn}
           >
             <CircleCheck />
             {isCheckingIn ? "Confirming..." : "Confirm check-in"}
           </Button>
           {!vacantRooms.length ? (
-            <p className="text-xs text-muted-foreground sm:col-span-2">
+            <p className="text-xs text-muted-foreground sm:col-span-3">
               No vacant rooms are available. Add a room or finish cleaning one
               first.
+            </p>
+          ) : null}
+          {selectedRoom && !hasRate ? (
+            <p className="text-xs text-destructive sm:col-span-3">
+              Set a nightly rate for room {selectedRoom.number} before check-in.
+            </p>
+          ) : null}
+          {!validNightCount ? (
+            <p className="text-xs text-destructive sm:col-span-3">
+              Enter a stay length from 1 to 365 nights.
+            </p>
+          ) : null}
+          {selectedRoom && hasRate && validNightCount ? (
+            <p className="text-xs text-muted-foreground sm:col-span-3">
+              Room charge preview:{" "}
+              {formatMoneyMinor(selectedRoom.nightlyRateMinor! * nightCount)}{" "}
+              for {nightCount} {nightCount === 1 ? "night" : "nights"}.
             </p>
           ) : null}
         </div>
@@ -471,7 +574,10 @@ function GuestIdentity({ stay }: { stay: HotelStayDetail }) {
         description="Snapshot approved when the guest submitted this stay."
       />
       <div className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-        <Detail label="Legal name" value={`${guest.legalFirstName} ${guest.legalLastName}`} />
+        <Detail
+          label="Legal name"
+          value={`${guest.legalFirstName} ${guest.legalLastName}`}
+        />
         <Detail label="Phone number" value={guest.phoneNumber} />
         <Detail label="Date of birth" value={formatDate(guest.dateOfBirth)} />
         <Detail label="Nationality" value={guest.nationality} />
@@ -508,7 +614,10 @@ function DocumentIdentity({
         description="The guest-selected document is shown here in full. Loading each image is property-scoped and added to the access audit."
       />
       <div className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-        <Detail label="Document type" value={documentTypeLabel(document.documentType)} />
+        <Detail
+          label="Document type"
+          value={documentTypeLabel(document.documentType)}
+        />
         <Detail label="Document number" value={document.documentNumber} />
         <Detail label="Name on document" value={document.nameOnDocument} />
         <Detail label="Issuing country" value={document.issuingCountry} />
@@ -610,7 +719,13 @@ type ImageAccessQuery = Pick<
   "data" | "isPending" | "isError" | "isFetching" | "refetch"
 >;
 
-function CompanionIdentity({ stay, imageQueries }: { stay: HotelStayDetail; imageQueries: ImageAccessQuery[] }) {
+function CompanionIdentity({
+  stay,
+  imageQueries,
+}: {
+  stay: HotelStayDetail;
+  imageQueries: ImageAccessQuery[];
+}) {
   const companions = stay.snapshot!.companions;
   return (
     <Surface className="p-6">
@@ -622,7 +737,10 @@ function CompanionIdentity({ stay, imageQueries }: { stay: HotelStayDetail; imag
       {companions.length ? (
         <div className="mt-5 grid gap-3">
           {companions.map((companion, index) => (
-            <div key={`${companion.legalFirstName}-${index}`} className="rounded-xl bg-muted/60 p-4">
+            <div
+              key={`${companion.legalFirstName}-${index}`}
+              className="rounded-xl bg-muted/60 p-4"
+            >
               <p className="text-sm font-semibold">
                 {companion.legalFirstName} {companion.legalLastName}
               </p>
@@ -633,19 +751,53 @@ function CompanionIdentity({ stay, imageQueries }: { stay: HotelStayDetail; imag
               {companion.document ? (
                 <div className="mt-4 grid gap-4 border-t pt-4">
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Detail label="Document type" value={documentTypeLabel(companion.document.documentType)} />
-                    <Detail label="Document number" value={companion.document.documentNumber} />
-                    <Detail label="Name on document" value={companion.document.nameOnDocument} />
-                    <Detail label="Issuing country" value={companion.document.issuingCountry} />
-                    {companion.document.expiryDate ? <Detail label="Expiry date" value={formatDate(companion.document.expiryDate)} /> : null}
+                    <Detail
+                      label="Document type"
+                      value={documentTypeLabel(companion.document.documentType)}
+                    />
+                    <Detail
+                      label="Document number"
+                      value={companion.document.documentNumber}
+                    />
+                    <Detail
+                      label="Name on document"
+                      value={companion.document.nameOnDocument}
+                    />
+                    <Detail
+                      label="Issuing country"
+                      value={companion.document.issuingCountry}
+                    />
+                    {companion.document.expiryDate ? (
+                      <Detail
+                        label="Expiry date"
+                        value={formatDate(companion.document.expiryDate)}
+                      />
+                    ) : null}
                   </div>
                   <div className="stay-print-image-grid grid gap-4 lg:grid-cols-2">
                     {companion.images.map(({ side }, imageIndex) => (
-                      <DocumentImage key={side} side={side} query={imageQueries[companions.slice(0, index).reduce((total, item) => total + item.images.length, 0) + imageIndex]} />
+                      <DocumentImage
+                        key={side}
+                        side={side}
+                        query={
+                          imageQueries[
+                            companions
+                              .slice(0, index)
+                              .reduce(
+                                (total, item) => total + item.images.length,
+                                0,
+                              ) + imageIndex
+                          ]
+                        }
+                      />
                     ))}
                   </div>
                 </div>
-              ) : <p className="mt-3 text-xs text-muted-foreground">No companion ID shared.</p>}
+              ) : (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  No companion ID shared.
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -713,7 +865,9 @@ function SectionHeading({
       </span>
       <div>
         <h2 className="text-base font-semibold">{title}</h2>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {description}
+        </p>
       </div>
     </div>
   );
@@ -750,12 +904,14 @@ function accessDescription(stay: HotelStayDetail) {
 }
 
 function documentTypeLabel(value: string) {
-  return {
-    AADHAAR: "Aadhaar card",
-    PASSPORT: "Passport",
-    DRIVING_LICENCE: "Driving licence",
-    VOTER_ID: "Voter ID",
-  }[value] ?? value;
+  return (
+    {
+      AADHAAR: "Aadhaar card",
+      PASSPORT: "Passport",
+      DRIVING_LICENCE: "Driving licence",
+      VOTER_ID: "Voter ID",
+    }[value] ?? value
+  );
 }
 
 function formatDate(value: string | null) {

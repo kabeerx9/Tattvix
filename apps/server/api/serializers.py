@@ -296,6 +296,14 @@ class HotelStayImageAccessSerializer(serializers.Serializer):
 
 
 class HotelRoomCreateSerializer(serializers.Serializer):
+    nightlyRateMinor = serializers.IntegerField(
+        source="nightly_rate_minor",
+        min_value=0,
+        max_value=100000000,
+        allow_null=True,
+        required=False,
+        default=None,
+    )
     number = serializers.CharField(max_length=32, trim_whitespace=True)
     floor = serializers.CharField(
         max_length=32,
@@ -315,12 +323,13 @@ class HotelRoomCreateSerializer(serializers.Serializer):
 
 
 class HotelRoomStatusSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(
-        choices=("VACANT", "CLEANING", "MAINTENANCE")
-    )
+    status = serializers.ChoiceField(choices=("VACANT", "CLEANING", "MAINTENANCE"))
 
 
 class HotelStayCheckInSerializer(serializers.Serializer):
+    nights = serializers.IntegerField(
+        min_value=1, max_value=365, required=False, default=1
+    )
     roomId = serializers.IntegerField(source="room_id", min_value=1)
 
 

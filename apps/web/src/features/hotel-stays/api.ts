@@ -3,6 +3,9 @@ import {
   hotelStayDetailSchema,
   hotelStayImageAccessResponseSchema,
   hotelStayListResponseSchema,
+  stayBillSchema,
+  type StayBillChargeInput,
+  type StayBillVoidInput,
   type HotelStayListQuery,
   type IdentityDocumentImageSide,
 } from "@tattvix/contracts";
@@ -61,7 +64,10 @@ export const hotelStaysApi = {
     return apiClient.requestJson(
       `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/images/access/`,
       hotelStayImageAccessResponseSchema,
-      { method: "POST", body: JSON.stringify({ side, ...(companionId ? { companionId } : {}) }) },
+      {
+        method: "POST",
+        body: JSON.stringify({ side, ...(companionId ? { companionId } : {}) }),
+      },
     );
   },
   close(organizationSlug: string, propertySlug: string, stayId: string) {
@@ -69,6 +75,37 @@ export const hotelStaysApi = {
       `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/close/`,
       hotelStayDetailSchema,
       { method: "POST" },
+    );
+  },
+  getBill(organizationSlug: string, propertySlug: string, stayId: string) {
+    return apiClient.requestJson(
+      `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/bill/`,
+      stayBillSchema,
+    );
+  },
+  addBillCharge(
+    organizationSlug: string,
+    propertySlug: string,
+    stayId: string,
+    input: StayBillChargeInput,
+  ) {
+    return apiClient.requestJson(
+      `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/bill/`,
+      stayBillSchema,
+      { method: "POST", body: JSON.stringify(input) },
+    );
+  },
+  voidBillItem(
+    organizationSlug: string,
+    propertySlug: string,
+    stayId: string,
+    itemId: string,
+    input: StayBillVoidInput,
+  ) {
+    return apiClient.requestJson(
+      `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/bill/${itemId}/void/`,
+      stayBillSchema,
+      { method: "POST", body: JSON.stringify(input) },
     );
   },
 };

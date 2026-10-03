@@ -86,6 +86,7 @@ class HotelOperationsApiTests(APITestCase):
             number="101",
             floor="1",
             room_type="Deluxe",
+            nightly_rate_minor=200000,
         )
 
     def authenticate(self, user):

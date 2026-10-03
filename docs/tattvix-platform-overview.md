@@ -696,3 +696,11 @@ The full vision includes identity, hotel operations, payments, reports, integrat
 - Advanced verification, integrations, and automation.
 
 That sequencing should be handled in a separate roadmap document.
+
+## Guest-visible stay billing
+
+The arrival page shows hotel address, contact, amenities, check-in/out times and a configured nightly-rate range. Reception chooses the room and enters the number of nights after receiving the guest’s identity submission; the guest does not choose a room type. Room types and availability remain in the hotel workspace.
+
+Check-in freezes the nightly price in integer paise and adds one room-charge line (rate × reception-entered nights). Authorized staff add extras such as tea, coffee and food, or void extras with a recorded reason. Stable request IDs prevent a retried extra from being charged twice. Bill mutations and checkout serialize on the stay row (pessimistic locking); checkout makes the bill final. Guests can view their room, status, itemized bill and history in My stays even after identity access is revoked or the QR expires.
+
+Currency is INR for this pilot. Payments, tax-invoice generation, and bill corrections after checkout are separate future workflows. Existing stays retain an empty bill unless actual charges are recorded; migration does not reconstruct past room prices. Active guest bill pages poll every five seconds, which needs a push/subscription strategy at larger scale. Bill reads briefly lock the stay for a coherent snapshot; very large bills would need a revised read model.

@@ -1,4 +1,4 @@
-import type { IdentityDocument } from "@tattvix/contracts";
+import type { GuestStay, IdentityDocument } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Checkbox } from "@tattvix/ui/components/checkbox";
 import {
@@ -8,10 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@tattvix/ui/components/select";
-import {
-  Link,
-  useRouteContext,
-} from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import {
   useMutation,
   useQueries,
@@ -39,11 +36,21 @@ import { checkInQueries } from "@/features/check-in/queries";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
 import { ApiError } from "@/lib/api";
+import { HotelArrivalSummary } from "./hotel-arrival-summary";
+import { guestStayStatusLabel } from "@/features/guest-stays/status";
 
 export function CheckInPage({ token }: { token: string }) {
   const { auth } = useRouteContext({ from: "__root__" });
-  const { data: context } = useSuspenseQuery(checkInQueries.context(token));
+  const { data: context } = useSuspenseQuery({
+    ...checkInQueries.context(token),
+    refetchInterval: (query) =>
+      query.state.data?.existingStay &&
+      query.state.data.existingStay.operationalStatus !== "CHECKED_OUT"
+        ? 5000
+        : false,
+  });
   const redirect = `/check-in/${token}`;
+  const [newVisit, setNewVisit] = useState(false);
 
   return (
     <div className="min-h-svh bg-background">
@@ -55,7 +62,9 @@ export function CheckInPage({ token }: { token: string }) {
             </span>
             <div>
               <p className="text-sm font-semibold">Tattwix</p>
-              <p className="text-xs text-muted-foreground">Secure hotel check-in</p>
+              <p className="text-xs text-muted-foreground">
+                Secure hotel check-in
+              </p>
             </div>
           </div>
           <ModeToggle />
@@ -64,30 +73,35 @@ export function CheckInPage({ token }: { token: string }) {
 
       <main className="mx-auto grid max-w-5xl gap-7 px-5 py-8 sm:py-12">
         <div className="grid gap-3">
-          <p className="app-kicker">Arriving at {context.property.organization.name}</p>
+          <p className="app-kicker">
+            Arriving at {context.property.organization.name}
+          </p>
           <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
             Check in to {context.property.name}
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Review your saved identity, choose any companions, and approve exactly
-            what this property may access for this stay.
+            Review your saved identity, choose any companions, and approve
+            exactly what this property may access for this stay.
           </p>
         </div>
 
+        <HotelArrivalSummary property={context.property} />
         {!auth.isAuthenticated ? (
           <SignedOutCheckIn
             redirect={redirect}
             accessPolicy={context.accessPolicy}
           />
-        ) : context.existingStay ? (
+        ) : context.existingStay && !newVisit ? (
           <ExistingStay
             token={token}
             stay={context.existingStay}
+            onNewVisit={() => setNewVisit(true)}
             propertyName={context.property.name}
             accessPolicy={context.accessPolicy}
           />
         ) : (
           <AuthenticatedCheckIn
+            onSubmitted={() => setNewVisit(false)}
             token={token}
             propertyName={context.property.name}
             accessPolicy={context.accessPolicy}
@@ -141,10 +155,12 @@ function SignedOutCheckIn({
 }
 
 function AuthenticatedCheckIn({
+  onSubmitted,
   token,
   propertyName,
   accessPolicy,
 }: {
+  onSubmitted: () => void;
   token: string;
   propertyName: string;
   accessPolicy: AccessPolicy;
@@ -163,18 +179,28 @@ function AuthenticatedCheckIn({
   const [documentId, setDocumentId] = useState(
     readyDocuments[0]?.id.toString() ?? "",
   );
-  const [selectedCompanionIds, setSelectedCompanionIds] = useState<number[]>([]);
+  const [selectedCompanionIds, setSelectedCompanionIds] = useState<number[]>(
+    [],
+  );
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [companionDocumentIds, setCompanionDocumentIds] = useState<Record<number, string>>({});
+  const [companionDocumentIds, setCompanionDocumentIds] = useState<
+    Record<number, string>
+  >({});
   const companionDocumentQueries = useQueries({
     queries: selectedCompanionIds.map((id) => identityDocumentQueries.list(id)),
   });
-  const selectedCompanionDocumentsReady = selectedCompanionIds.every((id, index) => {
-    const chosenId = companionDocumentIds[id];
-    return !chosenId || companionDocumentQueries[index]?.data?.documents.some(
-      (document) => document.id === Number(chosenId) && document.readiness.isReady,
-    );
-  });
+  const selectedCompanionDocumentsReady = selectedCompanionIds.every(
+    (id, index) => {
+      const chosenId = companionDocumentIds[id];
+      return (
+        !chosenId ||
+        companionDocumentQueries[index]?.data?.documents.some(
+          (document) =>
+            document.id === Number(chosenId) && document.readiness.isReady,
+        )
+      );
+    },
+  );
   const submitMutation = useMutation(checkInMutations.submit(queryClient));
   const canSubmit =
     profile.readiness.isReady &&
@@ -185,7 +211,11 @@ function AuthenticatedCheckIn({
 
   function toggleCompanion(id: number, checked: boolean) {
     setConsentAccepted(false);
-    setCompanionDocumentIds((current) => { const next = { ...current }; delete next[id]; return next; });
+    setCompanionDocumentIds((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
     setSelectedCompanionIds((current) =>
       checked
         ? [...new Set([...current, id])]
@@ -202,13 +232,25 @@ function AuthenticatedCheckIn({
           identityDocumentId: Number(documentId),
           companionIds: selectedCompanionIds,
           companionDocuments: selectedCompanionIds.flatMap((companionId) =>
-            companionDocumentIds[companionId] ? [{ companionId, identityDocumentId: Number(companionDocumentIds[companionId]) }] : [],
+            companionDocumentIds[companionId]
+              ? [
+                  {
+                    companionId,
+                    identityDocumentId: Number(
+                      companionDocumentIds[companionId],
+                    ),
+                  },
+                ]
+              : [],
           ),
           consentAccepted: true,
         },
       },
       {
-        onSuccess: () => toast.success("Identity shared with the hotel"),
+        onSuccess: () => {
+          toast.success("Check-in request sent to reception");
+          onSubmitted();
+        },
       },
     );
   }
@@ -233,7 +275,11 @@ function AuthenticatedCheckIn({
             before anything can be shared with {propertyName}.
           </p>
         </div>
-        <Button nativeButton={false} className="w-fit" render={<Link to="/profile" />}>
+        <Button
+          nativeButton={false}
+          className="w-fit"
+          render={<Link to="/profile" />}
+        >
           Complete profile
           <ArrowRight />
         </Button>
@@ -259,7 +305,10 @@ function AuthenticatedCheckIn({
           <Select
             items={documentOptions}
             value={documentId || null}
-            onValueChange={(value) => { setDocumentId(value ?? ""); setConsentAccepted(false); }}
+            onValueChange={(value) => {
+              setDocumentId(value ?? "");
+              setConsentAccepted(false);
+            }}
           >
             <SelectTrigger aria-label="Identity document">
               <SelectValue placeholder="Choose an identity document" />
@@ -290,49 +339,111 @@ function AuthenticatedCheckIn({
             <div className="grid gap-2">
               {companions.companions.map((companion) => {
                 const checked = selectedCompanionIds.includes(companion.id);
-                const documentQuery = companionDocumentQueries[selectedCompanionIds.indexOf(companion.id)];
-                const readyCompanionDocuments = documentQuery?.data?.documents.filter((document) => document.readiness.isReady) ?? [];
-                const options = [{ label: "Do not share an ID", value: "none" }, ...readyCompanionDocuments.map((document) => ({ label: documentLabel(document), value: String(document.id) }))];
+                const documentQuery =
+                  companionDocumentQueries[
+                    selectedCompanionIds.indexOf(companion.id)
+                  ];
+                const readyCompanionDocuments =
+                  documentQuery?.data?.documents.filter(
+                    (document) => document.readiness.isReady,
+                  ) ?? [];
+                const options = [
+                  { label: "Do not share an ID", value: "none" },
+                  ...readyCompanionDocuments.map((document) => ({
+                    label: documentLabel(document),
+                    value: String(document.id),
+                  })),
+                ];
                 return (
-                  <div key={companion.id} className="grid gap-3 rounded-xl border bg-muted/40 p-3">
-                  <label className="flex items-center gap-3">
-                    <Checkbox
-                      checked={checked}
-                      disabled={!companion.readiness.isReady || (!checked && selectedCompanionIds.length >= 20)}
-                      onCheckedChange={(value) =>
-                        toggleCompanion(companion.id, value === true)
-                      }
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">
-                        {[companion.legalFirstName, companion.legalLastName]
-                          .filter(Boolean)
-                          .join(" ") || "Unnamed companion"}
+                  <div
+                    key={companion.id}
+                    className="grid gap-3 rounded-xl border bg-muted/40 p-3"
+                  >
+                    <label className="flex items-center gap-3">
+                      <Checkbox
+                        checked={checked}
+                        disabled={
+                          !companion.readiness.isReady ||
+                          (!checked && selectedCompanionIds.length >= 20)
+                        }
+                        onCheckedChange={(value) =>
+                          toggleCompanion(companion.id, value === true)
+                        }
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {[companion.legalFirstName, companion.legalLastName]
+                            .filter(Boolean)
+                            .join(" ") || "Unnamed companion"}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {companion.readiness.isReady
+                            ? companion.relationship || "Ready to share"
+                            : "Complete this companion before selecting"}
+                        </span>
                       </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {companion.readiness.isReady
-                          ? companion.relationship || "Ready to share"
-                          : "Complete this companion before selecting"}
-                      </span>
-                    </span>
-                  </label>
-                  {checked ? (
-                    <div className="grid gap-2 border-t pt-3">
-                      <p className="text-xs font-medium">Companion identity document (optional)</p>
-                      {documentQuery?.isPending ? <p className="text-xs text-muted-foreground">Loading documents...</p> : documentQuery?.isError ? (
-                        <div role="alert" className="flex items-center gap-2 text-xs text-destructive">Could not load documents.<Button size="xs" variant="outline" onClick={() => void documentQuery.refetch()}>Retry</Button></div>
-                      ) : (
-                        <Select items={options} value={companionDocumentIds[companion.id] || "none"} onValueChange={(value) => {
-                          setCompanionDocumentIds((current) => ({ ...current, [companion.id]: value && value !== "none" ? value : "" }));
-                          setConsentAccepted(false);
-                        }}>
-                          <SelectTrigger aria-label={`Identity document for ${companion.legalFirstName}`}><SelectValue /></SelectTrigger>
-                          <SelectContent>{options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                      )}
-                      <p className="text-xs leading-5 text-muted-foreground">Only the ID you select and its images will be shared. <Link to="/companions" className="underline">Manage companion IDs</Link></p>
-                    </div>
-                  ) : null}
+                    </label>
+                    {checked ? (
+                      <div className="grid gap-2 border-t pt-3">
+                        <p className="text-xs font-medium">
+                          Companion identity document (optional)
+                        </p>
+                        {documentQuery?.isPending ? (
+                          <p className="text-xs text-muted-foreground">
+                            Loading documents...
+                          </p>
+                        ) : documentQuery?.isError ? (
+                          <div
+                            role="alert"
+                            className="flex items-center gap-2 text-xs text-destructive"
+                          >
+                            Could not load documents.
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => void documentQuery.refetch()}
+                            >
+                              Retry
+                            </Button>
+                          </div>
+                        ) : (
+                          <Select
+                            items={options}
+                            value={companionDocumentIds[companion.id] || "none"}
+                            onValueChange={(value) => {
+                              setCompanionDocumentIds((current) => ({
+                                ...current,
+                                [companion.id]:
+                                  value && value !== "none" ? value : "",
+                              }));
+                              setConsentAccepted(false);
+                            }}
+                          >
+                            <SelectTrigger
+                              aria-label={`Identity document for ${companion.legalFirstName}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {options.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <p className="text-xs leading-5 text-muted-foreground">
+                          Only the ID you select and its images will be shared.{" "}
+                          <Link to="/companions" className="underline">
+                            Manage companion IDs
+                          </Link>
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -353,10 +464,10 @@ function AuthenticatedCheckIn({
             />
             <span className="text-sm leading-6">
               I approve sharing the selected profile, document metadata and
-              images, selected companions, and any IDs chosen for those companions
-              with {propertyName} for this stay. Access
-              lasts for up to {accessPolicy.maximumDays} days unless I revoke
-              it sooner. Checkout limits any remaining access to{" "}
+              images, selected companions, and any IDs chosen for those
+              companions with {propertyName} for this stay. Access lasts for up
+              to {accessPolicy.maximumDays} days unless I revoke it sooner.
+              Checkout limits any remaining access to{" "}
               {accessPolicy.postCheckoutGraceHours} hours, after which the
               document images shared with the hotel are permanently deleted.
               Every hotel view is property-scoped and audited.
@@ -371,7 +482,9 @@ function AuthenticatedCheckIn({
             </p>
           ) : null}
           <Button size="lg" disabled={!canSubmit} onClick={submit}>
-            {submitMutation.isPending ? "Sharing securely..." : "Approve and share"}
+            {submitMutation.isPending
+              ? "Sending request..."
+              : "Send check-in request"}
             <ShieldCheck />
           </Button>
         </section>
@@ -382,19 +495,15 @@ function AuthenticatedCheckIn({
 }
 
 function ExistingStay({
+  onNewVisit,
   token,
   stay,
   propertyName,
   accessPolicy,
 }: {
+  onNewVisit: () => void;
   token: string;
-  stay: {
-    id: string;
-    status: "DRAFT" | "SUBMITTED" | "CLOSED" | "REVOKED";
-    submittedAt: string | null;
-    closedAt: string | null;
-    hotelAccessExpiresAt: string | null;
-  };
+  stay: GuestStay;
   propertyName: string;
   accessPolicy: AccessPolicy;
 }) {
@@ -406,20 +515,50 @@ function ExistingStay({
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Surface className="p-6 sm:p-8">
         <span className="grid size-11 place-items-center rounded-xl bg-accent text-primary">
-          {revoked ? <ShieldCheck className="size-5" /> : <CheckCircle2 className="size-5" />}
+          {revoked ? (
+            <ShieldCheck className="size-5" />
+          ) : (
+            <CheckCircle2 className="size-5" />
+          )}
         </span>
         <h2 className="mt-5 text-xl font-semibold">
-          {revoked ? "Hotel access has been revoked" : "Identity submitted"}
+          {guestStayStatusLabel(stay.operationalStatus)}
         </h2>
         <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
           {revoked
             ? `${propertyName} can no longer open this identity package.`
             : `${propertyName} can access the submitted snapshot only during the authorized window.`}
         </p>
+        <p className="mt-3 text-sm font-medium">
+          {stay.room
+            ? `Room ${stay.room.number}`
+            : "Reception will assign your room and confirm the rate."}
+        </p>
+        <Button
+          nativeButton={false}
+          className="mt-5"
+          render={<Link to="/stays/$stayId" params={{ stayId: stay.id }} />}
+        >
+          View stay and bill
+          <ArrowRight />
+        </Button>
+        {stay.operationalStatus === "CHECKED_OUT" ? (
+          <Button className="mt-5 ml-3" variant="outline" onClick={onNewVisit}>
+            Start a new visit
+          </Button>
+        ) : null}
+        {revokeMutation.isError ? (
+          <p role="alert" className="mt-3 text-sm text-destructive">
+            {revokeMutation.error instanceof ApiError
+              ? revokeMutation.error.message
+              : "Could not revoke hotel access. Please retry."}
+          </p>
+        ) : null}
         {!revoked && stay.hotelAccessExpiresAt ? (
           <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
             <Clock3 className="size-4" />
-            Access ends no later than {formatDateTime(stay.hotelAccessExpiresAt)}
+            Access ends no later than{" "}
+            {formatDateTime(stay.hotelAccessExpiresAt)}
           </div>
         ) : null}
         {!revoked ? (

@@ -66,6 +66,108 @@ class FullLifecycleSmokeTest(APITestCase):
         self._step8_access_refuses_after_simulated_expiry()
         self._step9_guest_stay_list_shows_final_checked_out_status()
 
+    def test_same_qr_return_visit_keeps_original_bill_and_identity_closed(self):
+        from uuid import uuid4
+
+        self._step1_platform_admin_onboards_hotel()
+        self._step2_owner_creates_room_and_qr_token()
+        self._step3_guest_resolves_qr_context()
+        self._step4_guest_completes_profile_companion_and_identity()
+        self._step5_guest_submits_consent()
+        self._step6_hotel_sees_and_checks_in_the_stay()
+        self._step7_hotel_checks_out_the_stay()
+        self._step8_access_refuses_after_simulated_expiry()
+
+        original = self.stay
+        original_expiry = original.hotel_access_expires_at
+        original_closed_at = original.closed_at
+        original_snapshot_id = original.identity_snapshot.pk
+        original_consent_id = original.consent_grant.pk
+        bill_url = reverse(
+            "hotel-stay-bill",
+            args=[
+                self.organization.slug,
+                self.property.slug,
+                original.public_id,
+            ],
+        )
+        original_bill = self.client.get(bill_url).data
+        self.assertTrue(original_bill["isFinal"])
+        self.assertGreater(original_bill["totalMinor"], 0)
+        self.authenticate(self.guest)
+        context_url = reverse("check-in-context", args=[self.raw_token])
+        before = self.client.get(context_url)
+        self.assertEqual(before.data["existingStay"]["id"], str(original.public_id))
+        self.assertEqual(
+            before.data["existingStay"]["operationalStatus"], "CHECKED_OUT"
+        )
+
+        # Submit fresh consent using the exact same guest, document and QR.
+        self._step5_guest_submits_consent()
+        returning = self.stay
+        self.assertNotEqual(returning.pk, original.pk)
+        self.assertEqual(returning.qr_token_id, original.qr_token_id)
+        self.assertEqual(returning.guest_id, original.guest_id)
+        self.assertEqual(returning.operational_status, "PENDING_CHECK_IN")
+        self.assertIsNone(returning.room_id)
+        self.assertEqual(returning.charges.count(), 0)
+        self.assertNotEqual(returning.identity_snapshot.pk, original_snapshot_id)
+        self.assertNotEqual(returning.consent_grant.pk, original_consent_id)
+        context = self.client.get(context_url)
+        self.assertEqual(context.data["existingStay"]["id"], str(returning.public_id))
+        self.assertEqual(
+            context.data["existingStay"]["operationalStatus"], "PENDING_CHECK_IN"
+        )
+        self.assertEqual(
+            Stay.objects.filter(guest=self.guest, qr_token=original.qr_token).count(), 2
+        )
+
+        original.refresh_from_db()
+        self.assertEqual(original.status, StayStatus.CLOSED)
+        self.assertEqual(original.operational_status, "CHECKED_OUT")
+        self.assertEqual(original.closed_at, original_closed_at)
+        self.assertEqual(original.hotel_access_expires_at, original_expiry)
+        self.assertEqual(original.identity_snapshot.pk, original_snapshot_id)
+        self.assertEqual(original.consent_grant.pk, original_consent_id)
+        self.authenticate(self.owner)
+        rejected_charge = self.client.post(
+            bill_url,
+            {
+                "requestId": str(uuid4()),
+                "description": "Return visit charge",
+                "quantity": 1,
+                "unitPriceMinor": 10000,
+            },
+            format="json",
+        )
+        self.assertEqual(rejected_charge.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(self.client.get(bill_url).data, original_bill)
+        detail = self.client.get(
+            reverse(
+                "hotel-stay-detail",
+                args=[
+                    self.organization.slug,
+                    self.property.slug,
+                    original.public_id,
+                ],
+            )
+        )
+        self.assertFalse(detail.data["identityAccess"]["isActive"])
+        self.assertIsNone(detail.data["snapshot"])
+        image = self.client.post(
+            reverse(
+                "hotel-stay-image-access",
+                args=[
+                    self.organization.slug,
+                    self.property.slug,
+                    original.public_id,
+                ],
+            ),
+            {"side": "FRONT"},
+            format="json",
+        )
+        self.assertEqual(image.status_code, status.HTTP_403_FORBIDDEN)
+
     # -- 1. Platform admin onboards an organization + property + owner ----
 
     def _step1_platform_admin_onboards_hotel(self):
@@ -123,7 +225,7 @@ class FullLifecycleSmokeTest(APITestCase):
                 "hotel-room-list",
                 args=[self.organization.slug, self.property.slug],
             ),
-            {"number": "101", "floor": "1", "roomType": "Deluxe"},
+            {"number": "101", "floor": "1", "roomType": "Deluxe", "nightlyRateMinor": 200000},
             format="json",
         )
         self.assertEqual(room_response.status_code, status.HTTP_201_CREATED)

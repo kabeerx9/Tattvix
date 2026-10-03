@@ -193,6 +193,12 @@ class Property(models.Model):
     )
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255)
+    address = models.CharField(max_length=1000, blank=True, default="")
+    contact_phone = models.CharField(max_length=32, blank=True, default="")
+    description = models.CharField(max_length=2000, blank=True, default="")
+    amenities = models.JSONField(default=list)
+    check_in_time = models.CharField(max_length=5, blank=True, default="")
+    check_out_time = models.CharField(max_length=5, blank=True, default="")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -323,6 +329,7 @@ class Room(models.Model):
     number = models.CharField(max_length=32)
     floor = models.CharField(max_length=32, blank=True, default="")
     room_type = models.CharField(max_length=100, blank=True, default="")
+    nightly_rate_minor = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(
         max_length=16,
         choices=RoomStatus.choices,
@@ -335,6 +342,10 @@ class Room(models.Model):
     class Meta:
         ordering = ["number", "id"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(nightly_rate_minor__lte=100000000),
+                name="room_rate_limit",
+            ),
             models.UniqueConstraint(
                 fields=["property", "number"],
                 name="unique_room_number_per_property",
@@ -387,6 +398,8 @@ class Stay(models.Model):
         blank=True,
         db_constraint=False,
     )
+    billing_nights = models.PositiveSmallIntegerField(null=True, blank=True)
+    nightly_rate_minor = models.PositiveIntegerField(null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     checked_in_at = models.DateTimeField(null=True, blank=True)
@@ -398,6 +411,14 @@ class Stay(models.Model):
     class Meta:
         ordering = ["-submitted_at", "-created_at", "-id"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(billing_nights__gte=1, billing_nights__lte=365),
+                name="stay_billing_nights_limit",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(nightly_rate_minor__lte=100000000),
+                name="stay_rate_limit",
+            ),
             models.UniqueConstraint(
                 fields=["guest", "qr_token"],
                 condition=models.Q(status=StayStatus.DRAFT),
@@ -405,15 +426,80 @@ class Stay(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["room"],
-                condition=models.Q(
-                    operational_status=OperationalStayStatus.CHECKED_IN
-                ),
+                condition=models.Q(operational_status=OperationalStayStatus.CHECKED_IN),
                 name="unique_checked_in_stay_per_room",
             ),
         ]
 
     def __str__(self) -> str:
         return f"{self.property} — {self.public_id}"
+
+
+class StayCharge(models.Model):
+    class Kind(models.TextChoices):
+        ROOM = "ROOM", "Room"
+        EXTRA = "EXTRA", "Extra"
+
+    public_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    stay = models.ForeignKey(Stay, on_delete=models.PROTECT, related_name="charges")
+    kind = models.CharField(max_length=5, choices=Kind.choices)
+    description = models.CharField(max_length=200)
+    quantity = models.PositiveIntegerField()
+    unit_price_minor = models.PositiveIntegerField()
+    request_id = models.UUIDField(default=uuid4)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        ClerkUser, on_delete=models.PROTECT, related_name="created_stay_charges"
+    )
+    voided_at = models.DateTimeField(null=True, blank=True)
+    voided_by = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="voided_stay_charges",
+    )
+    void_reason = models.CharField(max_length=500, blank=True, default="")
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["stay", "request_id"], name="unique_stay_charge_request"
+            ),
+            models.UniqueConstraint(
+                fields=["stay"],
+                condition=models.Q(kind="ROOM"),
+                name="unique_stay_room_charge",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=1, quantity__lte=9999),
+                name="charge_quantity_limit",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(unit_price_minor__lte=100000000),
+                name="charge_price_limit",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(kind__in=["ROOM", "EXTRA"]), name="charge_kind_valid"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        voided_at__isnull=True, voided_by__isnull=True, void_reason=""
+                    )
+                    | (
+                        models.Q(
+                            kind="EXTRA",
+                            voided_at__isnull=False,
+                            voided_by__isnull=False,
+                        )
+                        & ~models.Q(void_reason="")
+                    )
+                ),
+                name="charge_void_audit_consistent",
+            ),
+        ]
 
 
 class ConsentGrant(models.Model):

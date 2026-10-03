@@ -14,15 +14,16 @@ export const hotelStayKeys = {
       "list",
       query,
     ] as const,
-  detail: (
-    organizationSlug: string,
-    propertySlug: string,
-    stayId: string,
-  ) =>
+  detail: (organizationSlug: string, propertySlug: string, stayId: string) =>
     [
       ...hotelStayKeys.property(organizationSlug, propertySlug),
       "detail",
       stayId,
+    ] as const,
+  bill: (organizationSlug: string, propertySlug: string, stayId: string) =>
+    [
+      ...hotelStayKeys.detail(organizationSlug, propertySlug, stayId),
+      "bill",
     ] as const,
   image: (
     organizationSlug: string,
