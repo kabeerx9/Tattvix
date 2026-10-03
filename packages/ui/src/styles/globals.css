@@ -7,40 +7,51 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.965 0.008 90);
-  --foreground: oklch(0.22 0.012 145);
-  --card: oklch(0.995 0.004 90);
-  --card-foreground: oklch(0.22 0.012 145);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.39 0.055 147);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.94 0.012 95);
-  --secondary-foreground: oklch(0.28 0.018 145);
-  --muted: oklch(0.94 0.01 95);
-  --muted-foreground: oklch(0.53 0.018 120);
-  --accent: oklch(0.91 0.025 145);
-  --accent-foreground: oklch(0.34 0.05 147);
-  --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.88 0.012 90);
-  --input: oklch(0.86 0.014 90);
-  --ring: oklch(0.48 0.055 147);
-  --chart-1: oklch(0.46 0.07 147);
-  --chart-2: oklch(0.62 0.08 215);
-  --chart-3: oklch(0.7 0.09 80);
-  --chart-4: oklch(0.58 0.04 145);
-  --chart-5: oklch(0.52 0.03 250);
-  --radius: 0.9rem;
-  --sidebar: oklch(0.99 0.004 90);
-  --sidebar-foreground: oklch(0.26 0.016 145);
-  --sidebar-primary: oklch(0.39 0.055 147);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.92 0.02 145);
-  --sidebar-accent-foreground: oklch(0.34 0.05 147);
-  --sidebar-border: oklch(0.89 0.012 90);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #ffffff;
+  --foreground: #0f1720;
+  --card: #ffffff;
+  --card-foreground: #0f1720;
+  --popover: #ffffff;
+  --popover-foreground: #0f1720;
+  --primary: #0f5f5c;
+  --primary-hover: #0b4a47;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #0f1720;
+  --muted: #f2f4f7;
+  --muted-foreground: #475467;
+  --subtle-foreground: #8a94a3;
+  --accent: #f2f4f7;
+  --accent-foreground: #0f1720;
+  --primary-tint: #e8f3f2;
+  --success: #0f5f5c;
+  --success-tint: #e8f3f2;
+  --warning: #b54708;
+  --warning-tint: #fef4e6;
+  --destructive: #b42318;
+  --destructive-tint: #feeceb;
+  --border: #e7e9ec;
+  --border-soft: #f0f1f3;
+  --input: #e7e9ec;
+  --ring: rgb(15 95 92 / 0.4);
+  --chart-1: #0f5f5c;
+  --chart-2: #c9ced6;
+  --chart-3: #f0b86e;
+  --chart-4: #8fcfc9;
+  --chart-5: #d0d5dd;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f1720;
+  --sidebar-primary: #0f5f5c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f3f2;
+  --sidebar-accent-foreground: #0f5f5c;
+  --sidebar-border: #e7e9ec;
+  --sidebar-ring: rgb(15 95 92 / 0.4);
 }
 
+/* Unmaintained since the 2026-10 redesign (docs/adr/0001-web-visual-language.md).
+   The web app forces light theme; kept so reviving dark mode is additive. */
 .dark {
   --background: oklch(0.17 0.012 145);
   --foreground: oklch(0.985 0 0);
@@ -94,6 +105,15 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-tint: var(--destructive-tint);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border-soft: var(--border-soft);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -123,6 +143,7 @@
   }
   body {
     @apply font-sans bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
   html {
     @apply font-sans;
@@ -131,21 +152,11 @@
 
 @layer components {
   .app-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_oklch(0.2_0.03_274/0.03),0_12px_32px_oklch(0.2_0.03_274/0.04)];
-  }
-  .app-kicker {
-    @apply text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary;
-  }
-  .tattvix-loader-mark {
-    animation: tattvix-breathe 1.5s ease-in-out infinite;
+    @apply rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)];
   }
 }
 
-@keyframes tattvix-breathe {
-  0%, 100% { opacity: 0.55; transform: scale(0.94); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tattvix-loader-mark { animation: none; }
+@keyframes route-pending {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }
