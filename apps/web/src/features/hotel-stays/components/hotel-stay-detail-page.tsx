@@ -127,12 +127,16 @@ export function HotelStayDetailPage({
   );
   const imageQueries = useQueries({
     queries:
-      stay.snapshot?.images.map(({ side }) =>
+      (stay.snapshot ? [
+        ...stay.snapshot.images.map((image) => ({ ...image, companionId: undefined as number | undefined })),
+        ...stay.snapshot.companions.flatMap((companion) => companion.images.map((image) => ({ ...image, companionId: companion.id }))),
+      ] : []).map(({ side, companionId }) =>
         hotelStayQueries.imageAccess(
           organizationSlug,
           propertySlug,
           stayId,
           side,
+          companionId,
         ),
       ) ?? [],
   });
@@ -289,7 +293,7 @@ export function HotelStayDetailPage({
               />
             </div>
             <div className="grid h-fit gap-5">
-              <CompanionIdentity stay={stay} />
+              <CompanionIdentity stay={stay} imageQueries={imageQueries.slice(stay.snapshot.images.length)} />
               <AccessPolicy stay={stay} />
             </div>
           </div>
@@ -606,7 +610,7 @@ type ImageAccessQuery = Pick<
   "data" | "isPending" | "isError" | "isFetching" | "refetch"
 >;
 
-function CompanionIdentity({ stay }: { stay: HotelStayDetail }) {
+function CompanionIdentity({ stay, imageQueries }: { stay: HotelStayDetail; imageQueries: ImageAccessQuery[] }) {
   const companions = stay.snapshot!.companions;
   return (
     <Surface className="p-6">
@@ -626,6 +630,22 @@ function CompanionIdentity({ stay }: { stay: HotelStayDetail }) {
                 {companion.relationship} · {formatDate(companion.dateOfBirth)} ·{" "}
                 {companion.nationality}
               </p>
+              {companion.document ? (
+                <div className="mt-4 grid gap-4 border-t pt-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Detail label="Document type" value={documentTypeLabel(companion.document.documentType)} />
+                    <Detail label="Document number" value={companion.document.documentNumber} />
+                    <Detail label="Name on document" value={companion.document.nameOnDocument} />
+                    <Detail label="Issuing country" value={companion.document.issuingCountry} />
+                    {companion.document.expiryDate ? <Detail label="Expiry date" value={formatDate(companion.document.expiryDate)} /> : null}
+                  </div>
+                  <div className="stay-print-image-grid grid gap-4 lg:grid-cols-2">
+                    {companion.images.map(({ side }, imageIndex) => (
+                      <DocumentImage key={side} side={side} query={imageQueries[companions.slice(0, index).reduce((total, item) => total + item.images.length, 0) + imageIndex]} />
+                    ))}
+                  </div>
+                </div>
+              ) : <p className="mt-3 text-xs text-muted-foreground">No companion ID shared.</p>}
             </div>
           ))}
         </div>

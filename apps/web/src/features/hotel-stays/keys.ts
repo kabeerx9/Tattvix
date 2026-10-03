@@ -29,10 +29,12 @@ export const hotelStayKeys = {
     propertySlug: string,
     stayId: string,
     side: string,
+    companionId?: number,
   ) =>
     [
       ...hotelStayKeys.detail(organizationSlug, propertySlug, stayId),
       "image",
+      companionId ?? 0,
       side,
     ] as const,
 };

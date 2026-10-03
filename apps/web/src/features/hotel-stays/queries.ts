@@ -39,6 +39,7 @@ export const hotelStayQueries = {
     propertySlug: string,
     stayId: string,
     side: IdentityDocumentImageSide,
+    companionId?: number,
   ) =>
     queryOptions({
       queryKey: hotelStayKeys.image(
@@ -46,6 +47,7 @@ export const hotelStayQueries = {
         propertySlug,
         stayId,
         side,
+        companionId,
       ),
       queryFn: () =>
         hotelStaysApi.getImageAccess(
@@ -53,6 +55,7 @@ export const hotelStayQueries = {
           propertySlug,
           stayId,
           side,
+          companionId,
         ),
       staleTime: 60_000,
       gcTime: 0,

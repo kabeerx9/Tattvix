@@ -31,12 +31,13 @@ from .models import (
 from .object_storage import PrivateObjectStorage
 
 
-CONSENT_VERSION = "2026-07-18"
+CONSENT_VERSION = "2026-10-03"
 CONSENT_DATA_CATEGORIES = [
     "guest_profile",
     "identity_document",
     "document_images",
     "selected_companions",
+    "selected_companion_documents",
 ]
 CONTENT_TYPE_EXTENSIONS = {
     "image/jpeg": "jpg",
@@ -134,6 +135,7 @@ def submit_guest_identity(
     identity_document_id: int,
     companion_ids: list[int],
     storage: PrivateObjectStorage,
+    companion_documents: list[dict] | None = None,
 ) -> Stay:
     existing_stay = (
         Stay.objects.filter(
@@ -152,6 +154,7 @@ def submit_guest_identity(
         IdentityDocument.objects.filter(
             id=identity_document_id,
             user=guest,
+            companion__isnull=True,
         )
         .prefetch_related("images")
         .first()
@@ -198,6 +201,39 @@ def submit_guest_identity(
             "Complete every selected companion before sharing.",
         )
 
+    choices = companion_documents or []
+    selected_documents = {}
+    for choice in choices:
+        companion_id = choice["companion_id"]
+        if companion_id not in unique_companion_ids or companion_id in selected_documents:
+            raise CheckInError(
+                "invalid_companion_documents",
+                "Choose at most one identity document for each selected companion.",
+            )
+        selected_documents[companion_id] = choice["identity_document_id"]
+    companion_identity_documents = list(
+        IdentityDocument.objects.filter(
+            user=guest,
+            companion__user=guest,
+            id__in=selected_documents.values(),
+        ).prefetch_related("images")
+    )
+    documents_by_id = {item.id: item for item in companion_identity_documents}
+    documents_by_companion = {}
+    for companion_id, selected_id in selected_documents.items():
+        selected_document = documents_by_id.get(selected_id)
+        if selected_document is None or selected_document.companion_id != companion_id:
+            raise CheckInError(
+                "invalid_companion_documents",
+                "A selected identity document does not belong to that companion.",
+            )
+        if not is_identity_document_ready(selected_document):
+            raise CheckInError(
+                "companion_document_not_ready",
+                "Complete each selected companion identity document before sharing.",
+            )
+        documents_by_companion[companion_id] = selected_document
+
     try:
         stay, _created = Stay.objects.get_or_create(
             qr_token=qr_token,
@@ -213,18 +249,20 @@ def submit_guest_identity(
         )
 
     source_images = [
-        image
-        for image in document.images.all()
+        (participant_id, image)
+        for participant_id, source_document in [(0, document), *documents_by_companion.items()]
+        for image in source_document.images.all()
         if image.object_key and image.content_type and image.content_length
     ]
     copied_images = []
     copy_batch_id = uuid4().hex
     try:
-        for image in source_images:
+        for participant_id, image in source_images:
             extension = CONTENT_TYPE_EXTENSIONS.get(image.content_type, "bin")
+            participant_path = f"companions/{participant_id}/" if participant_id else ""
             destination_key = (
                 f"stays/{stay.public_id}/shared-identity/"
-                f"{copy_batch_id}/{image.side.lower()}.{extension}"
+                f"{copy_batch_id}/{participant_path}{image.side.lower()}.{extension}"
             )
             storage.copy_object(
                 source_key=image.object_key,
@@ -234,6 +272,7 @@ def submit_guest_identity(
             copied_images.append(
                 {
                     "side": image.side,
+                    "companion_id": participant_id,
                     "object_key": destination_key,
                     "content_type": image.content_type,
                     "content_length": image.content_length,
@@ -259,17 +298,16 @@ def submit_guest_identity(
                     guest_data=profile_payload["profile"],
                     companion_data=[
                         {
-                            key: value
-                            for key, value in payload.items()
-                            if key
-                            in {
-                                "legalFirstName",
-                                "legalLastName",
-                                "dateOfBirth",
-                                "relationship",
-                                "nationality",
-                                "isMinor",
-                            }
+                            **{
+                                key: payload[key]
+                                for key in (
+                                    "legalFirstName", "legalLastName", "dateOfBirth",
+                                    "relationship", "nationality", "isMinor",
+                                )
+                            },
+                            "id": payload["id"],
+                            "document": _document_snapshot_payload(documents_by_companion[payload["id"]])
+                            if payload["id"] in documents_by_companion else None,
                         }
                         for payload in companion_payloads
                     ],
@@ -409,6 +447,14 @@ def build_guest_stay_payload(stay: Stay) -> dict:
 
 
 def build_guest_share_payload(stay: Stay) -> dict:
+    snapshot = getattr(stay, "identity_snapshot", None)
+    companion_names = {
+        companion.get("id"): " ".join(
+            filter(None, [companion.get("legalFirstName"), companion.get("legalLastName")])
+        )
+        for companion in (snapshot.companion_data if snapshot else [])
+        if companion.get("id")
+    }
     return {
         **build_guest_stay_payload(stay),
         "property": _property_payload(stay.property),
@@ -416,6 +462,8 @@ def build_guest_share_payload(stay: Stay) -> dict:
             {
                 "action": event.action,
                 "imageSide": event.image_side or None,
+                "companionId": event.companion_id or None,
+                "companionName": companion_names.get(event.companion_id),
                 "createdAt": _isoformat(event.created_at),
             }
             for event in stay.identity_access_events.all()
@@ -460,9 +508,19 @@ def build_hotel_stay_detail(stay: Stay) -> dict:
         **item,
         "snapshot": {
             "guest": snapshot.guest_data,
-            "companions": snapshot.companion_data,
+            "companions": [
+                {
+                    **companion,
+                    "images": [
+                        {"side": image.side}
+                        for image in images
+                        if image.companion_id and image.companion_id == companion.get("id")
+                    ],
+                }
+                for companion in snapshot.companion_data
+            ],
             "document": snapshot.document_data,
-            "images": [{"side": image.side} for image in images],
+            "images": [{"side": image.side} for image in images if image.companion_id == 0],
             "sharedAt": _isoformat(snapshot.created_at),
         },
     }

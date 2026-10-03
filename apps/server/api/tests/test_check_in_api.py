@@ -10,9 +10,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.check_in import generate_hotel_qr_token
+from api.check_in import generate_hotel_qr_token, purge_expired_shared_identity_images
 from api.models import (
     ClerkUser,
+    CompanionProfile,
     ConsentGrant,
     GuestProfile,
     HotelQrToken,
@@ -122,6 +123,149 @@ class CheckInApiTests(APITestCase):
                 format="json",
             )
         return response, storage_class
+
+    def make_companion_document(self):
+        companion = CompanionProfile.objects.create(
+            user=self.guest, legal_first_name="Asha", legal_last_name="Joshi",
+            date_of_birth=date(1997, 1, 1), relationship="Spouse", nationality="IN",
+        )
+        document = IdentityDocument.objects.create(
+            user=self.guest, companion=companion,
+            document_type="PASSPORT", document_number="COMPANION-123",
+            name_on_document="Asha Joshi", issuing_country="IN",
+            expiry_date=date.today() + timedelta(days=365),
+        )
+        IdentityDocumentImage.objects.create(
+            document=document, side="FRONT", object_key="private/companion/front.jpg",
+            content_type="image/jpeg", content_length=2048,
+        )
+        return companion, document
+
+    def submit_with_companion(self, companion, document_id=None):
+        self.authenticate(self.guest)
+        return self.client.post(self.submission_url(), {
+            "identityDocumentId": self.document.id,
+            "companionIds": [companion.id],
+            "companionDocuments": [] if document_id is None else [{
+                "companionId": companion.id, "identityDocumentId": document_id,
+            }],
+            "consentAccepted": True,
+        }, format="json")
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_selected_companion_id_is_snapshotted_and_access_is_participant_scoped(self, storage_class):
+        companion, document = self.make_companion_document()
+        response = self.submit_with_companion(companion, document.id)
+        self.assertEqual(response.status_code, 201)
+        snapshot = SharedIdentitySnapshot.objects.get()
+        self.assertEqual(snapshot.companion_data[0]["document"]["documentNumber"], "COMPANION-123")
+        self.assertEqual(snapshot.document_images.count(), 3)
+        image = snapshot.document_images.get(companion_id=companion.id)
+        self.assertIn(f"companions/{companion.id}/", image.object_key)
+        document.document_number = "CHANGED"
+        document.save()
+        self.authenticate(self.owner)
+        detail_url = reverse("hotel-stay-detail", args=[self.organization.slug, self.property.slug, snapshot.stay.public_id])
+        detail = self.client.get(detail_url)
+        self.assertEqual(detail.data["snapshot"]["companions"][0]["document"]["documentNumber"], "COMPANION-123")
+        self.assertEqual(len(detail.data["snapshot"]["images"]), 2)
+        self.assertEqual(detail.data["snapshot"]["companions"][0]["images"], [{"side": "FRONT"}])
+        storage_class.return_value.create_download_url.return_value = "https://storage.example/signed"
+        access_url = reverse("hotel-stay-image-access", args=[self.organization.slug, self.property.slug, snapshot.stay.public_id])
+        access = self.client.post(access_url, {"side": "FRONT", "companionId": companion.id}, format="json")
+        self.assertEqual(access.status_code, 200)
+        event = IdentityAccessAudit.objects.get(action=IdentityAccessAction.DOCUMENT_VIEWED)
+        self.assertEqual(event.companion_id, companion.id)
+        storage_class.return_value.create_download_url.assert_called_with(object_key=image.object_key)
+        missing = self.client.post(access_url, {"side": "FRONT", "companionId": companion.id + 100}, format="json")
+        self.assertEqual(missing.status_code, 404)
+        self.authenticate(self.guest)
+        history = self.client.get(reverse("guest-stay-list"))
+        image_event = next(event for event in history.data["stays"][0]["accessEvents"] if event["action"] == "DOCUMENT_VIEWED")
+        self.assertEqual(image_event["companionId"], companion.id)
+        self.assertEqual(image_event["companionName"], "Asha Joshi")
+        self.client.post(reverse("guest-stay-revoke", args=[snapshot.stay.public_id]))
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.post(access_url, {"side": "FRONT", "companionId": companion.id}, format="json").status_code, 403)
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_companion_copies_are_purged_but_snapshot_and_audit_remain(self, storage_class):
+        companion, document = self.make_companion_document()
+        response = self.submit_with_companion(companion, document.id)
+        stay = Stay.objects.get(public_id=response.data["id"])
+        IdentityAccessAudit.objects.create(stay=stay, actor=self.owner, action="DOCUMENT_VIEWED", image_side="FRONT", companion_id=companion.id)
+        stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
+        stay.save(update_fields=["hotel_access_expires_at"])
+        deleted, failed = purge_expired_shared_identity_images(storage=storage_class.return_value, batch_size=100)
+        self.assertEqual((deleted, failed), (3, 0))
+        self.assertFalse(stay.identity_snapshot.document_images.exists())
+        self.assertEqual(stay.identity_snapshot.companion_data[0]["document"]["documentNumber"], "COMPANION-123")
+        self.assertEqual(stay.identity_access_events.get().companion_id, companion.id)
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_unselected_duplicate_and_mismatched_companion_documents_are_rejected(self, storage_class):
+        companion, document = self.make_companion_document()
+        other, other_document = self.make_companion_document()
+        self.authenticate(self.guest)
+        for choices in [
+            [{"companionId": other.id, "identityDocumentId": other_document.id}],
+            [{"companionId": companion.id, "identityDocumentId": document.id}] * 2,
+            [{"companionId": companion.id, "identityDocumentId": other_document.id}],
+        ]:
+            with self.subTest(choices=choices):
+                response = self.client.post(self.submission_url(), {
+                    "identityDocumentId": self.document.id, "companionIds": [companion.id],
+                    "companionDocuments": choices, "consentAccepted": True,
+                }, format="json")
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.data["code"], "invalid_companion_documents")
+        storage_class.return_value.copy_object.assert_not_called()
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_companion_document_is_only_shared_when_explicitly_selected(self, storage_class):
+        companion, document = self.make_companion_document()
+        response = self.submit_with_companion(companion)
+        self.assertEqual(response.status_code, 201)
+        snapshot = SharedIdentitySnapshot.objects.get()
+        self.assertIsNone(snapshot.companion_data[0]["document"])
+        self.assertEqual(snapshot.document_images.count(), 2)
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_companion_cannot_share_primary_guests_document(self, storage_class):
+        companion, _ = self.make_companion_document()
+        response = self.submit_with_companion(companion, self.document.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["code"], "invalid_companion_documents")
+        storage_class.return_value.copy_object.assert_not_called()
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_incomplete_companion_document_is_rejected(self, storage_class):
+        companion, document = self.make_companion_document()
+        document.images.all().delete()
+        response = self.submit_with_companion(companion, document.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["code"], "companion_document_not_ready")
+        storage_class.return_value.copy_object.assert_not_called()
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_companion_document_cannot_replace_primary_document(self, storage_class):
+        companion, document = self.make_companion_document()
+        self.authenticate(self.guest)
+        response = self.client.post(self.submission_url(), {
+            "identityDocumentId": document.id, "companionIds": [], "consentAccepted": True,
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        storage_class.return_value.copy_object.assert_not_called()
+
+    @patch("api.check_in_views.PrivateObjectStorage")
+    def test_failed_companion_copy_cleans_primary_copies_without_consent(self, storage_class):
+        companion, document = self.make_companion_document()
+        storage_class.return_value.copy_object.side_effect = [None, None, RuntimeError("storage unavailable")]
+        response = self.submit_with_companion(companion, document.id)
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(ConsentGrant.objects.exists())
+        self.assertFalse(SharedIdentitySnapshot.objects.exists())
+        self.assertEqual(storage_class.return_value.delete_object.call_count, 2)
 
     def test_public_context_exposes_property_but_not_private_identity(self):
         self.client.force_authenticate(user=None)

@@ -259,6 +259,11 @@ class IdentityDocumentImageAccessSerializer(serializers.Serializer):
     side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
 
 
+class CompanionDocumentChoiceSerializer(serializers.Serializer):
+    companionId = serializers.IntegerField(source="companion_id", min_value=1)
+    identityDocumentId = serializers.IntegerField(source="identity_document_id", min_value=1)
+
+
 class GuestCheckInSubmitSerializer(serializers.Serializer):
     identityDocumentId = serializers.IntegerField(
         source="identity_document_id",
@@ -269,6 +274,9 @@ class GuestCheckInSubmitSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1),
         allow_empty=True,
         max_length=20,
+    )
+    companionDocuments = CompanionDocumentChoiceSerializer(
+        source="companion_documents", many=True, max_length=20, required=False, default=list,
     )
     consentAccepted = serializers.BooleanField(
         source="consent_accepted",
@@ -283,6 +291,7 @@ class GuestCheckInSubmitSerializer(serializers.Serializer):
 
 
 class HotelStayImageAccessSerializer(serializers.Serializer):
+    companionId = serializers.IntegerField(source="companion_id", min_value=1, required=False)
     side = serializers.ChoiceField(choices=IdentityDocumentImageSide.choices)
 
 

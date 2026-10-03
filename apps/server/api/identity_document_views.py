@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -18,7 +19,7 @@ from .identity_documents import (
     delete_identity_document,
     finalize_pending_upload,
 )
-from .models import IdentityDocument
+from .models import CompanionProfile, IdentityDocument
 from .object_storage import PrivateObjectStorage
 from .serializers import (
     IdentityDocumentImageAccessSerializer,
@@ -26,7 +27,6 @@ from .serializers import (
     IdentityDocumentImageUploadSerializer,
     IdentityDocumentSerializer,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -42,18 +42,20 @@ class IdentityUploadThrottle(ClerkPrincipalScopedThrottle):
 
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
-def guest_identity_document_list(request):
+@transaction.atomic
+def guest_identity_document_list(request, companion_id: int | None = None):
     user = request.user.db_user
+    companion = _owned_companion(request, companion_id)
 
     if request.method == "GET":
-        documents = IdentityDocument.objects.filter(user=user).prefetch_related(
-            "images"
-        )
+        documents = IdentityDocument.objects.filter(
+            user=user, companion=companion
+        ).prefetch_related("images")
         return Response(build_identity_document_list_payload(documents))
 
     serializer = IdentityDocumentSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    document = serializer.save(user=user)
+    document = serializer.save(user=user, companion=companion)
     return Response(
         build_identity_document_payload(document),
         status=status.HTTP_201_CREATED,
@@ -62,8 +64,11 @@ def guest_identity_document_list(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
-def guest_identity_document_detail(request, document_id: int):
-    document = _owned_document(request, document_id)
+@transaction.atomic
+def guest_identity_document_detail(
+    request, document_id: int, companion_id: int | None = None
+):
+    document = _owned_document(request, document_id, companion_id)
 
     if request.method == "GET":
         return Response(build_identity_document_payload(document))
@@ -90,8 +95,11 @@ def guest_identity_document_detail(request, document_id: int):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 @throttle_classes([IdentityUploadThrottle])
-def guest_identity_document_upload(request, document_id: int):
-    document = _owned_document(request, document_id)
+@transaction.atomic
+def guest_identity_document_upload(
+    request, document_id: int, companion_id: int | None = None
+):
+    document = _owned_document(request, document_id, companion_id)
     serializer = IdentityDocumentImageUploadSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -125,8 +133,11 @@ guest_identity_document_upload.cls.throttle_scope = "identity-upload"
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 @throttle_classes([IdentityUploadThrottle])
-def guest_identity_document_upload_complete(request, document_id: int):
-    document = _owned_document(request, document_id)
+@transaction.atomic
+def guest_identity_document_upload_complete(
+    request, document_id: int, companion_id: int | None = None
+):
+    document = _owned_document(request, document_id, companion_id)
     serializer = IdentityDocumentImageFinalizeSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -155,8 +166,11 @@ guest_identity_document_upload_complete.cls.throttle_scope = "identity-upload"
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def guest_identity_document_image_access(request, document_id: int):
-    document = _owned_document(request, document_id)
+@transaction.atomic
+def guest_identity_document_image_access(
+    request, document_id: int, companion_id: int | None = None
+):
+    document = _owned_document(request, document_id, companion_id)
     serializer = IdentityDocumentImageAccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -185,11 +199,24 @@ def guest_identity_document_image_access(request, document_id: int):
     )
 
 
-def _owned_document(request, document_id: int) -> IdentityDocument:
+def _owned_companion(request, companion_id):
+    if companion_id is None:
+        return None
+    # All companion document operations share this lock with companion deletion.
+    return get_object_or_404(
+        CompanionProfile.objects.select_for_update(),
+        id=companion_id,
+        user=request.user.db_user,
+    )
+
+
+def _owned_document(request, document_id: int, companion_id=None) -> IdentityDocument:
+    companion = _owned_companion(request, companion_id)
     return get_object_or_404(
         IdentityDocument.objects.select_related("user").prefetch_related("images"),
         id=document_id,
         user=request.user.db_user,
+        companion=companion,
     )
 
 

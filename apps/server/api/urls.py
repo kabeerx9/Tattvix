@@ -85,6 +85,31 @@ urlpatterns = [
         name="guest-companion-detail",
     ),
     path(
+        "api/guest/companions/<int:companion_id>/identity-documents/",
+        guest_identity_document_list,
+        name="guest-companion-identity-document-list",
+    ),
+    path(
+        "api/guest/companions/<int:companion_id>/identity-documents/<int:document_id>/",
+        guest_identity_document_detail,
+        name="guest-companion-identity-document-detail",
+    ),
+    path(
+        "api/guest/companions/<int:companion_id>/identity-documents/<int:document_id>/uploads/",
+        guest_identity_document_upload,
+        name="guest-companion-identity-document-upload",
+    ),
+    path(
+        "api/guest/companions/<int:companion_id>/identity-documents/<int:document_id>/uploads/complete/",
+        guest_identity_document_upload_complete,
+        name="guest-companion-identity-document-upload-complete",
+    ),
+    path(
+        "api/guest/companions/<int:companion_id>/identity-documents/<int:document_id>/images/access/",
+        guest_identity_document_image_access,
+        name="guest-companion-identity-document-image-access",
+    ),
+    path(
         "api/guest/identity-documents/",
         guest_identity_document_list,
         name="guest-identity-document-list",

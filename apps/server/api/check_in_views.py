@@ -89,6 +89,7 @@ def guest_check_in_submit(request, raw_token: str):
             storage=PrivateObjectStorage(),
             identity_document_id=serializer.validated_data["identity_document_id"],
             companion_ids=serializer.validated_data["companion_ids"],
+            companion_documents=serializer.validated_data["companion_documents"],
         )
     except CheckInError as exc:
         return _check_in_error_response(exc, status.HTTP_400_BAD_REQUEST)
@@ -126,7 +127,7 @@ def guest_stay_list(request):
     stays = (
         Stay.objects.filter(guest=request.user.db_user)
         .exclude(status=StayStatus.DRAFT)
-        .select_related("property__organization", "room")
+        .select_related("property__organization", "room", "identity_snapshot")
         .prefetch_related("identity_access_events")
         .order_by("-submitted_at", "-created_at")
     )
@@ -269,6 +270,7 @@ def hotel_stay_image_access(
         SharedIdentityDocumentImage,
         snapshot=stay.identity_snapshot,
         side=serializer.validated_data["side"],
+        companion_id=serializer.validated_data.get("companion_id", 0),
     )
     try:
         url = PrivateObjectStorage().create_download_url(
@@ -289,6 +291,7 @@ def hotel_stay_image_access(
         actor=request.user.db_user,
         action=IdentityAccessAction.DOCUMENT_VIEWED,
         image_side=image.side,
+        companion_id=image.companion_id,
     )
     return Response(
         {

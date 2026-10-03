@@ -7,6 +7,7 @@ import {
   guestShareSchema,
   hotelStayDetailSchema,
   hotelStayListQuerySchema,
+  sharedCompanionSchema,
 } from "./check-in";
 
 const submittedStay = {
@@ -143,4 +144,46 @@ test("hotel stay list query rejects an unknown operational status", () => {
   });
 
   assert.equal(result.success, false);
+});
+
+
+test("submission preserves explicit companion document choices", () => {
+  const result = guestCheckInSubmitInputSchema.parse({
+    identityDocumentId: 1, companionIds: [2], consentAccepted: true,
+    companionDocuments: [{ companionId: 2, identityDocumentId: 3 }],
+  });
+  assert.deepEqual(result.companionDocuments, [{ companionId: 2, identityDocumentId: 3 }]);
+});
+
+test("submission rejects document choices for unselected or duplicate companions", () => {
+  for (const companionDocuments of [
+    [{ companionId: 9, identityDocumentId: 3 }],
+    [{ companionId: 2, identityDocumentId: 3 }, { companionId: 2, identityDocumentId: 4 }],
+  ]) {
+    assert.equal(guestCheckInSubmitInputSchema.safeParse({
+      identityDocumentId: 1, companionIds: [2], consentAccepted: true, companionDocuments,
+    }).success, false);
+  }
+});
+
+
+test("shared companion preserves selected ID metadata and image sides", () => {
+  const companion = sharedCompanionSchema.parse({
+    id: 2, legalFirstName: "Asha", legalLastName: "Joshi", dateOfBirth: "1997-01-01",
+    relationship: "Spouse", nationality: "IN", isMinor: false,
+    document: { documentType: "PASSPORT", documentNumber: "SYNTHETIC-ONLY", nameOnDocument: "Asha Joshi", issuingCountry: "IN", expiryDate: "2030-01-01" },
+    images: [{ side: "FRONT" }],
+  });
+  assert.equal(companion.id, 2);
+  assert.equal(companion.document?.documentNumber, "SYNTHETIC-ONLY");
+  assert.deepEqual(companion.images, [{ side: "FRONT" }]);
+});
+
+test("historical companion snapshots remain readable without ID fields", () => {
+  const companion = sharedCompanionSchema.parse({
+    legalFirstName: "Asha", legalLastName: "Joshi", dateOfBirth: "1997-01-01",
+    relationship: "Spouse", nationality: "IN", isMinor: false,
+  });
+  assert.deepEqual(companion.images, []);
+  assert.equal(companion.document, undefined);
 });

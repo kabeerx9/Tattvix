@@ -23,7 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@tattvix/ui/components/sheet";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   FileImage,
@@ -41,7 +41,7 @@ import {
   DocumentImageField,
   type ImageSelection,
 } from "@/features/identity-documents/components/document-image-field";
-import { identityDocumentsApi } from "@/features/identity-documents/api";
+import { createIdentityDocumentsApi } from "@/features/identity-documents/api";
 import {
   IdentityDocumentSaveError,
   identityDocumentMutations,
@@ -79,13 +79,21 @@ const documentRequirements: Record<
 
 type EditorState = IdentityDocument | "new" | null;
 
-export function IdentityDocumentsSection() {
+export function IdentityDocumentsSection({
+  companionId,
+  participantName,
+}: {
+  companionId?: number;
+  participantName?: string;
+} = {}) {
   const queryClient = useQueryClient();
-  const { data } = useSuspenseQuery(identityDocumentQueries.list());
+  const documentsQuery = useQuery(identityDocumentQueries.list(companionId));
   const [editor, setEditor] = useState<EditorState>(null);
-  const saveMutation = useMutation(identityDocumentMutations.save(queryClient));
+  const saveMutation = useMutation(
+    identityDocumentMutations.save(queryClient, companionId),
+  );
   const removeMutation = useMutation(
-    identityDocumentMutations.remove(queryClient),
+    identityDocumentMutations.remove(queryClient, companionId),
   );
 
   function saveDocument(input: IdentityDocumentSaveInput) {
@@ -133,20 +141,43 @@ export function IdentityDocumentsSection() {
           <div>
             <h2 className="text-base font-semibold">Government identity documents</h2>
             <p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">
-              Images stay private. Tattwix creates short-lived access only when
-              you choose to view or share them.
+              {participantName
+                ? `${participantName}'s documents stay private and are shared with a hotel only when you select them for a check-in.`
+                : "Images stay private. Tattwix creates short-lived access only when you choose to view or share them."}
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditor("new")}>
+        <Button
+          variant="outline"
+          disabled={!documentsQuery.data}
+          onClick={() => setEditor("new")}
+        >
           <Plus />
           Add document
         </Button>
       </div>
 
-      {data.documents.length ? (
+      {documentsQuery.isPending ? (
+        <div className="rounded-2xl bg-muted/60 p-5 text-sm text-muted-foreground">
+          Loading identity documents...
+        </div>
+      ) : documentsQuery.isError ? (
+        <div className="grid gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-5">
+          <p className="text-sm text-destructive">
+            The identity documents could not be loaded.
+          </p>
+          <Button
+            className="w-fit"
+            variant="outline"
+            size="sm"
+            onClick={() => void documentsQuery.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : documentsQuery.data.documents.length ? (
         <div className="grid gap-3">
-          {data.documents.map((document) => (
+          {documentsQuery.data.documents.map((document) => (
             <DocumentCard
               key={document.id}
               document={document}
@@ -196,6 +227,7 @@ export function IdentityDocumentsSection() {
               isSaving={saveMutation.isPending}
               isRemoving={removeMutation.isPending}
               submitError={errorMessage}
+              companionId={companionId}
               onSubmit={saveDocument}
               onRemove={
                 editor === "new" ? undefined : () => removeDocument(editor)
@@ -286,6 +318,7 @@ function DocumentEditor({
   isSaving,
   isRemoving,
   submitError,
+  companionId,
   onSubmit,
   onRemove,
 }: {
@@ -293,6 +326,7 @@ function DocumentEditor({
   isSaving: boolean;
   isRemoving: boolean;
   submitError: string | null;
+  companionId?: number;
   onSubmit: (input: IdentityDocumentSaveInput) => void;
   onRemove?: () => void;
 }) {
@@ -309,6 +343,7 @@ function DocumentEditor({
     side: IdentityDocumentImageSide;
     url: string;
   } | null>(null);
+  const api = createIdentityDocumentsApi(companionId);
   const accessMutation = useMutation({
     mutationFn: ({
       documentId,
@@ -316,7 +351,7 @@ function DocumentEditor({
     }: {
       documentId: number;
       side: IdentityDocumentImageSide;
-    }) => identityDocumentsApi.getImageAccess(documentId, side),
+    }) => api.getImageAccess(documentId, side),
     onSuccess: (access, variables) => {
       setPreview({ side: variables.side, url: access.url });
     },

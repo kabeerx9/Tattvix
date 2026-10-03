@@ -82,6 +82,13 @@ class IdentityDocumentType(models.TextChoices):
 
 
 class IdentityDocument(models.Model):
+    companion = models.ForeignKey(
+        CompanionProfile,
+        on_delete=models.PROTECT,
+        related_name="identity_documents",
+        null=True,
+        blank=True,
+    )
     user = models.ForeignKey(
         ClerkUser,
         on_delete=models.CASCADE,
@@ -445,6 +452,8 @@ class SharedIdentitySnapshot(models.Model):
 
 
 class SharedIdentityDocumentImage(models.Model):
+    # Snapshot discriminator, not a FK: shared copies outlive saved companions.
+    companion_id = models.PositiveBigIntegerField(default=0)
     snapshot = models.ForeignKey(
         SharedIdentitySnapshot,
         on_delete=models.CASCADE,
@@ -458,8 +467,8 @@ class SharedIdentityDocumentImage(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["snapshot", "side"],
-                name="unique_shared_identity_image_side",
+                fields=["snapshot", "companion_id", "side"],
+                name="unique_shared_identity_participant_side",
             ),
         ]
 
@@ -475,6 +484,8 @@ class IdentityAccessAction(models.TextChoices):
 
 
 class IdentityAccessAudit(models.Model):
+    # Immutable participant reference; zero identifies the primary guest.
+    companion_id = models.PositiveBigIntegerField(default=0)
     stay = models.ForeignKey(
         Stay,
         on_delete=models.CASCADE,

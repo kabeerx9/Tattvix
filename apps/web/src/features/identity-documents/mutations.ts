@@ -8,7 +8,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { guestProfileKeys } from "@/features/guest-profile/keys";
 
-import { identityDocumentsApi } from "./api";
+import { createIdentityDocumentsApi } from "./api";
 import { identityDocumentKeys } from "./keys";
 
 export type IdentityDocumentSaveInput = {
@@ -35,83 +35,94 @@ export class IdentityDocumentSaveError extends Error {
 
 function updateCachedDocuments(
   queryClient: QueryClient,
+  companionId: number | undefined,
   update: (documents: IdentityDocument[]) => IdentityDocument[],
 ) {
   queryClient.setQueryData<IdentityDocumentListResponse>(
-    identityDocumentKeys.list(),
+    identityDocumentKeys.list(companionId),
     (current) =>
       current ? { documents: update(current.documents) } : current,
   );
 }
 
 export const identityDocumentMutations = {
-  save: (queryClient: QueryClient) => ({
-    mutationFn: async ({
-      documentId,
-      input,
-      files,
-    }: IdentityDocumentSaveInput) => {
-      const document = documentId
-        ? await identityDocumentsApi.update(documentId, input)
-        : await identityDocumentsApi.create(input);
+  save: (queryClient: QueryClient, companionId?: number) => {
+    const api = createIdentityDocumentsApi(companionId);
 
-      const uploads = (
-        Object.entries(files) as [IdentityDocumentImageSide, File][]
-      ).map(([side, file]) =>
-        identityDocumentsApi.uploadImage(document.id, side, file),
-      );
-      try {
-        await Promise.all(uploads);
-      } catch (error) {
-        let currentDocument = document;
-        try {
-          currentDocument = await identityDocumentsApi.get(document.id);
-        } catch {
-          // Preserve the successfully saved metadata if the recovery read also fails.
-        }
-        throw new IdentityDocumentSaveError(currentDocument, error);
-      }
+    return {
+      mutationFn: async ({
+        documentId,
+        input,
+        files,
+      }: IdentityDocumentSaveInput) => {
+        const document = documentId
+          ? await api.update(documentId, input)
+          : await api.create(input);
 
-      return uploads.length
-        ? identityDocumentsApi.get(document.id)
-        : document;
-    },
-    onSuccess: (document: IdentityDocument) => {
-      updateCachedDocuments(queryClient, (documents) => {
-        const exists = documents.some((item) => item.id === document.id);
-        return exists
-          ? documents.map((item) =>
-              item.id === document.id ? document : item,
-            )
-          : [document, ...documents];
-      });
-      void queryClient.invalidateQueries({
-        queryKey: guestProfileKeys.detail(),
-      });
-    },
-    onError: (error: unknown) => {
-      if (!(error instanceof IdentityDocumentSaveError)) return;
-      updateCachedDocuments(queryClient, (documents) => {
-        const exists = documents.some(
-          (item) => item.id === error.document.id,
+        const uploads = (
+          Object.entries(files) as [IdentityDocumentImageSide, File][]
+        ).map(([side, file]) =>
+          api.uploadImage(document.id, side, file),
         );
-        return exists
-          ? documents.map((item) =>
-              item.id === error.document.id ? error.document : item,
-            )
-          : [error.document, ...documents];
-      });
-    },
-  }),
-  remove: (queryClient: QueryClient) => ({
-    mutationFn: identityDocumentsApi.remove,
-    onSuccess: (_unused: void, id: number) => {
-      updateCachedDocuments(queryClient, (documents) =>
-        documents.filter((item) => item.id !== id),
-      );
-      void queryClient.invalidateQueries({
-        queryKey: guestProfileKeys.detail(),
-      });
-    },
-  }),
+        try {
+          await Promise.all(uploads);
+        } catch (error) {
+          let currentDocument = document;
+          try {
+            currentDocument = await api.get(document.id);
+          } catch {
+            // Preserve the successfully saved metadata if the recovery read also fails.
+          }
+          throw new IdentityDocumentSaveError(currentDocument, error);
+        }
+
+        return uploads.length ? api.get(document.id) : document;
+      },
+      onSuccess: (document: IdentityDocument) => {
+        updateCachedDocuments(queryClient, companionId, (documents) => {
+          const exists = documents.some((item) => item.id === document.id);
+          return exists
+            ? documents.map((item) =>
+                item.id === document.id ? document : item,
+              )
+            : [document, ...documents];
+        });
+        if (companionId === undefined) {
+          void queryClient.invalidateQueries({
+            queryKey: guestProfileKeys.detail(),
+          });
+        }
+      },
+      onError: (error: unknown) => {
+        if (!(error instanceof IdentityDocumentSaveError)) return;
+        updateCachedDocuments(queryClient, companionId, (documents) => {
+          const exists = documents.some(
+            (item) => item.id === error.document.id,
+          );
+          return exists
+            ? documents.map((item) =>
+                item.id === error.document.id ? error.document : item,
+              )
+            : [error.document, ...documents];
+        });
+      },
+    };
+  },
+  remove: (queryClient: QueryClient, companionId?: number) => {
+    const api = createIdentityDocumentsApi(companionId);
+
+    return {
+      mutationFn: api.remove,
+      onSuccess: (_unused: void, id: number) => {
+        updateCachedDocuments(queryClient, companionId, (documents) =>
+          documents.filter((item) => item.id !== id),
+        );
+        if (companionId === undefined) {
+          void queryClient.invalidateQueries({
+            queryKey: guestProfileKeys.detail(),
+          });
+        }
+      },
+    };
+  },
 };

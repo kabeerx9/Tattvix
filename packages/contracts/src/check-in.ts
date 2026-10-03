@@ -87,6 +87,8 @@ export const guestShareSchema = guestStaySchema.extend({
     z.object({
       action: identityAccessActionSchema,
       imageSide: identityDocumentImageSideSchema.nullable(),
+      companionId: z.number().int().positive().nullable().optional(),
+      companionName: z.string().nullable().optional(),
       createdAt: dateTimeSchema,
     }),
   ),
@@ -109,7 +111,19 @@ export const checkInContextSchema = z.object({
 export const guestCheckInSubmitInputSchema = z.object({
   identityDocumentId: z.number().int().positive(),
   companionIds: z.array(z.number().int().positive()).max(20),
+  companionDocuments: z.array(z.object({
+    companionId: z.number().int().positive(),
+    identityDocumentId: z.number().int().positive(),
+  })).max(20).optional(),
   consentAccepted: z.literal(true),
+}).superRefine((input, ctx) => {
+  const seen = new Set<number>();
+  for (const [index, choice] of (input.companionDocuments ?? []).entries()) {
+    if (!input.companionIds.includes(choice.companionId) || seen.has(choice.companionId)) {
+      ctx.addIssue({ code: "custom", path: ["companionDocuments", index, "companionId"], message: "Choose at most one document for each selected companion." });
+    }
+    seen.add(choice.companionId);
+  }
 });
 
 export const hotelQrTokenResponseSchema = z.object({
@@ -153,16 +167,19 @@ export const hotelStayListQuerySchema = z.object({
   dateTo: z.iso.date().optional(),
 });
 
-export const sharedCompanionSchema = companionProfileInputSchema.extend({
-  isMinor: z.boolean().nullable(),
-});
-
 export const sharedDocumentSchema = z.object({
   documentType: identityDocumentTypeSchema,
   documentNumber: z.string().min(1).max(64),
   nameOnDocument: z.string().min(1).max(300),
   issuingCountry: z.string().length(2),
   expiryDate: z.iso.date().nullable(),
+});
+
+export const sharedCompanionSchema = companionProfileInputSchema.extend({
+  isMinor: z.boolean().nullable(),
+  id: z.number().int().positive().optional(),
+  document: sharedDocumentSchema.nullable().optional(),
+  images: z.array(z.object({ side: identityDocumentImageSideSchema })).default([]),
 });
 
 export const sharedIdentitySnapshotSchema = z.object({

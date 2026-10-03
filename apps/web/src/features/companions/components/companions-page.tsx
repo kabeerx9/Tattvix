@@ -16,13 +16,14 @@ import {
   SheetTitle,
 } from "@tattvix/ui/components/sheet";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Baby, CheckCircle2, Pencil, Plus, UsersRound } from "lucide-react";
+import { Baby, CheckCircle2, FileKey2, Pencil, Plus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
+import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
 import { ApiError } from "@/lib/api";
 
 const missingFieldLabels: Record<CompanionProfileMissingField, string> = {
@@ -39,6 +40,9 @@ export function CompanionsPage() {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(companionQueries.list());
   const [editor, setEditor] = useState<EditorState>(null);
+  const [documentOwner, setDocumentOwner] = useState<CompanionProfile | null>(
+    null,
+  );
   const createMutation = useMutation(companionMutations.create(queryClient));
   const updateMutation = useMutation(companionMutations.update(queryClient));
   const removeMutation = useMutation(companionMutations.remove(queryClient));
@@ -102,6 +106,7 @@ export function CompanionsPage() {
               key={companion.id}
               companion={companion}
               onEdit={() => setEditor(companion)}
+              onManageDocuments={() => setDocumentOwner(companion)}
             />
           ))}
         </div>
@@ -135,11 +140,49 @@ export function CompanionsPage() {
           ) : null}
         </SheetContent>
       </Sheet>
+
+      <Sheet
+        open={documentOwner !== null}
+        onOpenChange={(open) => {
+          if (!open) setDocumentOwner(null);
+        }}
+      >
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>
+              {documentOwner
+                ? `Identity documents for ${formatCompanionName(documentOwner)}`
+                : "Companion identity documents"}
+            </SheetTitle>
+            <SheetDescription>
+              Save private documents ahead of time. They are shared with a hotel
+              only when you choose an ID for this companion at check-in.
+            </SheetDescription>
+          </SheetHeader>
+          {documentOwner ? (
+            <div className="px-4 pb-4">
+              <IdentityDocumentsSection
+                key={documentOwner.id}
+                companionId={documentOwner.id}
+                participantName={formatCompanionName(documentOwner)}
+              />
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
-function CompanionCard({ companion, onEdit }: { companion: CompanionProfile; onEdit: () => void }) {
+function CompanionCard({
+  companion,
+  onEdit,
+  onManageDocuments,
+}: {
+  companion: CompanionProfile;
+  onEdit: () => void;
+  onManageDocuments: () => void;
+}) {
   const missingFields = companion.readiness.missingFields;
 
   return (
@@ -171,6 +214,11 @@ function CompanionCard({ companion, onEdit }: { companion: CompanionProfile; onE
           Still needed: {missingFields.map((field) => missingFieldLabels[field]).join(", ")}.
         </p>
       ) : null}
+
+      <Button variant="outline" className="w-full" onClick={onManageDocuments}>
+        <FileKey2 />
+        Identity documents
+      </Button>
     </Surface>
   );
 }

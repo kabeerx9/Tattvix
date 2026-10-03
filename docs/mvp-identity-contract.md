@@ -73,6 +73,10 @@ The system derives minor/adult status from date of birth using the age threshold
 
 Saving a companion is allowed before all of these fields are complete. A companion profile is ready when the four minimal fields are present. A companion does not need a full address, phone number, or identity document merely to be saved or ready as a reusable profile.
 
+Companions may also save the same supported identity documents and private images as the primary guest. Companion documents are scoped to their companion profile and do not count toward the primary guest's readiness.
+
+At check-in the primary guest may explicitly choose one complete document per selected companion. Saving a document does not automatically share it. Selected document metadata and images become part of the immutable stay snapshot, with the same consent revocation, access expiry, image cleanup, and participant-specific access auditing as the primary guest's document. Deleting a reusable companion removes its reusable documents and private images; it does not delete historical stay snapshots.
+
 Whether an adult companion must provide an identity document or more data is decided per check-in, after the guest indicates that they are arriving with companions. The MVP pilot handles unexpected companion requirements manually at reception; later QR check-in work will model property/stay requirements explicitly.
 
 ## Profile Readiness

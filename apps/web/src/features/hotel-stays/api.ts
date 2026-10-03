@@ -56,11 +56,12 @@ export const hotelStaysApi = {
     propertySlug: string,
     stayId: string,
     side: IdentityDocumentImageSide,
+    companionId?: number,
   ) {
     return apiClient.requestJson(
       `${propertyBase(organizationSlug, propertySlug)}/stays/${stayId}/images/access/`,
       hotelStayImageAccessResponseSchema,
-      { method: "POST", body: JSON.stringify({ side }) },
+      { method: "POST", body: JSON.stringify({ side, ...(companionId ? { companionId } : {}) }) },
     );
   },
   close(organizationSlug: string, propertySlug: string, stayId: string) {

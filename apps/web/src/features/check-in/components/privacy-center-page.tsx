@@ -305,7 +305,7 @@ function ShareCard({
                       <Eye className="size-3.5" />
                     )}
                     <span>
-                      {activityLabel(group.action, group.imageSide)}
+                      {activityLabel(group.action, group.imageSide, group.companionName)}
                       {group.count > 1 ? ` ×${group.count}` : ""}
                     </span>
                     <span className="ml-auto whitespace-nowrap">
@@ -330,6 +330,7 @@ type AccessEvent = GuestShare["accessEvents"][number];
 type AccessEventGroup = {
   action: IdentityAccessAction;
   imageSide: "FRONT" | "BACK" | null;
+  companionName?: string | null;
   count: number;
   lastAt: string;
 };
@@ -340,7 +341,7 @@ type AccessEventGroup = {
 function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
   const groups = new Map<string, AccessEventGroup>();
   for (const event of events) {
-    const key = `${event.action}:${event.imageSide ?? ""}`;
+    const key = `${event.action}:${event.imageSide ?? ""}:${event.companionId ?? 0}`;
     const current = groups.get(key);
     if (current) {
       current.count += 1;
@@ -354,6 +355,7 @@ function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
       groups.set(key, {
         action: event.action,
         imageSide: event.imageSide,
+        companionName: event.companionId ? event.companionName || "Companion" : null,
         count: 1,
         lastAt: event.createdAt,
       });
@@ -365,9 +367,10 @@ function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
 function activityLabel(
   action: IdentityAccessAction,
   side: "FRONT" | "BACK" | null,
+  companionName?: string | null,
 ) {
   if (action === "DOCUMENT_VIEWED") {
-    return `${side === "BACK" ? "Back" : "Front"} document image opened`;
+    return `${companionName ? `${companionName}: ` : ""}${side === "BACK" ? "Back" : "Front"} document image opened`;
   }
   if (action === "DETAILS_VIEWED") return "Identity details opened";
   if (action === "STAY_CLOSED") return "Hotel finished identity review";

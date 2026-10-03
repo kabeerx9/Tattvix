@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-router";
 import {
   useMutation,
+  useQueries,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
@@ -164,14 +165,27 @@ function AuthenticatedCheckIn({
   );
   const [selectedCompanionIds, setSelectedCompanionIds] = useState<number[]>([]);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [companionDocumentIds, setCompanionDocumentIds] = useState<Record<number, string>>({});
+  const companionDocumentQueries = useQueries({
+    queries: selectedCompanionIds.map((id) => identityDocumentQueries.list(id)),
+  });
+  const selectedCompanionDocumentsReady = selectedCompanionIds.every((id, index) => {
+    const chosenId = companionDocumentIds[id];
+    return !chosenId || companionDocumentQueries[index]?.data?.documents.some(
+      (document) => document.id === Number(chosenId) && document.readiness.isReady,
+    );
+  });
   const submitMutation = useMutation(checkInMutations.submit(queryClient));
   const canSubmit =
     profile.readiness.isReady &&
-    Boolean(documentId) &&
+    readyDocuments.some((document) => document.id === Number(documentId)) &&
+    selectedCompanionDocumentsReady &&
     consentAccepted &&
     !submitMutation.isPending;
 
   function toggleCompanion(id: number, checked: boolean) {
+    setConsentAccepted(false);
+    setCompanionDocumentIds((current) => { const next = { ...current }; delete next[id]; return next; });
     setSelectedCompanionIds((current) =>
       checked
         ? [...new Set([...current, id])]
@@ -187,6 +201,9 @@ function AuthenticatedCheckIn({
         input: {
           identityDocumentId: Number(documentId),
           companionIds: selectedCompanionIds,
+          companionDocuments: selectedCompanionIds.flatMap((companionId) =>
+            companionDocumentIds[companionId] ? [{ companionId, identityDocumentId: Number(companionDocumentIds[companionId]) }] : [],
+          ),
           consentAccepted: true,
         },
       },
@@ -242,7 +259,7 @@ function AuthenticatedCheckIn({
           <Select
             items={documentOptions}
             value={documentId || null}
-            onValueChange={(value) => setDocumentId(value ?? "")}
+            onValueChange={(value) => { setDocumentId(value ?? ""); setConsentAccepted(false); }}
           >
             <SelectTrigger aria-label="Identity document">
               <SelectValue placeholder="Choose an identity document" />
@@ -273,14 +290,15 @@ function AuthenticatedCheckIn({
             <div className="grid gap-2">
               {companions.companions.map((companion) => {
                 const checked = selectedCompanionIds.includes(companion.id);
+                const documentQuery = companionDocumentQueries[selectedCompanionIds.indexOf(companion.id)];
+                const readyCompanionDocuments = documentQuery?.data?.documents.filter((document) => document.readiness.isReady) ?? [];
+                const options = [{ label: "Do not share an ID", value: "none" }, ...readyCompanionDocuments.map((document) => ({ label: documentLabel(document), value: String(document.id) }))];
                 return (
-                  <label
-                    key={companion.id}
-                    className="flex items-center gap-3 rounded-xl border bg-muted/40 p-3"
-                  >
+                  <div key={companion.id} className="grid gap-3 rounded-xl border bg-muted/40 p-3">
+                  <label className="flex items-center gap-3">
                     <Checkbox
                       checked={checked}
-                      disabled={!companion.readiness.isReady}
+                      disabled={!companion.readiness.isReady || (!checked && selectedCompanionIds.length >= 20)}
                       onCheckedChange={(value) =>
                         toggleCompanion(companion.id, value === true)
                       }
@@ -298,6 +316,24 @@ function AuthenticatedCheckIn({
                       </span>
                     </span>
                   </label>
+                  {checked ? (
+                    <div className="grid gap-2 border-t pt-3">
+                      <p className="text-xs font-medium">Companion identity document (optional)</p>
+                      {documentQuery?.isPending ? <p className="text-xs text-muted-foreground">Loading documents...</p> : documentQuery?.isError ? (
+                        <div role="alert" className="flex items-center gap-2 text-xs text-destructive">Could not load documents.<Button size="xs" variant="outline" onClick={() => void documentQuery.refetch()}>Retry</Button></div>
+                      ) : (
+                        <Select items={options} value={companionDocumentIds[companion.id] || "none"} onValueChange={(value) => {
+                          setCompanionDocumentIds((current) => ({ ...current, [companion.id]: value && value !== "none" ? value : "" }));
+                          setConsentAccepted(false);
+                        }}>
+                          <SelectTrigger aria-label={`Identity document for ${companion.legalFirstName}`}><SelectValue /></SelectTrigger>
+                          <SelectContent>{options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      )}
+                      <p className="text-xs leading-5 text-muted-foreground">Only the ID you select and its images will be shared. <Link to="/companions" className="underline">Manage companion IDs</Link></p>
+                    </div>
+                  ) : null}
+                  </div>
                 );
               })}
             </div>
@@ -317,7 +353,8 @@ function AuthenticatedCheckIn({
             />
             <span className="text-sm leading-6">
               I approve sharing the selected profile, document metadata and
-              images, and companions with {propertyName} for this stay. Access
+              images, selected companions, and any IDs chosen for those companions
+              with {propertyName} for this stay. Access
               lasts for up to {accessPolicy.maximumDays} days unless I revoke
               it sooner. Checkout limits any remaining access to{" "}
               {accessPolicy.postCheckoutGraceHours} hours, after which the
