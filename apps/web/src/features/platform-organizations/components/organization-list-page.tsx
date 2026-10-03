@@ -1,7 +1,7 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, Plus, ShieldAlert } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, Plus, ShieldAlert } from "lucide-react";
 
 import { EmptyState, PageHeader, Surface } from "@/components/design-system";
 
@@ -25,6 +25,14 @@ export function OrganizationListPage() {
             >
               <ShieldAlert />
               Oversight
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link to="/admin/requests" />}
+            >
+              <ClipboardList />
+              Review requests
             </Button>
             <Button
               nativeButton={false}

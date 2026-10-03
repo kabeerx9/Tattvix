@@ -45,8 +45,10 @@ type NavItem = {
     | "/profile"
     | "/companions"
     | "/privacy"
+    | "/register-hotel"
     | "/hotel"
     | "/admin"
+    | "/admin/requests"
     | "/settings";
   icon: React.ComponentType<{ className?: string }>;
 };
@@ -56,11 +58,13 @@ const guestNav: NavItem[] = [
   { label: "Travel profile", to: "/profile", icon: IdCard },
   { label: "Companions", to: "/companions", icon: UsersRound },
   { label: "Privacy center", to: "/privacy", icon: ShieldCheck },
+  { label: "Register hotel", to: "/register-hotel", icon: Building2 },
   { label: "Account settings", to: "/settings", icon: Settings },
 ];
 
 const platformNav: NavItem[] = [
   { label: "Super admin", to: "/admin", icon: ShieldCheck },
+  { label: "Hotel requests", to: "/admin/requests", icon: ClipboardCheck },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -135,7 +139,7 @@ function AppSidebar() {
 }
 
 function getPortalLabel(pathname: string) {
-  if (pathname === "/admin") {
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     return "Platform administration";
   }
 

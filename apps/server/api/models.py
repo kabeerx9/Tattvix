@@ -540,3 +540,85 @@ class PlatformAuditLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.organization.slug} — {self.get_action_display()} ({self.target})"
+
+
+class HotelRegistrationStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    APPROVED = "APPROVED", "Approved"
+    REJECTED = "REJECTED", "Rejected"
+
+
+class HotelRegistrationRequest(models.Model):
+    applicant = models.ForeignKey(
+        ClerkUser, on_delete=models.PROTECT, related_name="hotel_requests"
+    )
+    hotel_name = models.CharField(max_length=255)
+    address = models.CharField(max_length=1000)
+    contact_phone = models.CharField(max_length=32)
+    status = models.CharField(
+        max_length=16,
+        choices=HotelRegistrationStatus.choices,
+        default=HotelRegistrationStatus.PENDING,
+    )
+    rejection_reason = models.CharField(max_length=1000, blank=True, default="")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewer = models.ForeignKey(
+        ClerkUser,
+        on_delete=models.PROTECT,
+        related_name="reviewed_hotel_requests",
+        null=True,
+        blank=True,
+    )
+    organization = models.ForeignKey(
+        Organization, on_delete=models.PROTECT, null=True, blank=True
+    )
+    property = models.ForeignKey(
+        Property, on_delete=models.PROTECT, null=True, blank=True
+    )
+
+    class Meta:
+        ordering = ["-submitted_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["status", "submitted_at"], name="hotel_request_queue_idx"
+            )
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["applicant"],
+                condition=models.Q(status="PENDING"),
+                name="one_pending_hotel_request",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        status="PENDING",
+                        reviewer__isnull=True,
+                        reviewed_at__isnull=True,
+                        organization__isnull=True,
+                        property__isnull=True,
+                        rejection_reason="",
+                    )
+                    | models.Q(
+                        status="APPROVED",
+                        reviewer__isnull=False,
+                        reviewed_at__isnull=False,
+                        organization__isnull=False,
+                        property__isnull=False,
+                        rejection_reason="",
+                    )
+                    | (
+                        models.Q(
+                            status="REJECTED",
+                            reviewer__isnull=False,
+                            reviewed_at__isnull=False,
+                            organization__isnull=True,
+                            property__isnull=True,
+                        )
+                        & ~models.Q(rejection_reason="")
+                    )
+                ),
+                name="hotel_request_review_state",
+            ),
+        ]

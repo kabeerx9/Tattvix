@@ -93,6 +93,18 @@ flowchart TD
   ReceptionConfirm --> CheckInComplete["Check-in complete"]
 ```
 
+## Hotel Registration And Approval
+
+A signed-in guest can submit their hotel name, address, and contact phone from Guest home or Register hotel. The request is associated with the authenticated account; applicants cannot nominate another owner or grant themselves access.
+
+Requests move from pending to approved or rejected. The super admin reviews the applicant and hotel details. Approval creates an active organization, its first property, and an owner membership for the applicant in one transaction. Pending or rejected requests grant no hotel permissions. Direct super-admin onboarding remains available for assisted onboarding.
+
+Only one pending request per account is allowed. Rejection requires a reason, and the applicant may submit a corrected new request. Decisions record the reviewer and timestamp. Approval also writes the standard property-created and member-added platform audit events in the same transaction. Repeating the same review decision is idempotent; a conflicting decision is rejected. Generated hotel URLs avoid name collisions and do not require applicants to choose internal slugs.
+
+Requests preserve their applicant, reviewer, and approved hotel references with protected foreign keys. Hard deletion of those referenced records requires an explicit history-retention policy; reverting the code does not undo previously approved hotels or owner memberships. The admin queue currently returns the oldest 100 requests for the selected status.
+
+Request status is visible in the web account, and hotel access refreshes after approval. This flow does not send emails or certify legal ownership: the super admin must verify ownership and submitted contact details before approving. Hotel operations are still absent from the native guest app.
+
 ## QR Check-In Flow
 
 Hotel QR codes are the fastest check-in path. A hotel displays a QR code at reception, on a tablet, or inside the dashboard. The user scans the QR through the app, reviews the requested data, and approves sharing.

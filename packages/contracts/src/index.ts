@@ -195,3 +195,17 @@ export {
   type PlatformUserSearchResponse,
   type PlatformUserSearchResult,
 } from "./platform";
+export {
+  hotelRegistrationStatusSchema,
+  hotelRegistrationInputSchema,
+  hotelRegistrationReviewInputSchema,
+  hotelRegistrationRequestSchema,
+  hotelRegistrationListResponseSchema,
+  platformHotelRegistrationRequestSchema,
+  platformHotelRegistrationListResponseSchema,
+  type HotelRegistrationInput,
+  type HotelRegistrationReviewInput,
+  type HotelRegistrationRequest,
+  type HotelRegistrationStatus,
+  type PlatformHotelRegistrationRequest,
+} from "./hotel-registration";

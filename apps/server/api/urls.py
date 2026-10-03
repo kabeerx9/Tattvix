@@ -11,6 +11,11 @@ from .check_in_views import (
     hotel_stay_image_access,
     hotel_stay_list,
 )
+from .hotel_registration_views import (
+    guest_hotel_requests,
+    platform_hotel_requests,
+    platform_hotel_request_review,
+)
 from .guest_views import (
     guest_companion_detail,
     guest_companion_list,
@@ -50,6 +55,13 @@ from .platform_views import (
 from .views import clerk_webhook, cron_purge_identity_images, health, me
 
 urlpatterns = [
+    path("api/guest/hotel-requests/", guest_hotel_requests, name="guest-hotel-requests"),
+    path("api/platform/hotel-requests/", platform_hotel_requests, name="platform-hotel-requests"),
+    path(
+        "api/platform/hotel-requests/<int:request_id>/review/",
+        platform_hotel_request_review,
+        name="platform-hotel-request-review",
+    ),
     path("", health, name="root-health"),
     path("api/health/", health, name="health"),
     path("api/me/", me, name="me"),
