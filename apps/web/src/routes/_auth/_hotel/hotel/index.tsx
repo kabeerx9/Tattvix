@@ -9,14 +9,15 @@ export const Route = createFileRoute("/_auth/_hotel/hotel/")({
 });
 
 function HotelPortalPage() {
-  const memberships = Route.useRouteContext().auth.currentUser?.memberships ?? [];
+  const memberships =
+    Route.useRouteContext().auth.currentUser?.memberships ?? [];
 
   return (
     <div className="mx-auto grid max-w-[1360px] gap-8">
       <PageHeader
         eyebrow="Hotel access"
-        title="Choose your organization"
-        description="Open an organization to manage its properties, members, and daily operations."
+        title="My hotels"
+        description="Choose a hotel to manage its properties and daily operations."
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

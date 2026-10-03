@@ -17,28 +17,31 @@ function PropertyDashboardPage() {
     <div className="mx-auto grid max-w-[1360px] gap-8">
       <PageHeader
         eyebrow={activeMembership.organization.name}
-        title={activeProperty.name}
-        description="Start secure walk-in check-ins, review submitted guest identity, and prepare the property for room operations."
+        title="Your hotel overview"
+        description={`Manage check-ins, rooms and guests at ${activeProperty.name}.`}
       />
 
       <Surface>
         <div className="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
-          <EmptyOperation
+          <OperationShortcut
             icon={ClipboardCheck}
-            title="No stays submitted yet"
-            description="Generate the property QR to start the first consent-based check-in."
+            title="Check-ins & stays"
+            description="Show your check-in QR, review submissions and manage active stays."
+            actionLabel="Review check-ins"
             to="/hotel/$organizationSlug/$propertySlug/stays"
           />
-          <EmptyOperation
+          <OperationShortcut
             icon={BedDouble}
-            title="No rooms configured"
-            description="Add room inventory before assigning stays and availability."
+            title="Rooms"
+            description="Manage room inventory and availability for your property."
+            actionLabel="Manage rooms"
             to="/hotel/$organizationSlug/$propertySlug/rooms"
           />
-          <EmptyOperation
+          <OperationShortcut
             icon={Users}
-            title="No guest records"
-            description="Guest records will appear after the first identity package is submitted."
+            title="Guests"
+            description="Find your hotel guests and review their stay information."
+            actionLabel="View guests"
             to="/hotel/$organizationSlug/$propertySlug/guests"
           />
         </div>
@@ -47,15 +50,17 @@ function PropertyDashboardPage() {
   );
 }
 
-function EmptyOperation({
+function OperationShortcut({
   icon: Icon,
   title,
   description,
+  actionLabel,
   to,
 }: {
   icon: typeof ClipboardCheck;
   title: string;
   description: string;
+  actionLabel: string;
   to:
     | "/hotel/$organizationSlug/$propertySlug/stays"
     | "/hotel/$organizationSlug/$propertySlug/rooms"
@@ -69,13 +74,15 @@ function EmptyOperation({
         <Icon className="size-5" />
       </span>
       <h2 className="mt-5 text-sm font-semibold">{title}</h2>
-      <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">{description}</p>
+      <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">
+        {description}
+      </p>
       <Button
         className="mt-5"
         variant="ghost"
         render={<Link to={to} params={params} />}
       >
-        Open workspace
+        {actionLabel}
       </Button>
     </div>
   );
