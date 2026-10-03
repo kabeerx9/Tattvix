@@ -14,7 +14,7 @@ import { Textarea } from "@tattvix/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CircleAlert,
-  IndianRupee,
+  Receipt,
   Plus,
   RefreshCw,
   Trash2,
@@ -22,7 +22,7 @@ import {
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Surface } from "@/components/design-system";
+import { Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
 import { formatMoneyMinor, parseMoneyMinor } from "@/lib/money";
 
@@ -50,9 +50,9 @@ export function StayBillPanel({
 
   if (billQuery.isPending) {
     return (
-      <Surface className="p-6 text-sm text-muted-foreground">
+      <Panel className="app-surface"><PanelSection className="text-sm text-muted-foreground">
         Loading stay bill…
-      </Surface>
+      </PanelSection></Panel>
     );
   }
   if (billQuery.isError || !billQuery.data) {
@@ -61,7 +61,7 @@ export function StayBillPanel({
         ? billQuery.error.message
         : "The stay bill could not be loaded.";
     return (
-      <Surface className="p-6">
+      <Panel className="app-surface"><PanelSection>
         <p className="text-sm text-destructive">{message}</p>
         <Button
           className="mt-4"
@@ -74,7 +74,7 @@ export function StayBillPanel({
           />
           Try again
         </Button>
-      </Surface>
+      </PanelSection></Panel>
     );
   }
 
@@ -201,133 +201,72 @@ function BillContents({
   }
 
   return (
-    <Surface className="grid gap-6 p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-            <IndianRupee className="size-5" />
-          </span>
-          <div>
-            <p className="app-kicker">Stay bill</p>
-            <h2 className="mt-1 text-lg font-semibold">Charges and total</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Room nights are fixed at check-in. Extras remain auditable after
-              they are voided.
-            </p>
-          </div>
-        </div>
-        {bill.isFinal ? (
-          <span className="w-fit rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            Finalized
-          </span>
-        ) : null}
-      </div>
+    <Panel className="app-surface">
+      <PanelHeader
+        title="Bill"
+        icon={Receipt}
+        meta={<StatusPill tone={bill.isFinal ? "neutral" : "success"}>{bill.isFinal ? "Final" : "Open"}</StatusPill>}
+      />
 
       {error ? (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          className="px-5 py-3 text-sm text-destructive"
         >
           {error}
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full min-w-[620px] text-sm">
-          <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-sm">
+          <thead className="bg-muted text-left text-xs text-subtle-foreground">
             <tr>
-              <th className="px-4 py-3 font-medium">Charge</th>
-              <th className="px-4 py-3 font-medium">Quantity</th>
-              <th className="px-4 py-3 text-right font-medium">Unit price</th>
-              <th className="px-4 py-3 text-right font-medium">Total</th>
-              <th className="px-4 py-3">
-                <span className="sr-only">Action</span>
-              </th>
+              <th className="px-5 py-3 font-medium">Item</th>
+              <th className="px-5 py-3 text-right font-medium tabular-nums">Qty</th>
+              <th className="px-5 py-3 text-right font-medium tabular-nums">Unit</th>
+              <th className="px-5 py-3 text-right font-medium tabular-nums">Amount</th>
+              <th className="px-5 py-3"><span className="sr-only">Action</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody>
             {bill.items.map((item) => (
-              <tr
-                key={item.id}
-                className={item.voidedAt ? "text-muted-foreground" : undefined}
-              >
-                <td className="px-4 py-3">
-                  <p className={item.voidedAt ? "line-through" : "font-medium"}>
-                    {item.description}
-                  </p>
-                  <p className="mt-1 text-xs">
-                    {item.kind === "ROOM" ? "Room" : "Extra"}
-                    {item.voidedAt
-                      ? ` · Void: ${item.voidReason ?? "No reason recorded"}`
-                      : ""}
+              <tr key={item.id} className="group h-[52px] border-t border-border-soft">
+                <td className="px-5 py-1.5">
+                  <p className={item.voidedAt ? "text-subtle-foreground line-through" : "font-medium"}>{item.description}</p>
+                  <p className="mt-1 text-xs text-subtle-foreground">
+                    {item.kind === "ROOM" ? "Room" : "Extra"} · {new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}
+                    {item.voidedAt ? ` · Void: ${item.voidReason ?? "No reason recorded"}` : ""}
                   </p>
                 </td>
-                <td className="px-4 py-3">{item.quantity}</td>
-                <td className="px-4 py-3 text-right">
-                  {formatMoneyMinor(item.unitPriceMinor)}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {item.voidedAt
-                    ? formatMoneyMinor(0)
-                    : formatMoneyMinor(item.lineTotalMinor)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {canManage &&
-                  !isFinal &&
-                  item.kind === "EXTRA" &&
-                  !item.voidedAt ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setVoidingItem(item)}
-                    >
-                      <Trash2 />
-                      Void
-                    </Button>
+                <td className={`px-5 py-1.5 text-right tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{item.quantity}</td>
+                <td className={`px-5 py-1.5 text-right tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{formatMoneyMinor(item.unitPriceMinor)}</td>
+                <td className={`px-5 py-1.5 text-right font-medium tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{formatMoneyMinor(item.lineTotalMinor)}</td>
+                <td className="px-5 py-1.5 text-right">
+                  {item.voidedAt ? <StatusPill tone="danger">Void</StatusPill> : null}
+                  {canManage && !isFinal && item.kind === "EXTRA" && !item.voidedAt ? (
+                    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                      <Button size="sm" variant="ghost" onClick={() => setVoidingItem(item)}><Trash2 />Void</Button>
+                    </div>
                   ) : null}
                 </td>
               </tr>
             ))}
           </tbody>
-          <tfoot className="border-t bg-muted/40">
-            <tr>
-              <td colSpan={3} className="px-4 py-4 text-right font-semibold">
-                Total
-              </td>
-              <td className="px-4 py-4 text-right text-base font-semibold">
-                {formatMoneyMinor(bill.totalMinor)}
-              </td>
-              <td />
-            </tr>
-          </tfoot>
         </table>
       </div>
-
-      {bill.roomNights !== null ? (
-        <p className="text-xs text-muted-foreground">
-          Room stay: {bill.roomNights}{" "}
-          {bill.roomNights === 1 ? "night" : "nights"}
-          {bill.nightlyRateMinor !== null
-            ? ` at ${formatMoneyMinor(bill.nightlyRateMinor)} per night`
-            : ""}
-          .
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          No room charge was created for this legacy stay.
-        </p>
-      )}
+      <PanelSection className="border-t border-border-soft">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <p className="text-xs text-subtle-foreground tabular-nums">
+            Room {formatMoneyMinor(bill.items.filter((item) => item.kind === "ROOM" && !item.voidedAt).reduce((sum, item) => sum + item.lineTotalMinor, 0))} + extras {formatMoneyMinor(bill.items.filter((item) => item.kind === "EXTRA" && !item.voidedAt).reduce((sum, item) => sum + item.lineTotalMinor, 0))}
+          </p>
+          <p className="text-2xl font-semibold tabular-nums"><span className="sr-only">Total </span>{formatMoneyMinor(bill.totalMinor)}</p>
+        </div>
+        {!bill.isFinal ? <p className="mt-2 text-right text-xs text-subtle-foreground">Checking out finalises this bill.</p> : null}
+      </PanelSection>
 
       {canManage && !isFinal ? (
-        <form className="grid gap-4 border-t pt-6" onSubmit={addExtra}>
-          <div>
-            <h3 className="font-semibold">Add extra</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Record an auditable additional charge while the guest is checked
-              in.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_180px_auto] md:items-end">
+        <PanelSection className="border-t border-border-soft"><form className="grid gap-4" onSubmit={addExtra}>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_100px_140px_auto] sm:items-end">
             <Field label="Description">
               <Input
                 required
@@ -371,22 +310,13 @@ function BillContents({
                 placeholder="₹500.00"
               />
             </Field>
-            <Button
-              type="submit"
-              disabled={!validExtra || chargeMutation.isPending}
-            >
+            <Button type="submit" variant="outline" disabled={!validExtra || chargeMutation.isPending}>
               <Plus />
-              {chargeMutation.isPending ? "Adding..." : "Add extra"}
+              {chargeMutation.isPending ? "Adding..." : "Add charge"}
             </Button>
           </div>
-        </form>
-      ) : (
-        <p className="border-t pt-5 text-sm text-muted-foreground">
-          {!canManage
-            ? "Your role can view this bill but cannot change it."
-            : "This bill can no longer be changed after checkout or finalization."}
-        </p>
-      )}
+        </form></PanelSection>
+      ) : null}
 
       <AlertDialog
         open={Boolean(voidingItem)}
@@ -439,7 +369,7 @@ function BillContents({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Surface>
+    </Panel>
   );
 }
 

@@ -59,3 +59,78 @@ export function getHotelDestination(
     },
   };
 }
+
+export type HotelMembership = MeResponse["memberships"][number];
+export type HotelProperty = HotelMembership["properties"][number];
+export type ActiveHotelContext = {
+  membership: HotelMembership;
+  property: HotelProperty | null;
+};
+
+// Unlike getHotelDestination, never falls back to another membership: this
+// answers "which hotel is the user looking at", which may be none.
+export function getActiveHotelContext(
+  user: MeResponse | null,
+  pathname: string,
+): ActiveHotelContext | null {
+  const [prefix, organizationSlug, propertySlug] = pathname
+    .split("/")
+    .filter(Boolean);
+  if (prefix !== "hotel" || !organizationSlug) return null;
+  const membership = user?.memberships.find(
+    (item) =>
+      item.permissions.includes("hotel:view") &&
+      item.organization.slug === organizationSlug,
+  );
+  if (!membership) return null;
+  const property =
+    membership.properties.find((item) => item.slug === propertySlug) ?? null;
+  return { membership, property };
+}
+
+export type HotelNavKey =
+  | "overview"
+  | "stays"
+  | "rooms"
+  | "guests"
+  | "reports"
+  | "settings";
+export type HotelNavRoute =
+  | "/hotel/$organizationSlug/$propertySlug/dashboard"
+  | "/hotel/$organizationSlug/$propertySlug/stays"
+  | "/hotel/$organizationSlug/$propertySlug/rooms"
+  | "/hotel/$organizationSlug/$propertySlug/guests"
+  | "/hotel/$organizationSlug/$propertySlug/reports"
+  | "/hotel/$organizationSlug/$propertySlug/details";
+export type HotelNavItem = {
+  key: HotelNavKey;
+  label: string;
+  to: HotelNavRoute;
+  isActive: boolean;
+};
+
+const hotelNav: { key: HotelNavKey; label: string; segment: string }[] = [
+  { key: "overview", label: "Overview", segment: "dashboard" },
+  { key: "stays", label: "Stays", segment: "stays" },
+  { key: "rooms", label: "Rooms", segment: "rooms" },
+  { key: "guests", label: "Guests", segment: "guests" },
+  { key: "reports", label: "Reports", segment: "reports" },
+  { key: "settings", label: "Property settings", segment: "details" },
+];
+
+export function getHotelNavItems(
+  context: ActiveHotelContext,
+  pathname: string,
+): HotelNavItem[] {
+  if (!context.property) return [];
+  const activeSegment = pathname.split("/").filter(Boolean)[3];
+  const canViewReports = context.membership.permissions.includes("reports:view");
+  return hotelNav
+    .filter((item) => item.key !== "reports" || canViewReports)
+    .map((item) => ({
+      key: item.key,
+      label: item.label,
+      to: `/hotel/$organizationSlug/$propertySlug/${item.segment}` as HotelNavRoute,
+      isActive: item.segment === activeSegment,
+    }));
+}

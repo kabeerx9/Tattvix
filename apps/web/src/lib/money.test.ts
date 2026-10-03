@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseMoneyMinor, formatMoneyMinor } from "./money";
+import { formatMoneyMinor, formatMoneyWholeRupees, parseMoneyMinor } from "./money";
 test("money input preserves paise without floating-point multiplication", () => {
   assert.equal(parseMoneyMinor(" 25.50 "), 2550);
   assert.equal(parseMoneyMinor("0.29"), 29);
@@ -12,4 +12,9 @@ test("money input preserves paise without floating-point multiplication", () => 
 test("bill display retains two paise digits", () => {
   assert.match(formatMoneyMinor(29), /0\.29/);
   assert.match(formatMoneyMinor(2550), /25\.50/);
+});
+test("summary figures show whole rupees, rounded, with Indian grouping", () => {
+  assert.equal(formatMoneyWholeRupees(13_300_000), "₹1,33,000");
+  assert.equal(formatMoneyWholeRupees(149), "₹1");
+  assert.equal(formatMoneyWholeRupees(150), "₹2");
 });

@@ -16,24 +16,22 @@ import {
 import { Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
-  ArrowRight,
-  CheckCircle2,
   Clock3,
   Copy,
   QrCode,
   Search,
-  ShieldOff,
   UsersRound,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { useDebouncedValue } from "@/core/hooks/use-debounced-value";
 import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
+import { getInitials } from "@/lib/initials";
 
 const STATUS_FILTERS: {
   value: OperationalStayStatus | "__all__";
@@ -48,7 +46,6 @@ const STATUS_FILTERS: {
 export function HotelStaysPage({
   organizationSlug,
   propertySlug,
-  propertyName,
 }: {
   organizationSlug: string;
   propertySlug: string;
@@ -101,13 +98,11 @@ export function HotelStaysPage({
         : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader
-        eyebrow={propertyName}
-        title="Guest stays"
-        description="Start walk-in check-ins with a property QR and review only identity packages guests explicitly submit."
-        action={
-          <Button size="lg" onClick={generateQr} disabled={qrMutation.isPending}>
+        title="Stays"
+        actions={
+          <Button onClick={generateQr} disabled={qrMutation.isPending}>
             <QrCode />
             {qrMutation.isPending ? "Generating..." : "Generate check-in QR"}
           </Button>
@@ -119,26 +114,22 @@ export function HotelStaysPage({
       ) : qrError ? (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
           {qrError}
         </p>
       ) : null}
 
-      <Surface>
-        <div className="flex flex-col gap-4 border-b p-5 sm:p-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Submitted check-ins</h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Identity access is checked again every time a stay or document is opened.
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stays.length} stay{stays.length === 1 ? "" : "s"}
-            </p>
-          </div>
+      <KpiStrip>
+        <Kpi icon={UsersRound} label={hasActiveFilters ? "Filtered results" : "All stays"} value={stays.length} />
+        <Kpi icon={Clock3} label="Waiting" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
+        <Kpi icon={UsersRound} label="In house" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
+        <Kpi icon={UsersRound} label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
+      </KpiStrip>
 
+      <Panel>
+        <PanelHeader title="Check-ins" meta={stays.length} />
+        <PanelSection>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative sm:w-[240px]">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -151,6 +142,7 @@ export function HotelStaysPage({
               />
             </div>
             <Select
+              items={STATUS_FILTERS}
               value={statusFilter}
               onValueChange={(value) =>
                 setStatusFilter(value as OperationalStayStatus | "__all__")
@@ -185,10 +177,10 @@ export function HotelStaysPage({
               />
             </div>
           </div>
-        </div>
+        </PanelSection>
 
         {stays.length ? (
-          <div className="divide-y">
+          <div>
             {stays.map((stay) => (
               <StayRow
                 key={stay.id}
@@ -211,7 +203,7 @@ export function HotelStaysPage({
             description="Generate the property QR. A guest will appear here only after reviewing and approving their identity package."
           />
         )}
-      </Surface>
+      </Panel>
     </div>
   );
 }
@@ -228,8 +220,8 @@ function CheckInQrPanel({ qrToken }: { qrToken: HotelQrTokenResponse }) {
   }
 
   return (
-    <Surface className="grid gap-6 p-6 md:grid-cols-[220px_minmax(0,1fr)] md:items-center">
-      <div className="grid place-items-center rounded-2xl bg-card p-5 ring-1 ring-border">
+    <Panel className="grid gap-6 p-5 md:grid-cols-[220px_minmax(0,1fr)] md:items-center">
+      <div className="grid place-items-center rounded-lg bg-muted p-5">
         <QRCodeSVG
           value={checkInUrl}
           size={180}
@@ -241,11 +233,10 @@ function CheckInQrPanel({ qrToken }: { qrToken: HotelQrTokenResponse }) {
         />
       </div>
       <div className="min-w-0">
-        <p className="app-kicker">Ready to display</p>
-        <h2 className="mt-2 text-xl font-semibold">
+        <h2 className="text-sm font-semibold">
           {qrToken.property.name} check-in QR
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-subtle-foreground">
           Printing this code lets arriving guests open the consent flow. Creating
           another QR revokes this one immediately.
         </p>
@@ -261,7 +252,7 @@ function CheckInQrPanel({ qrToken }: { qrToken: HotelQrTokenResponse }) {
           QR expires {formatDateTime(qrToken.expiresAt)}
         </p>
       </div>
-    </Surface>
+    </Panel>
   );
 }
 
@@ -275,60 +266,37 @@ function StayRow({
   propertySlug: string;
 }) {
   return (
-    <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
-      <div className="flex min-w-0 items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-          {stay.identityAccess.isActive ? (
-            <CheckCircle2 className="size-5 text-primary" />
-          ) : (
-            <ShieldOff className="size-5 text-muted-foreground" />
-          )}
+    <Link
+      to="/hotel/$organizationSlug/$propertySlug/stays/$stayId"
+      params={{ organizationSlug, propertySlug, stayId: stay.id }}
+      className="flex min-h-11 items-center gap-3 border-t border-border-soft px-5 py-2 hover:bg-muted/50"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
+          {getInitials(stay.guestName)}
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-semibold">{stay.guestName}</h3>
-            <StatusPill stay={stay} />
+            <span className="truncate text-sm font-medium">{stay.guestName}</span>
+            <StayStatusPill stay={stay} />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Submitted {stay.submittedAt ? formatDateTime(stay.submittedAt) : "—"}
-            {" · "}
-            {stay.companionCount} companion{stay.companionCount === 1 ? "" : "s"}
+            {stay.companionCount > 0 ? ` · +${stay.companionCount}` : ""}
             {stay.room ? ` · Room ${stay.room.number}` : ""}
           </p>
         </div>
       </div>
-      <Button
-        nativeButton={false}
-        variant="ghost"
-        render={
-          <Link
-            to="/hotel/$organizationSlug/$propertySlug/stays/$stayId"
-            params={{ organizationSlug, propertySlug, stayId: stay.id }}
-          />
-        }
-      >
-        Review stay
-        <ArrowRight />
-      </Button>
-    </div>
+    </Link>
   );
 }
 
-function StatusPill({ stay }: { stay: HotelStayListItem }) {
-  const label =
-    stay.operationalStatus === "CHECKED_IN"
-      ? "Checked in"
-      : stay.operationalStatus === "CHECKED_OUT"
-        ? "Checked out"
-        : stay.identityAccess.isActive
-          ? "Pending check-in"
-          : stay.identityAccess.reason === "REVOKED"
-            ? "Consent revoked"
-            : "Identity expired";
+function StayStatusPill({ stay }: { stay: HotelStayListItem }) {
+  const status = stay.operationalStatus;
   return (
-    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-      {label}
-    </span>
+    <StatusPill tone={status === "PENDING_CHECK_IN" ? "warning" : status === "CHECKED_IN" ? "success" : "neutral"}>
+      {status === "PENDING_CHECK_IN" ? "Waiting for a room" : status === "CHECKED_IN" ? "Checked in" : "Checked out"}
+    </StatusPill>
   );
 }
 

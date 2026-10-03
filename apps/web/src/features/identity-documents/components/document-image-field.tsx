@@ -89,7 +89,7 @@ export function DocumentImageField({
   const hasImage = uploaded || selection?.status === "ready";
 
   return (
-    <div className="grid gap-3 rounded-2xl border p-3">
+    <div className="grid gap-3 rounded-lg border border-dashed p-3">
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor={`${name}-file`}>
           {label}
@@ -108,12 +108,12 @@ export function DocumentImageField({
       </div>
 
       {isProcessing ? (
-        <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" />
           Preparing photo...
         </div>
       ) : selection?.status === "ready" && previewUrl ? (
-        <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-2">
+        <div className="flex items-center gap-3 rounded-lg bg-muted p-2">
           <img
             src={previewUrl}
             alt={`Selected ${label.toLowerCase()}`}

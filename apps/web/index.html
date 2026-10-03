@@ -4,9 +4,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tattwix</title>
+    <!--
+      Boot splash: painted before the JS bundle loads, so it must be plain
+      HTML + CSS with hard-coded values (theme tokens aren't loaded yet).
+      React fades it out via src/lib/boot-splash.ts once auth resolves.
+    -->
+    <style>
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 100;
+        display: grid; place-items: center;
+        background: #ffffff; color: #0f1720;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        transition: opacity 220ms ease;
+      }
+      #boot-splash.is-done { opacity: 0; pointer-events: none; }
+      .bs-wrap { display: grid; justify-items: center; gap: 14px; }
+      .bs-word { display: flex; font-size: 44px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; overflow: hidden; padding: 4px 2px; }
+      .bs-word span { display: inline-block; transform: translateY(110%); animation: bs-rise 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) forwards; animation-delay: calc(var(--i) * 55ms); }
+      .bs-word .bs-accent { color: #0f5f5c; }
+      .bs-line { width: 176px; height: 2px; background: #f2f4f7; border-radius: 2px; position: relative; overflow: hidden; }
+      .bs-line i { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #0f5f5c 30%, #0f5f5c 70%, transparent); transform: translateX(-100%); animation: bs-sweep 1.6s 0.7s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+      .bs-status { position: relative; width: 220px; height: 16px; font-size: 12px; color: #8a94a3; text-align: center; }
+      .bs-status span { position: absolute; inset: 0; opacity: 0; animation: bs-cycle 7.5s infinite; animation-delay: calc(0.8s + var(--i) * 2.5s); }
+      @keyframes bs-rise { to { transform: translateY(0); } }
+      @keyframes bs-sweep { to { transform: translateX(100%); } }
+      @keyframes bs-cycle {
+        0% { opacity: 0; transform: translateY(4px); }
+        4%, 30% { opacity: 1; transform: none; }
+        34%, 100% { opacity: 0; transform: translateY(-4px); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bs-word span { animation: none; transform: none; }
+        .bs-line i { animation: none; transform: none; opacity: 0.35; }
+        .bs-status span { animation: none; }
+        .bs-status span:first-child { opacity: 1; }
+      }
+    </style>
   </head>
 
   <body>
+    <div id="boot-splash" role="status" aria-live="polite">
+      <div class="bs-wrap">
+        <div class="bs-word" aria-label="Tattwix">
+          <span style="--i: 0">T</span><span style="--i: 1">a</span><span style="--i: 2">t</span><span style="--i: 3">t</span><span class="bs-accent" style="--i: 4">w</span><span style="--i: 5">i</span><span style="--i: 6">x</span>
+        </div>
+        <div class="bs-line"><i></i></div>
+        <div class="bs-status">
+          <span style="--i: 0">Preparing your workspace</span>
+          <span style="--i: 1">Securing your session</span>
+          <span style="--i: 2">Almost there</span>
+        </div>
+      </div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -22,3 +22,14 @@ export function formatMoneyMinor(amount: number): string {
     .map((part) => (part.type === "fraction" ? fraction : part.value))
     .join("");
 }
+
+const wholeRupees = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+/** Rounded whole rupees for summary figures (KPIs), never for bills. */
+export function formatMoneyWholeRupees(amountMinor: number): string {
+  return wholeRupees.format(Math.round(amountMinor / 100));
+}

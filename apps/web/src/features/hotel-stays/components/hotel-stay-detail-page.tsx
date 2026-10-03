@@ -17,6 +17,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
 import {
+  useQuery,
   useMutation,
   useQueries,
   useQueryClient,
@@ -26,14 +27,10 @@ import {
   ArrowLeft,
   BedDouble,
   CircleCheck,
-  Clock3,
   FileKey2,
-  ImageIcon,
   LogOut,
   Printer,
   RefreshCw,
-  ShieldCheck,
-  ShieldOff,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -43,14 +40,20 @@ import { toast } from "sonner";
 
 import {
   ConfirmDialog,
-  EmptyState,
-  PageHeader,
-  Surface,
+  Fact,
+  FactsRow,
+  Panel,
+  PanelHeader,
+  PanelSection,
+  StatusPill,
 } from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
+import { propertyPhotoQueries } from "@/features/property-photos/queries";
+import { getRoomTypePhotoUrl } from "@/features/property-photos/helpers";
 import { ApiError } from "@/lib/api";
+import { getInitials } from "@/lib/initials";
 import { formatMoneyMinor } from "@/lib/money";
 
 import { StayBillPanel } from "./stay-bill-panel";
@@ -235,6 +238,9 @@ export function HotelStayDetailPage({
     );
   }
 
+  const { data: photos } = useQuery(propertyPhotoQueries.list(organizationSlug, propertySlug));
+  const assignedRoom = roomData.rooms.find((room) => room.id === stay.room?.id);
+  const roomPhotoUrl = getRoomTypePhotoUrl(photos, assignedRoom?.roomType);
   const mutationError = checkInMutation.error ?? checkoutMutation.error;
   const error =
     mutationError instanceof ApiError
@@ -244,7 +250,7 @@ export function HotelStayDetailPage({
         : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-[1400px] gap-6">
       <Button
         nativeButton={false}
         className="w-fit"
@@ -260,31 +266,53 @@ export function HotelStayDetailPage({
         Back to stays
       </Button>
 
-      <div ref={printContentRef} className="stay-print-root grid gap-7">
-        <PageHeader
-          eyebrow={`${propertyName} · Submitted identity package`}
-          title={stay.guestName}
-          description={accessDescription(stay)}
-          action={
-            stay.snapshot ? (
-              <div className="stay-print-actions flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  disabled={!canPrint}
-                  onClick={() => printStay()}
-                  title={
-                    imagesUnavailable
-                      ? "Retry unavailable document images before printing"
-                      : undefined
-                  }
-                >
-                  <Printer />
-                  {imagesPreparing ? "Preparing images..." : "Print stay"}
-                </Button>
+      <div ref={printContentRef} className="stay-print-root grid gap-6">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-sm font-medium">{getInitials(stay.guestName)}</span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-[22px] font-semibold">{stay.guestName}</h1>
+                <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
+                  {stay.operationalStatus === "PENDING_CHECK_IN" ? "Waiting for a room" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}
+                </StatusPill>
               </div>
-            ) : undefined
-          }
-        />
+              <p className="mt-1 text-sm text-subtle-foreground tabular-nums">
+                {[
+                  stay.room ? `Room ${stay.room.number}` : null,
+                  roomPhotoUrl ? null : assignedRoom?.roomType,
+                  !roomPhotoUrl && assignedRoom?.floor ? `Floor ${assignedRoom.floor}` : null,
+                  `${1 + stay.companionCount} ${stay.companionCount === 0 ? "guest" : "guests"}`,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          </div>
+          <div className="stay-print-actions flex flex-wrap gap-2">
+            {stay.snapshot ? (
+              <Button
+                variant="ghost"
+                disabled={!canPrint}
+                onClick={() => printStay()}
+                title={imagesUnavailable ? "Retry unavailable document images before printing" : undefined}
+              >
+                <Printer />
+                {imagesPreparing ? "Preparing images..." : "Print stay"}
+              </Button>
+            ) : null}
+            {stay.operationalStatus === "CHECKED_IN" && canCheckout ? (
+              <Button disabled={checkoutMutation.isPending} onClick={() => setCheckoutConfirmOpen(true)}>
+                <LogOut />
+                {checkoutMutation.isPending ? "Checking out..." : "Check out"}
+              </Button>
+            ) : null}
+          </div>
+        </header>
+        <FactsRow>
+          <Fact label="Submitted" value={stay.submittedAt ? formatDateTime(stay.submittedAt) : "—"} />
+          {stay.checkedInAt ? <Fact label="Checked in" value={formatDateTime(stay.checkedInAt)} /> : null}
+          {stay.expectedCheckOutDate && stay.operationalStatus !== "CHECKED_OUT" ? <Fact label="Due out" value={formatDate(stay.expectedCheckOutDate)} /> : null}
+          {stay.checkedOutAt ? <Fact label="Checked out" value={formatDateTime(stay.checkedOutAt)} /> : null}
+        </FactsRow>
 
         {error ? (
           <p
@@ -295,20 +323,51 @@ export function HotelStayDetailPage({
           </p>
         ) : null}
 
-        <OperationalStayPanel
-          stay={stay}
-          rooms={roomData.rooms}
-          canAssign={canAssign}
-          canCheckout={canCheckout}
-          selectedRoomId={selectedRoomId}
-          onRoomChange={setSelectedRoomId}
-          nights={nights}
-          onNightsChange={setNights}
-          onRequestCheckIn={() => setCheckInConfirmOpen(true)}
-          onCheckout={() => setCheckoutConfirmOpen(true)}
-          isCheckingIn={checkInMutation.isPending}
-          isCheckingOut={checkoutMutation.isPending}
-        />
+        <div className="stay-print-layout grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="grid h-fit gap-6">
+            {roomPhotoUrl && assignedRoom ? <div className="grid gap-2">
+              <img src={roomPhotoUrl} alt={assignedRoom.roomType} className="aspect-[16/7] w-full rounded-lg object-cover" />
+              <p className="text-[13px] text-muted-foreground tabular-nums">{[
+                assignedRoom.roomType || null,
+                assignedRoom.floor ? `Floor ${assignedRoom.floor}` : null,
+                assignedRoom.nightlyRateMinor !== null ? `${formatMoneyMinor(assignedRoom.nightlyRateMinor)}/night` : null,
+              ].filter(Boolean).join(" · ")}</p>
+            </div> : null}
+            {stay.operationalStatus !== "CHECKED_IN" ? (
+              <OperationalStayPanel
+                stay={stay}
+                rooms={roomData.rooms}
+                canAssign={canAssign}
+                selectedRoomId={selectedRoomId}
+                onRoomChange={setSelectedRoomId}
+                nights={nights}
+                onNightsChange={setNights}
+                onRequestCheckIn={() => setCheckInConfirmOpen(true)}
+                isCheckingIn={checkInMutation.isPending}
+              />
+            ) : null}
+            {/* No room, no nights, no charges yet: a bill only exists from check-in. */}
+            {stay.operationalStatus !== "PENDING_CHECK_IN" ? (
+              <StayBillPanel
+                organizationSlug={organizationSlug}
+                propertySlug={propertySlug}
+                stayId={stayId}
+                stay={stay}
+                canManage={canManageBill}
+              />
+            ) : null}
+          </div>
+          <Panel className="h-fit">
+            {stay.snapshot ? (
+              <>
+                <GuestIdentity stay={stay} />
+                <DocumentIdentity stay={stay} imageQueries={imageQueries} />
+                <CompanionIdentity stay={stay} imageQueries={imageQueries.slice(stay.snapshot.images.length)} />
+              </>
+            ) : <ExpiredIdentity stay={stay} />}
+          </Panel>
+        </div>
+      </div>
         <ConfirmDialog
           open={checkInConfirmOpen}
           onOpenChange={setCheckInConfirmOpen}
@@ -333,33 +392,6 @@ export function HotelStayDetailPage({
           onConfirm={completeCheckout}
           pending={checkoutMutation.isPending}
         />
-
-        <StayBillPanel
-          organizationSlug={organizationSlug}
-          propertySlug={propertySlug}
-          stayId={stayId}
-          stay={stay}
-          canManage={canManageBill}
-        />
-
-        {stay.snapshot ? (
-          <div className="stay-print-layout grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="grid gap-5">
-              <GuestIdentity stay={stay} />
-              <DocumentIdentity stay={stay} imageQueries={imageQueries} />
-            </div>
-            <div className="grid h-fit gap-5">
-              <CompanionIdentity
-                stay={stay}
-                imageQueries={imageQueries.slice(stay.snapshot.images.length)}
-              />
-              <AccessPolicy stay={stay} />
-            </div>
-          </div>
-        ) : (
-          <ExpiredIdentity stay={stay} />
-        )}
-      </div>
     </div>
   );
 }
@@ -368,28 +400,22 @@ function OperationalStayPanel({
   stay,
   rooms,
   canAssign,
-  canCheckout,
   selectedRoomId,
   onRoomChange,
   nights,
   onNightsChange,
   onRequestCheckIn,
-  onCheckout,
   isCheckingIn,
-  isCheckingOut,
 }: {
   stay: HotelStayDetail;
   rooms: HotelRoom[];
   canAssign: boolean;
-  canCheckout: boolean;
   selectedRoomId: number | null;
   onRoomChange: (roomId: number | null) => void;
   nights: string;
   onNightsChange: (nights: string) => void;
   onRequestCheckIn: () => void;
-  onCheckout: () => void;
   isCheckingIn: boolean;
-  isCheckingOut: boolean;
 }) {
   const vacantRooms = rooms.filter(
     (room) => room.status === "VACANT" && room.isActive,
@@ -402,86 +428,24 @@ function OperationalStayPanel({
     selectedRoom?.nightlyRateMinor !== null &&
     selectedRoom?.nightlyRateMinor !== undefined;
 
-  if (stay.operationalStatus === "CHECKED_IN") {
-    return (
-      <Surface className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <BedDouble className="size-5" />
-          </span>
-          <div>
-            <p className="app-kicker">Currently checked in</p>
-            <h2 className="mt-1 text-lg font-semibold">
-              Room {stay.room?.number ?? "—"}
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Confirmed{" "}
-              {stay.checkedInAt ? formatDateTime(stay.checkedInAt) : "—"}
-            </p>
-          </div>
-        </div>
-        {canCheckout ? (
-          <Button
-            variant="outline"
-            disabled={isCheckingOut}
-            onClick={onCheckout}
-          >
-            <LogOut />
-            {isCheckingOut ? "Checking out..." : "Complete checkout"}
-          </Button>
-        ) : null}
-      </Surface>
-    );
-  }
-
-  if (stay.operationalStatus === "CHECKED_OUT") {
-    return (
-      <Surface className="flex items-start gap-3 p-5 sm:p-6">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-          <CircleCheck className="size-5" />
-        </span>
-        <div>
-          <p className="app-kicker">Stay completed</p>
-          <h2 className="mt-1 text-lg font-semibold">
-            Checked out from room {stay.room?.number ?? "—"}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {stay.checkedOutAt
-              ? formatDateTime(stay.checkedOutAt)
-              : "Checkout time unavailable"}
-            . The room moved to cleaning and this stay is now in guest history.
-          </p>
-        </div>
-      </Surface>
-    );
-  }
+  // The "Checked out" pill and fact already say this; no extra panel.
+  if (stay.operationalStatus === "CHECKED_OUT") return null;
 
   return (
-    <Surface className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end sm:p-6">
-      <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-          <BedDouble className="size-5" />
-        </span>
-        <div>
-          <p className="app-kicker">Pending reception check-in</p>
-          <h2 className="mt-1 text-lg font-semibold">
-            Review identity, then assign a vacant room
-          </h2>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
-            Submitting identity does not make someone a current guest. This
-            confirmation creates the operational stay and occupies the room.
-          </p>
-        </div>
-      </div>
+    <Panel className="app-surface">
+      <PanelHeader title="Assign a room" icon={BedDouble} />
+      <PanelSection>
       {canAssign ? (
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px_auto]">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_100px] sm:items-end">
+          <div className="grid gap-2">
+          <Label htmlFor="stay-room">Room</Label>
           <Select
             value={selectedRoomId ? String(selectedRoomId) : ""}
             onValueChange={(value) =>
               onRoomChange(value ? Number(value) : null)
             }
           >
-            <SelectTrigger aria-label="Room assignment">
+            <SelectTrigger id="stay-room" aria-label="Room assignment">
               <SelectValue placeholder="Choose a vacant room" />
             </SelectTrigger>
             <SelectContent>
@@ -493,6 +457,7 @@ function OperationalStayPanel({
               ))}
             </SelectContent>
           </Select>
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="stay-nights">Nights</Label>
             <Input
@@ -521,23 +486,23 @@ function OperationalStayPanel({
             {isCheckingIn ? "Confirming..." : "Confirm check-in"}
           </Button>
           {!vacantRooms.length ? (
-            <p className="text-xs text-muted-foreground sm:col-span-3">
+            <p className="text-xs text-muted-foreground sm:col-span-2">
               No vacant rooms are available. Add a room or finish cleaning one
               first.
             </p>
           ) : null}
           {selectedRoom && !hasRate ? (
-            <p className="text-xs text-destructive sm:col-span-3">
+            <p className="text-xs text-destructive sm:col-span-2">
               Set a nightly rate for room {selectedRoom.number} before check-in.
             </p>
           ) : null}
           {!validNightCount ? (
-            <p className="text-xs text-destructive sm:col-span-3">
+            <p className="text-xs text-destructive sm:col-span-2">
               Enter a stay length from 1 to 365 nights.
             </p>
           ) : null}
           {selectedRoom && hasRate && validNightCount ? (
-            <p className="text-xs text-muted-foreground sm:col-span-3">
+            <p className="text-xs text-muted-foreground sm:col-span-2">
               Room charge preview:{" "}
               {formatMoneyMinor(selectedRoom.nightlyRateMinor! * nightCount)}{" "}
               for {nightCount} {nightCount === 1 ? "night" : "nights"}.
@@ -549,7 +514,8 @@ function OperationalStayPanel({
           Your role can review this stay but cannot assign rooms.
         </p>
       )}
-    </Surface>
+      </PanelSection>
+    </Panel>
   );
 }
 
@@ -567,32 +533,15 @@ function GuestIdentity({ stay }: { stay: HotelStayDetail }) {
     .join(", ");
 
   return (
-    <Surface className="p-6">
-      <SectionHeading
-        icon={UserRound}
-        title="Primary guest"
-        description="Snapshot approved when the guest submitted this stay."
-      />
-      <div className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-        <Detail
-          label="Legal name"
-          value={`${guest.legalFirstName} ${guest.legalLastName}`}
-        />
-        <Detail label="Phone number" value={guest.phoneNumber} />
+    <PanelSection className="app-surface rounded-none border-0 shadow-none">
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><UserRound className="size-4 text-muted-foreground" />Guest</h2>
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4">
+        <Detail label="Phone" value={guest.phoneNumber} />
         <Detail label="Date of birth" value={formatDate(guest.dateOfBirth)} />
         <Detail label="Nationality" value={guest.nationality} />
-        <Detail className="sm:col-span-2" label="Address" value={address} />
-        {guest.emergencyContactName || guest.emergencyContactPhone ? (
-          <Detail
-            className="sm:col-span-2"
-            label="Emergency contact"
-            value={[guest.emergencyContactName, guest.emergencyContactPhone]
-              .filter(Boolean)
-              .join(" · ")}
-          />
-        ) : null}
+        <Detail className="col-span-2" label="Address" value={address} />
       </div>
-    </Surface>
+    </PanelSection>
   );
 }
 
@@ -606,52 +555,29 @@ function DocumentIdentity({
   const snapshot = stay.snapshot!;
   const document = snapshot.document;
 
+  const [imagesVisible, setImagesVisible] = useState(false);
+
   return (
-    <Surface className="p-6">
-      <SectionHeading
-        icon={FileKey2}
-        title="Government identity"
-        description="The guest-selected document is shown here in full. Loading each image is property-scoped and added to the access audit."
-      />
-      <div className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-        <Detail
-          label="Document type"
-          value={documentTypeLabel(document.documentType)}
-        />
-        <Detail label="Document number" value={document.documentNumber} />
-        <Detail label="Name on document" value={document.nameOnDocument} />
-        <Detail label="Issuing country" value={document.issuingCountry} />
-        {document.expiryDate ? (
-          <Detail label="Expiry date" value={formatDate(document.expiryDate)} />
-        ) : null}
-      </div>
-      <div className="mt-6 border-t pt-6">
-        <div className="mb-4 flex items-center gap-2">
-          <ImageIcon className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Shared document images</h3>
+    <PanelSection className="app-surface rounded-none border-0 shadow-none">
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><FileKey2 className="size-4 text-muted-foreground" />Identity</h2>
+      <p className="mt-4 text-sm">{documentTypeLabel(document.documentType)} · {document.documentNumber}</p>
+      <p className="mt-1 text-xs text-subtle-foreground">Issued by {document.issuingCountry}{document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}</p>
+      <Button className="stay-print-screen-only mt-2 px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>
+        {imagesVisible ? "Hide images" : "View images"}
+      </Button>
+      {snapshot.images.length ? (
+        <div className={`stay-print-image-grid mt-4 gap-4 lg:grid-cols-2 ${imagesVisible ? "grid" : "hidden"}`}>
+          {snapshot.images.map(({ side }, index) => (
+            <DocumentImage key={side} side={side} query={imageQueries[index]} />
+          ))}
         </div>
-        {snapshot.images.length ? (
-          <div className="stay-print-image-grid grid gap-4 lg:grid-cols-2">
-            {snapshot.images.map(({ side }, index) => (
-              <DocumentImage
-                key={side}
-                side={side}
-                query={imageQueries[index]}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground">
-            No document images were included in this identity package.
-          </p>
-        )}
-        <p className="stay-print-screen-only mt-4 text-xs leading-5 text-muted-foreground">
-          These private links expire automatically. The already loaded preview
-          remains on this review screen, but the URL cannot be reused after it
-          expires.
+      ) : <p className="mt-2 text-xs text-subtle-foreground">No document images were included in this identity package.</p>}
+      {stay.identityAccess.expiresAt ? (
+        <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">
+          ID access ends {formatDateTime(stay.identityAccess.expiresAt)}
         </p>
-      </div>
-    </Surface>
+      ) : null}
+    </PanelSection>
   );
 }
 
@@ -665,7 +591,7 @@ function DocumentImage({
   const label = side === "FRONT" ? "Front" : "Back";
 
   return (
-    <div className="stay-print-image overflow-hidden rounded-2xl border bg-muted/30">
+    <div className="stay-print-image overflow-hidden rounded-md bg-muted/30">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <p className="text-sm font-medium">{label}</p>
         <span className="text-xs text-muted-foreground">Private</span>
@@ -675,7 +601,7 @@ function DocumentImage({
           <img
             src={query.data.url}
             alt={`${label} of the guest-selected identity document`}
-            className="max-h-[520px] w-full rounded-xl object-contain"
+            className="max-h-[520px] w-full rounded-md object-contain"
           />
         </div>
       ) : query?.isError ? (
@@ -727,149 +653,42 @@ function CompanionIdentity({
   imageQueries: ImageAccessQuery[];
 }) {
   const companions = stay.snapshot!.companions;
+  const [imagesVisible, setImagesVisible] = useState(false);
   return (
-    <Surface className="p-6">
-      <SectionHeading
-        icon={UsersRound}
-        title="Companions"
-        description={`${companions.length} selected for this stay.`}
-      />
+    <PanelSection className="app-surface rounded-none border-0 shadow-none">
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><UsersRound className="size-4 text-muted-foreground" />Companions <span className="font-normal text-subtle-foreground tabular-nums">{companions.length}</span></h2>
       {companions.length ? (
-        <div className="mt-5 grid gap-3">
+        <div className="mt-4 grid gap-4">
           {companions.map((companion, index) => (
-            <div
-              key={`${companion.legalFirstName}-${index}`}
-              className="rounded-xl bg-muted/60 p-4"
-            >
-              <p className="text-sm font-semibold">
-                {companion.legalFirstName} {companion.legalLastName}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {companion.relationship} · {formatDate(companion.dateOfBirth)} ·{" "}
-                {companion.nationality}
-              </p>
+            <div key={`${companion.legalFirstName}-${index}`}>
+              <p className="text-sm"><span className="font-medium">{companion.legalFirstName} {companion.legalLastName}</span> <span className="text-xs text-subtle-foreground">· {companion.relationship} · {formatDate(companion.dateOfBirth)}</span></p>
               {companion.document ? (
-                <div className="mt-4 grid gap-4 border-t pt-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Detail
-                      label="Document type"
-                      value={documentTypeLabel(companion.document.documentType)}
-                    />
-                    <Detail
-                      label="Document number"
-                      value={companion.document.documentNumber}
-                    />
-                    <Detail
-                      label="Name on document"
-                      value={companion.document.nameOnDocument}
-                    />
-                    <Detail
-                      label="Issuing country"
-                      value={companion.document.issuingCountry}
-                    />
-                    {companion.document.expiryDate ? (
-                      <Detail
-                        label="Expiry date"
-                        value={formatDate(companion.document.expiryDate)}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="stay-print-image-grid grid gap-4 lg:grid-cols-2">
+                <>
+                  <p className="mt-1 text-xs text-subtle-foreground">{documentTypeLabel(companion.document.documentType)} · {companion.document.documentNumber}</p>
+                  <div className={`stay-print-image-grid mt-3 gap-4 lg:grid-cols-2 ${imagesVisible ? "grid" : "hidden"}`}>
                     {companion.images.map(({ side }, imageIndex) => (
-                      <DocumentImage
-                        key={side}
-                        side={side}
-                        query={
-                          imageQueries[
-                            companions
-                              .slice(0, index)
-                              .reduce(
-                                (total, item) => total + item.images.length,
-                                0,
-                              ) + imageIndex
-                          ]
-                        }
-                      />
+                      <DocumentImage key={side} side={side} query={imageQueries[companions.slice(0, index).reduce((total, item) => total + item.images.length, 0) + imageIndex]} />
                     ))}
                   </div>
-                </div>
-              ) : (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  No companion ID shared.
-                </p>
-              )}
+                </>
+              ) : <p className="mt-1 text-xs text-subtle-foreground">No companion ID shared.</p>}
             </div>
           ))}
+          {companions.some((companion) => companion.images.length > 0) ? (
+            <Button className="stay-print-screen-only w-fit px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>{imagesVisible ? "Hide images" : "View images"}</Button>
+          ) : null}
         </div>
-      ) : (
-        <p className="mt-5 text-sm text-muted-foreground">
-          The guest did not share any companions.
-        </p>
-      )}
-    </Surface>
-  );
-}
-
-function AccessPolicy({ stay }: { stay: HotelStayDetail }) {
-  return (
-    <Surface className="p-6">
-      <SectionHeading
-        icon={ShieldCheck}
-        title="Access window"
-        description="Authorization is evaluated again before every private image link."
-      />
-      <div className="mt-5 flex items-start gap-3 rounded-xl bg-accent p-4 text-accent-foreground">
-        <Clock3 className="mt-0.5 size-4 shrink-0" />
-        <p className="text-xs leading-5">
-          Access ends no later than{" "}
-          {stay.identityAccess.expiresAt
-            ? formatDateTime(stay.identityAccess.expiresAt)
-            : "the configured retention boundary"}
-          . Operational checkout starts the shorter identity-access wind-down
-          automatically, while the non-sensitive stay remains in guest history.
-        </p>
-      </div>
-    </Surface>
+      ) : <p className="mt-4 text-sm text-muted-foreground">The guest did not share any companions.</p>}
+    </PanelSection>
   );
 }
 
 function ExpiredIdentity({ stay }: { stay: HotelStayDetail }) {
   return (
-    <Surface>
-      <EmptyState
-        icon={ShieldOff}
-        title="Identity access is no longer available"
-        description={
-          stay.identityAccess.reason === "REVOKED"
-            ? "The guest revoked consent. Staff cannot generate new document links or reopen the submitted identity snapshot."
-            : "The authorized viewing window has ended. The stay remains listed without exposing its identity package."
-        }
-      />
-    </Surface>
-  );
-}
-
-function SectionHeading({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: typeof UserRound;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-        <Icon className="size-5" />
-      </span>
-      <div>
-        <h2 className="text-base font-semibold">{title}</h2>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          {description}
-        </p>
-      </div>
-    </div>
+    <PanelSection className="app-surface rounded-none border-0 shadow-none">
+      <h2 className="text-sm font-semibold">Identity</h2>
+      <p className="mt-3 text-sm text-muted-foreground">{stay.identityAccess.reason === "REVOKED" ? "The guest revoked identity access." : "Identity access has ended."}</p>
+    </PanelSection>
   );
 }
 
@@ -884,23 +703,10 @@ function Detail({
 }) {
   return (
     <div className={className}>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-xs text-subtle-foreground">{label}</p>
       <p className="mt-1 break-words text-sm font-medium">{value || "—"}</p>
     </div>
   );
-}
-
-function accessDescription(stay: HotelStayDetail) {
-  if (stay.identityAccess.reason === "REVOKED") {
-    return "The guest revoked consent, so the submitted identity package is no longer readable.";
-  }
-  if (!stay.identityAccess.isActive) {
-    return "The authorized identity-viewing window for this stay has ended.";
-  }
-  if (stay.status === "CLOSED") {
-    return "Checkout is complete. Private identity access remains available only through the shorter wind-down window.";
-  }
-  return "Review the immutable identity snapshot submitted for this property. Every document view is audited.";
 }
 
 function documentTypeLabel(value: string) {

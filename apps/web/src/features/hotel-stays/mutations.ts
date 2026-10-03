@@ -4,6 +4,8 @@ import type {
   StayBillVoidInput,
 } from "@tattvix/contracts";
 
+import { invalidateStayBill } from "../hotel-operations/invalidation";
+
 import { hotelStaysApi } from "./api";
 import { hotelStayKeys } from "./keys";
 
@@ -55,13 +57,7 @@ export const hotelStayMutations = {
         input,
       ),
     onSuccess: (_bill: unknown, variables: StayScope) =>
-      queryClient.invalidateQueries({
-        queryKey: hotelStayKeys.bill(
-          variables.organizationSlug,
-          variables.propertySlug,
-          variables.stayId,
-        ),
-      }),
+      invalidateStayBill(queryClient, variables),
   }),
   voidBillItem: (queryClient: QueryClient) => ({
     mutationFn: ({
@@ -79,12 +75,6 @@ export const hotelStayMutations = {
         input,
       ),
     onSuccess: (_bill: unknown, variables: StayScope) =>
-      queryClient.invalidateQueries({
-        queryKey: hotelStayKeys.bill(
-          variables.organizationSlug,
-          variables.propertySlug,
-          variables.stayId,
-        ),
-      }),
+      invalidateStayBill(queryClient, variables),
   }),
 };

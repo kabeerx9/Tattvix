@@ -36,7 +36,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Surface } from "@/components/design-system";
+import { EmptyState, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import {
   DocumentImageField,
   type ImageSelection,
@@ -132,37 +132,22 @@ export function IdentityDocumentsSection({
         : null;
 
   return (
-    <Surface className="grid gap-5 p-5 sm:p-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-            <FileKey2 className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">Government identity documents</h2>
-            <p className="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">
+    <Panel>
+      <PanelHeader title="Government identity documents" icon={FileKey2} actions={<Button variant="outline" disabled={!documentsQuery.data} onClick={() => setEditor("new")}><Plus />Add document</Button>} />
+      <PanelSection>
+            <p className="max-w-xl text-xs leading-5 text-subtle-foreground">
               {participantName
                 ? `${participantName}'s documents stay private and are shared with a hotel only when you select them for a check-in.`
-                : "Images stay private. Tattwix creates short-lived access only when you choose to view or share them."}
+                : "Choose which document to share when you check in."}
             </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          disabled={!documentsQuery.data}
-          onClick={() => setEditor("new")}
-        >
-          <Plus />
-          Add document
-        </Button>
-      </div>
+      </PanelSection>
 
       {documentsQuery.isPending ? (
-        <div className="rounded-2xl bg-muted/60 p-5 text-sm text-muted-foreground">
+        <PanelSection className="text-sm text-muted-foreground">
           Loading identity documents...
-        </div>
+        </PanelSection>
       ) : documentsQuery.isError ? (
-        <div className="grid gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-5">
+        <PanelSection className="grid gap-3 text-destructive">
           <p className="text-sm text-destructive">
             The identity documents could not be loaded.
           </p>
@@ -174,9 +159,9 @@ export function IdentityDocumentsSection({
           >
             Try again
           </Button>
-        </div>
+        </PanelSection>
       ) : documentsQuery.data.documents.length ? (
-        <div className="grid gap-3">
+        <div>
           {documentsQuery.data.documents.map((document) => (
             <DocumentCard
               key={document.id}
@@ -186,22 +171,7 @@ export function IdentityDocumentsSection({
           ))}
         </div>
       ) : (
-        <div className="grid place-items-center gap-3 rounded-2xl bg-muted/60 p-7 text-center">
-          <span className="grid size-11 place-items-center rounded-xl bg-background text-primary ring-1 ring-border">
-            <UploadCloud className="size-5" />
-          </span>
-          <div className="max-w-md">
-            <h3 className="text-sm font-semibold">No identity document yet</h3>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Add Aadhaar, a passport, driving licence, or voter ID. You may
-              save an incomplete draft and finish it later.
-            </p>
-          </div>
-          <Button onClick={() => setEditor("new")}>
-            <Plus />
-            Add your first document
-          </Button>
-        </div>
+        <EmptyState icon={UploadCloud} title="No identity document yet" description="Add Aadhaar, a passport, driving licence, or voter ID. You may save an incomplete draft and finish it later." action={<Button onClick={() => setEditor("new")}><Plus />Add your first document</Button>} />
       )}
 
       <Sheet
@@ -216,8 +186,7 @@ export function IdentityDocumentsSection({
               {editor === "new" ? "Add identity document" : "Edit identity document"}
             </SheetTitle>
             <SheetDescription>
-              Metadata is saved in Tattwix. Images upload directly to private
-              storage and are verified before becoming part of your profile.
+              Add document details and clear photos. You can finish a draft later.
             </SheetDescription>
           </SheetHeader>
           {editor ? (
@@ -236,7 +205,7 @@ export function IdentityDocumentsSection({
           ) : null}
         </SheetContent>
       </Sheet>
-    </Surface>
+    </Panel>
   );
 }
 
@@ -252,24 +221,21 @@ function DocumentCard({
     : "Document type pending";
 
   return (
-    <div className="grid gap-4 rounded-2xl border bg-muted/40 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <PanelSection className="grid gap-4 border-t border-border-soft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-background text-foreground ring-1 ring-border">
-          <ShieldCheck className="size-5" />
+        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
+          <ShieldCheck className="size-[18px]" />
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold">{typeLabel}</h3>
             {document.readiness.isReady ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                <CheckCircle2 className="size-3.5" />
-                Profile ready
-              </span>
+              <StatusPill tone="success">Profile ready</StatusPill>
             ) : (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <StatusPill tone="neutral">
                 {document.readiness.missingFields.length} item
                 {document.readiness.missingFields.length === 1 ? "" : "s"} needed
-              </span>
+              </StatusPill>
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -294,7 +260,7 @@ function DocumentCard({
         <Pencil />
         Manage
       </Button>
-    </div>
+    </PanelSection>
   );
 }
 
@@ -456,7 +422,6 @@ function DocumentEditor({
           label="Document number"
           required
           error={fieldErrors.documentNumber}
-          hint="Stored privately and never included in image URLs or logs."
         >
           <Input
             name="documentNumber"
@@ -570,7 +535,7 @@ function DocumentEditor({
       </div>
 
       {preview ? (
-        <div className="grid gap-2 rounded-2xl bg-muted/60 p-3">
+        <div className="grid gap-2 rounded-lg bg-muted p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-medium">
               {preview.side === "FRONT" ? "Front" : "Back"} preview
@@ -587,7 +552,7 @@ function DocumentEditor({
           <img
             src={preview.url}
             alt={`Private ${preview.side.toLowerCase()} document preview`}
-            className="max-h-72 w-full rounded-xl object-contain"
+            className="max-h-72 w-full rounded-lg object-contain"
           />
           <p className="text-xs text-muted-foreground">
             This access link expires automatically.
@@ -598,7 +563,7 @@ function DocumentEditor({
       {submitError || accessError ? (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
           {submitError ?? accessError}
         </p>

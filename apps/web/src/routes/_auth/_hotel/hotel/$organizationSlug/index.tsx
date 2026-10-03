@@ -1,8 +1,9 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Building2, Users } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
+import { getInitials } from "@/lib/initials";
 
 export const Route = createFileRoute(
   "/_auth/_hotel/hotel/$organizationSlug/",
@@ -12,51 +13,34 @@ export const Route = createFileRoute(
 
 function OrganizationWorkspacePage() {
   const { activeMembership } = Route.useRouteContext();
-  const { organization, properties, role } = activeMembership;
+  const { organization, properties } = activeMembership;
   const canViewMembers = activeMembership.permissions.includes("members:view");
 
   return (
-    <div className="mx-auto grid max-w-[1360px] gap-8">
-      <PageHeader
-        eyebrow={`${formatRole(role)} workspace`}
-        title={organization.name}
-        description="Choose a property for daily operations or manage organization-wide access."
-      />
+    <div className="mx-auto grid max-w-[1400px] gap-6">
+      <PageHeader title={organization.name} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <Panel>
+        <PanelHeader title="Properties" meta={properties.length} />
         {properties.map((property) => (
-          <Surface key={property.id} className="flex items-center gap-4 p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
-              <Building2 className="size-5" />
+          <Link key={property.id} to="/hotel/$organizationSlug/$propertySlug/dashboard" params={{ organizationSlug: organization.slug, propertySlug: property.slug }} className="flex min-h-11 items-center gap-3 border-t border-border-soft px-5 py-2 hover:bg-muted/50">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
+              {getInitials(property.name)}
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-sm font-semibold">{property.name}</h2>
               <p className="mt-1 text-xs text-muted-foreground">Property workspace</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Open ${property.name}`}
-              render={
-                <Link
-                  to="/hotel/$organizationSlug/$propertySlug/dashboard"
-                  params={{
-                    organizationSlug: organization.slug,
-                    propertySlug: property.slug,
-                  }}
-                />
-              }
-            >
-              <ArrowRight />
-            </Button>
-          </Surface>
+            <ArrowRight className="size-4 text-muted-foreground" />
+          </Link>
         ))}
-      </div>
+      </Panel>
 
       {canViewMembers ? (
-        <Surface className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <Panel>
+        <PanelSection className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
             <Users className="size-5" />
           </span>
           <div>
@@ -66,15 +50,9 @@ function OrganizationWorkspacePage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" disabled>
-          Member management coming next
-        </Button>
-        </Surface>
+        </PanelSection>
+        </Panel>
       ) : null}
     </div>
   );
-}
-
-function formatRole(role: string) {
-  return role.charAt(0) + role.slice(1).toLowerCase();
 }

@@ -20,7 +20,8 @@ import { Baby, CheckCircle2, FileKey2, Pencil, Plus, UsersRound } from "lucide-r
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { getInitials } from "@/lib/initials";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -91,16 +92,15 @@ export function CompanionsPage() {
         : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
-        eyebrow="Guest identity"
         title="Travel companions"
-        description="Save the people you commonly travel with. You only add them to a check-in when they are staying with you."
-        action={<Button size="lg" onClick={() => setEditor("new")}><Plus />Add companion</Button>}
+        actions={<Button size="lg" onClick={() => setEditor("new")}><Plus />Add companion</Button>}
       />
 
+      <KpiStrip><Kpi icon={UsersRound} label="Companions" value={data.companions.length} /><Kpi icon={CheckCircle2} label="Ready" value={data.companions.filter((companion) => companion.readiness.isReady).length} /><Kpi icon={FileKey2} label="Incomplete" value={data.companions.filter((companion) => !companion.readiness.isReady).length} /></KpiStrip>
       {data.companions.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Panel><PanelHeader title="Companions" meta={data.companions.length} />
           {data.companions.map((companion) => (
             <CompanionCard
               key={companion.id}
@@ -109,7 +109,7 @@ export function CompanionsPage() {
               onManageDocuments={() => setDocumentOwner(companion)}
             />
           ))}
-        </div>
+        </Panel>
       ) : (
         <EmptyCompanions onAdd={() => setEditor("new")} />
       )}
@@ -186,46 +186,47 @@ function CompanionCard({
   const missingFields = companion.readiness.missingFields;
 
   return (
-    <Surface className="grid gap-5 p-5">
-      <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary"><UsersRound className="size-5" /></span>
+    <div className="group flex min-h-11 flex-wrap items-center gap-3 border-t border-border-soft px-5 py-2">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(formatCompanionName(companion))}</span>
+      <div className="min-w-0 flex-1">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold">
+          <h2 className="truncate text-sm font-semibold">
             {formatCompanionName(companion)}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {companion.relationship || "Relationship not added"}
           </p>
         </div>
-        <Button variant="ghost" size="icon-sm" aria-label={`Edit ${formatCompanionName(companion)}`} onClick={onEdit}><Pencil /></Button>
-      </div>
-
       <div className="flex flex-wrap gap-2">
-        <StatusPill>{ageLabel(companion)}</StatusPill>
+        <span className="text-xs text-subtle-foreground">{ageLabel(companion)}</span>
         {companion.readiness.isReady ? (
-          <StatusPill ready><CheckCircle2 className="size-3.5" />Profile ready</StatusPill>
+          <StatusPill tone="success">Profile ready</StatusPill>
         ) : (
-          <StatusPill>{missingFields.length} detail{missingFields.length === 1 ? "" : "s"} needed</StatusPill>
+          <StatusPill tone="neutral">{missingFields.length} detail{missingFields.length === 1 ? "" : "s"} needed</StatusPill>
         )}
       </div>
 
       {!companion.readiness.isReady ? (
-        <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
+        <p className="text-xs leading-5 text-subtle-foreground">
           Still needed: {missingFields.map((field) => missingFieldLabels[field]).join(", ")}.
         </p>
       ) : null}
 
-      <Button variant="outline" className="w-full" onClick={onManageDocuments}>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+      <Button variant="ghost" size="icon-sm" aria-label={`Edit ${formatCompanionName(companion)}`} onClick={onEdit}><Pencil /></Button>
+      <Button variant="outline" size="sm" onClick={onManageDocuments}>
         <FileKey2 />
         Identity documents
       </Button>
-    </Surface>
+      </div>
+    </div>
   );
 }
 
 function EmptyCompanions({ onAdd }: { onAdd: () => void }) {
   return (
-    <Surface>
+    <Panel>
       <EmptyState
         icon={Baby}
         tone="accent"
@@ -233,7 +234,7 @@ function EmptyCompanions({ onAdd }: { onAdd: () => void }) {
         description="Add family members or people you travel with often. This is optional and does not add anyone to a hotel stay."
         action={<Button onClick={onAdd}><Plus />Add your first companion</Button>}
       />
-    </Surface>
+    </Panel>
   );
 }
 
@@ -300,7 +301,7 @@ function CompanionEditor({
         </EditorField>
       </div>
 
-      {submitError ? <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</p> : null}
+      {submitError ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</p> : null}
 
       <SheetFooter className="mt-0 border-t px-0 pt-4">
         {onRemove ? (
@@ -326,9 +327,6 @@ function EditorField({ label, required, error, hint, children }: {
   return <div className="grid gap-2"><Label>{label}{required ? <span className="text-destructive">*</span> : null}</Label>{children}{error ? <p className="text-xs text-destructive">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}</div>;
 }
 
-function StatusPill({ children, ready = false }: { children: React.ReactNode; ready?: boolean }) {
-  return <span className={ready ? "inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground" : "inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"}>{children}</span>;
-}
 
 function formatCompanionName(companion: CompanionProfile) {
   return [companion.legalFirstName, companion.legalLastName].filter(Boolean).join(" ") || "Unnamed companion";

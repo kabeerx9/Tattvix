@@ -68,7 +68,7 @@ function HomePage() {
           </Link>
           <Link
             to="/login"
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/30 bg-white px-4 text-xs font-medium text-black shadow-lg hover:bg-white/90"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white px-4 text-xs font-medium text-black shadow-lg hover:bg-white/90"
           >
             Get started
             <ArrowRight className="size-4" />
@@ -98,14 +98,14 @@ function HomePage() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/login"
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-black shadow-xl hover:bg-white/90"
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-medium text-black shadow-xl hover:bg-white/90"
               >
                 Login to Tattwix
                 <ArrowRight className="size-4" />
               </Link>
               <Link
                 to="/sign-up"
-                className="inline-flex h-11 items-center rounded-xl border border-white/30 px-5 text-sm font-medium text-white hover:bg-white/10"
+                className="inline-flex h-11 items-center rounded-lg border border-white/30 px-5 text-sm font-medium text-white hover:bg-white/10"
               >
                 Create account
               </Link>
@@ -117,7 +117,7 @@ function HomePage() {
       <section className="mx-auto grid max-w-7xl gap-4 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         {operations.map((item) => (
           <div key={item.title} className="app-surface p-5">
-            <span className="mb-5 grid size-10 place-items-center rounded-xl bg-accent text-primary"><item.icon className="size-5" /></span>
+            <span className="mb-5 grid size-9 place-items-center rounded-md bg-muted text-muted-foreground"><item.icon className="size-[18px]" /></span>
             <h2 className="text-sm font-semibold">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {item.description}

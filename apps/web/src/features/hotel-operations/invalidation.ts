@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { hotelOverviewKeys } from "../hotel-overview/keys";
 import { hotelStayKeys } from "../hotel-stays/keys";
 import { hotelOperationsKeys } from "./keys";
 type PropertyScope = { organizationSlug: string; propertySlug: string };
@@ -9,6 +10,9 @@ export function invalidateOperations(
   stayId?: string,
 ) {
   const requests = [
+    queryClient.invalidateQueries({
+      queryKey: hotelOverviewKeys.property(variables.organizationSlug, variables.propertySlug),
+    }),
     queryClient.invalidateQueries({
       queryKey: hotelOperationsKeys.property(
         variables.organizationSlug,
@@ -41,4 +45,18 @@ export function invalidateOperations(
     );
   }
   return Promise.all(requests);
+}
+
+export function invalidateStayBill(
+  queryClient: QueryClient,
+  variables: PropertyScope & { stayId: string },
+) {
+  return Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: hotelStayKeys.bill(variables.organizationSlug, variables.propertySlug, variables.stayId),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: hotelOverviewKeys.property(variables.organizationSlug, variables.propertySlug),
+    }),
+  ]);
 }

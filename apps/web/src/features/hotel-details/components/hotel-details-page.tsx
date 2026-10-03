@@ -12,7 +12,8 @@ import { Building2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
+import { PropertyPhotosPanel } from "@/features/property-photos/components/property-photos-panel";
 import { ApiError } from "@/lib/api";
 
 import { hotelDetailsMutations } from "../mutations";
@@ -32,7 +33,6 @@ function toInput(details: PropertyDetails): PropertyDetailsInput {
 export function HotelDetailsPage({
   organizationSlug,
   propertySlug,
-  propertyName,
   canManage,
 }: {
   organizationSlug: string;
@@ -81,25 +81,12 @@ export function HotelDetailsPage({
         : null;
 
   return (
-    <div className="mx-auto grid max-w-[1000px] gap-7">
-      <PageHeader
-        eyebrow={propertyName}
-        title="Hotel details"
-        description="Information guests see when they scan your check-in QR."
-      />
+    <div className="mx-auto grid max-w-[1400px] gap-6">
+      <PageHeader title="Property settings" />
       <form className="grid gap-6" onSubmit={save}>
-        <Surface className="grid gap-6 p-5 sm:p-7">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-              <Building2 className="size-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold">Property information</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Shown to guests when they review this property.
-              </p>
-            </div>
-          </div>
+        <Panel>
+          <PanelHeader title="Property information" icon={Building2} />
+          <PanelSection>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Address">
               <Input
@@ -174,28 +161,32 @@ export function HotelDetailsPage({
               />
             </Field>
           </div>
+          </PanelSection>
+          <PanelSection>
           {error ? (
             <p
               role="alert"
-              className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
             >
               {error}
             </p>
           ) : null}
           {canManage ? (
-            <div className="flex justify-end border-t pt-5">
+            <div className="flex justify-end">
               <Button type="submit" disabled={updateMutation.isPending}>
                 <Save />
                 {updateMutation.isPending ? "Saving..." : "Save details"}
               </Button>
             </div>
           ) : (
-            <p className="border-t pt-5 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Your role can view these details but cannot edit them.
             </p>
           )}
-        </Surface>
+          </PanelSection>
+        </Panel>
       </form>
+      {canManage ? <PropertyPhotosPanel organizationSlug={organizationSlug} propertySlug={propertySlug} /> : null}
     </div>
   );
 }

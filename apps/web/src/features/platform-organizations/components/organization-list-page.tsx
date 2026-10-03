@@ -1,9 +1,9 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, ClipboardList, Plus, ShieldAlert } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, Plus, ShieldAlert, Users } from "lucide-react";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
 
 import { platformOrganizationQueries } from "../queries";
 
@@ -11,12 +11,10 @@ export function OrganizationListPage() {
   const { data } = useSuspenseQuery(platformOrganizationQueries.list());
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader
-        eyebrow="Platform administration"
         title="Organizations"
-        description="Every hotel business onboarded to Tattwix, with its properties and members."
-        action={
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -45,48 +43,17 @@ export function OrganizationListPage() {
         }
       />
 
+      <KpiStrip><Kpi icon={Building2} label="Organizations" value={data.organizations.length} /><Kpi icon={Building2} label="Active" value={data.organizations.filter((organization) => organization.isActive).length} /><Kpi icon={Users} label="Members" value={data.organizations.reduce((total, organization) => total + organization.memberCount, 0)} /></KpiStrip>
       {data.organizations.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Panel><PanelHeader title="Organizations" meta={data.organizations.length} /><div className="overflow-x-auto"><div role="table" className="min-w-[720px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_100px_100px_100px_20px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Organization</span><span role="columnheader" className="text-right">Properties</span><span role="columnheader" className="text-right">Members</span><span role="columnheader">Status</span><span /></div>
           {data.organizations.map((organization) => (
-            <Surface key={organization.id} className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-                  <Building2 className="size-5" />
-                </span>
-                <StatusBadge isActive={organization.isActive} />
-              </div>
-              <h2 className="mt-5 text-xl font-semibold">
-                {organization.name}
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {organization.slug}
-              </p>
-              <p className="mt-4 text-xs text-muted-foreground">
-                {organization.propertyCount} propert
+            <Link key={organization.id} role="row" to="/admin/$organizationSlug" params={{ organizationSlug: organization.slug }} className="grid min-h-11 grid-cols-[minmax(0,1fr)_100px_100px_100px_20px] items-center gap-4 border-t border-border-soft px-5 py-2 text-sm hover:bg-muted/50"><span role="cell" className="min-w-0"><span className="font-medium">{organization.name}</span><span className="ml-2 text-xs text-subtle-foreground">{organization.slug}</span></span><span role="cell" className="text-right text-xs text-subtle-foreground tabular-nums">{organization.propertyCount} propert
                 {organization.propertyCount === 1 ? "y" : "ies"}
-                {" · "}
-                {organization.memberCount} member
-                {organization.memberCount === 1 ? "" : "s"}
-              </p>
-              <Button
-                className="mt-5 w-full"
-                variant="outline"
-                nativeButton={false}
-                render={
-                  <Link
-                    to="/admin/$organizationSlug"
-                    params={{ organizationSlug: organization.slug }}
-                  />
-                }
-              >
-                Manage
-                <ArrowRight />
-              </Button>
-            </Surface>
+                </span><span role="cell" className="text-right text-xs text-subtle-foreground tabular-nums">{organization.memberCount} members</span><span role="cell"><StatusBadge isActive={organization.isActive} /></span><ArrowRight className="size-4 text-muted-foreground" /></Link>
           ))}
-        </div>
+        </div></div></Panel>
       ) : (
-        <Surface>
+        <Panel>
           <EmptyState
             icon={Building2}
             title="No hotels onboarded yet"
@@ -98,22 +65,10 @@ export function OrganizationListPage() {
               </Button>
             }
           />
-        </Surface>
+        </Panel>
       )}
     </div>
   );
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={
-        isActive
-          ? "rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
-          : "rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-      }
-    >
-      {isActive ? "Active" : "Inactive"}
-    </span>
-  );
-}
+function StatusBadge({ isActive }: { isActive: boolean }) { return <StatusPill tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Inactive"}</StatusPill>; }

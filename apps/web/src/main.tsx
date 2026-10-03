@@ -1,10 +1,11 @@
+import "@fontsource-variable/inter";
 import { env } from "@tattvix/env/web";
 import { ClerkProvider } from "@clerk/react";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import { RouteErrorState } from "./components/design-system";
-import Loader from "./components/loader";
+import { RoutePendingBar } from "./components/route-pending-bar";
 import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
@@ -15,7 +16,7 @@ const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
-  defaultPendingComponent: () => <Loader />,
+  defaultPendingComponent: RoutePendingBar,
   defaultErrorComponent: ({ error, reset }) => (
     <RouteErrorState error={error} reset={reset} />
   ),
@@ -42,8 +43,8 @@ if (!rootElement.innerHTML) {
   root.render(
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      forcedTheme="light"
+      defaultTheme="light"
       disableTransitionOnChange
       storageKey="vite-ui-theme"
     >

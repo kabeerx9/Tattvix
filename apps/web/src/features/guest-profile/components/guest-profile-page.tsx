@@ -11,7 +11,7 @@ import { CheckCircle2, ContactRound, HeartHandshake, MapPin } from "lucide-react
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageHeader, Surface } from "@/components/design-system";
+import { PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -87,16 +87,15 @@ export function GuestProfilePage() {
         : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
-        eyebrow="Guest identity"
         title="Your travel profile"
-        description="Save your identity details once, then choose exactly what to share when you check in. You can save an incomplete profile and return later."
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid gap-6">
           <form className="grid gap-6" onSubmit={onSubmit}>
+            <Panel><PanelHeader title="Travel profile" />
             <ProfileSection
               icon={ContactRound}
               title="Personal details"
@@ -163,8 +162,9 @@ export function GuestProfilePage() {
               </div>
             </ProfileSection>
 
+            <PanelSection>
             {submitError ? (
-              <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
                 {submitError}
               </p>
             ) : null}
@@ -174,16 +174,17 @@ export function GuestProfilePage() {
                 {updateMutation.isPending ? "Saving profile..." : "Save profile"}
               </Button>
             </div>
+            </PanelSection></Panel>
           </form>
 
           <IdentityDocumentsSection />
         </div>
 
-        <Surface className="sticky top-28 grid gap-5 p-5 sm:p-6">
+        <Panel className="sticky top-28 grid gap-5 p-5 sm:p-6">
           <div>
-            <p className="app-kicker">Check-in readiness</p>
+            <h2 className="text-sm font-semibold">Check-in readiness</h2>
             <div className="mt-3 flex items-end justify-between gap-3">
-              <p className="text-3xl font-semibold tracking-tight">{completionPercentage}%</p>
+              <p className="text-3xl font-semibold tracking-tight tabular-nums">{completionPercentage}%</p>
               <p className="text-xs text-muted-foreground">{completedFieldCount} of {requiredFieldCount} requirements</p>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
@@ -204,16 +205,13 @@ export function GuestProfilePage() {
               </ul>
             </div>
           ) : (
-            <div className="flex items-start gap-3 rounded-xl bg-accent p-4 text-accent-foreground">
-              <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-              <div><h2 className="text-sm font-semibold">Ready for check-in</h2><p className="mt-1 text-xs leading-5">Your profile meets the current identity requirements.</p></div>
-            </div>
+            <div><StatusPill tone="success">Ready for check-in</StatusPill><p className="mt-1 text-xs leading-5 text-subtle-foreground">Your profile meets the current identity requirements.</p></div>
           )}
 
           <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
             A complete government identity document is required for full readiness.
           </p>
-        </Surface>
+        </Panel>
       </div>
     </div>
   );
@@ -226,13 +224,13 @@ function ProfileSection({ icon: Icon, title, description, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <Surface className="grid gap-5 p-5 sm:p-7">
+    <PanelSection className="grid gap-5">
       <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Icon className="size-5" /></span>
-        <div><h2 className="text-base font-semibold">{title}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>
+        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div><h2 className="text-sm font-semibold">{title}</h2><p className="mt-1 text-xs leading-5 text-subtle-foreground">{description}</p></div>
       </div>
       {children}
-    </Surface>
+    </PanelSection>
   );
 }
 

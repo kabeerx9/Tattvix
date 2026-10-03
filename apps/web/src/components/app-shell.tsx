@@ -1,28 +1,40 @@
-import { UserButton, useUser } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
+import { propertyPhotoQueries } from "@/features/property-photos/queries";
+import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import {
+  BarChart3,
   BedDouble,
   Building2,
+  Check,
+  ChevronsUpDown,
   ClipboardCheck,
   Contact,
-  UsersRound,
-  UserRound,
-  IdCard,
   Gauge,
-  Hotel,
-  ShieldCheck,
-  BarChart3,
+  IdCard,
+  LogOut,
   Settings,
+  ShieldCheck,
+  UserRound,
   Users,
+  UsersRound,
 } from "lucide-react";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@tattvix/ui/components/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -33,21 +45,23 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@tattvix/ui/components/sidebar";
-import { Button } from "@tattvix/ui/components/button";
 import { TooltipProvider } from "@tattvix/ui/components/tooltip";
-import { cn } from "@tattvix/ui/lib/utils";
 
-import { ModeToggle } from "@/components/mode-toggle";
+import { getInitials } from "@/lib/initials";
 import {
   hasAnyHotelPermission,
   hasPlatformPermission,
 } from "@/lib/router-auth";
 import {
+  getActiveHotelContext,
   getActiveWorkspace,
   getHotelDestination,
+  getHotelNavItems,
+  type HotelNavKey,
 } from "@/lib/workspace-navigation";
 
-type NavItem = {
+type Icon = React.ComponentType<{ className?: string }>;
+type FlatNavItem = {
   label: string;
   to:
     | "/guest"
@@ -56,14 +70,13 @@ type NavItem = {
     | "/companions"
     | "/privacy"
     | "/register-hotel"
-    | "/hotel"
+    | "/settings"
     | "/admin"
-    | "/admin/requests"
-    | "/settings";
-  icon: React.ComponentType<{ className?: string }>;
+    | "/admin/requests";
+  icon: Icon;
 };
 
-const guestNav: NavItem[] = [
+const personalNav: FlatNavItem[] = [
   { label: "Overview", to: "/guest", icon: Contact },
   { label: "My stays", to: "/stays", icon: ClipboardCheck },
   { label: "Travel profile", to: "/profile", icon: IdCard },
@@ -73,409 +86,365 @@ const guestNav: NavItem[] = [
   { label: "Account settings", to: "/settings", icon: Settings },
 ];
 
-const platformNav: NavItem[] = [
+const platformNav: FlatNavItem[] = [
   { label: "Super admin", to: "/admin", icon: ShieldCheck },
   { label: "Hotel requests", to: "/admin/requests", icon: ClipboardCheck },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const { auth } = useRouteContext({ from: "__root__" });
-  const workspace = getActiveWorkspace(location.pathname);
-  const hotelDestination = getHotelDestination(
-    auth.currentUser,
-    location.pathname,
-  );
-  const membership = auth.currentUser?.memberships.find(
-    (item) =>
-      item.organization.slug === hotelDestination.params?.organizationSlug,
-  );
-  const property = membership?.properties.find(
-    (item) => item.slug === hotelDestination.params?.propertySlug,
-  );
-  const label =
-    workspace === "hotel"
-      ? (membership?.organization.name ?? "My hotels")
-      : workspace === "platform"
-        ? "Platform administration"
-        : "Personal account";
-  const detail =
-    workspace === "hotel"
-      ? [
-          property?.name !== membership?.organization.name
-            ? property?.name
-            : null,
-          membership?.role.toLowerCase(),
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : workspace === "platform"
-        ? "Super admin"
-        : "Travel & identity";
+const hotelNavIcons: Record<HotelNavKey, Icon> = {
+  overview: Gauge,
+  stays: ClipboardCheck,
+  rooms: BedDouble,
+  guests: Users,
+  reports: BarChart3,
+  settings: Settings,
+};
 
+function isFlatItemActive(item: FlatNavItem, pathname: string) {
+  return (
+    pathname === item.to ||
+    (item.to === "/stays" && pathname.startsWith("/stays/"))
+  );
+}
+
+function useSectionLabel() {
+  const { pathname } = useLocation();
+  const { auth } = useRouteContext({ from: "__root__" });
+  const workspace = getActiveWorkspace(pathname);
+  if (workspace === "hotel") {
+    const context = getActiveHotelContext(auth.currentUser, pathname);
+    if (!context) return "Hotels";
+    return (
+      getHotelNavItems(context, pathname).find((item) => item.isActive)
+        ?.label ?? context.membership.organization.name
+    );
+  }
+  const items = workspace === "platform" ? platformNav : personalNav;
+  return items.find((item) => isFlatItemActive(item, pathname))?.label ?? "";
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const sectionLabel = useSectionLabel();
   return (
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="min-w-0 bg-transparent">
-          <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/85 px-4 py-4 backdrop-blur-xl sm:px-7">
-            <div className="flex min-w-0 items-center gap-3">
-              <SidebarTrigger className="rounded-xl" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{label}</p>
-                <p className="truncate text-xs capitalize text-muted-foreground">
-                  {detail}
-                </p>
-              </div>
-            </div>
-            <WorkspaceTabs />
-            <div className="flex items-center gap-3">
-              <ModeToggle />
-              <div className="rounded-full ring-4 ring-card">
-                <UserButton
-                  userProfileMode="navigation"
-                  userProfileUrl="/settings"
-                />
-              </div>
-            </div>
+        <SidebarInset className="min-w-0 bg-background">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur sm:px-8">
+            <SidebarTrigger className="-ml-1" />
+            <p className="truncate text-sm font-medium">{sectionLabel}</p>
           </header>
-          <main className="flex-1 p-4 sm:p-7 lg:p-8">{children}</main>
+          <main className="flex-1 p-4 sm:p-8">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
   );
 }
 
-function WorkspaceTabs() {
-  const { auth } = useRouteContext({ from: "__root__" });
-  const { pathname } = useLocation();
-  const workspace = getActiveWorkspace(pathname);
-  const hotelDestination = getHotelDestination(auth.currentUser, pathname);
-  const { setOpenMobile } = useSidebar();
-  const closeMenu = () => setOpenMobile(false);
-  return (
-    <nav
-      aria-label="Switch workspace"
-      className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-muted p-1"
-    >
-      <Button
-        size="sm"
-        variant={workspace === "personal" ? "default" : "ghost"}
-        nativeButton={false}
-        render={
-          <Link
-            to="/guest"
-            aria-current={workspace === "personal" ? "page" : undefined}
-            onClick={closeMenu}
-          />
-        }
-      >
-        <UserRound className="size-4" />
-        Personal
-      </Button>
-      {hasAnyHotelPermission(auth, "hotel:view") ? (
-        <Button
-          size="sm"
-          variant={workspace === "hotel" ? "default" : "ghost"}
-          nativeButton={false}
-          render={
-            <Link
-              {...hotelDestination}
-              aria-current={workspace === "hotel" ? "page" : undefined}
-              onClick={closeMenu}
-            />
-          }
-        >
-          <Building2 className="size-4" />
-          Hotel
-        </Button>
-      ) : null}
-      {hasPlatformPermission(auth, "platform:admin") ? (
-        <Button
-          size="sm"
-          variant={workspace === "platform" ? "default" : "ghost"}
-          nativeButton={false}
-          render={
-            <Link
-              to="/admin"
-              aria-current={workspace === "platform" ? "page" : undefined}
-              onClick={closeMenu}
-            />
-          }
-        >
-          <ShieldCheck className="size-4" />
-          Platform
-        </Button>
-      ) : null}
-    </nav>
-  );
-}
-
 function AppSidebar() {
-  const { user } = useUser();
-  const { auth } = useRouteContext({ from: "__root__" });
   const { pathname } = useLocation();
   const workspace = getActiveWorkspace(pathname);
-  const canAccessHotel = hasAnyHotelPermission(auth, "hotel:view");
-  const canAccessAdmin = hasPlatformPermission(auth, "platform:admin");
-  const hotelDestination = getHotelDestination(auth.currentUser, pathname);
-  const home =
-    workspace === "hotel"
-      ? hotelDestination
-      : ({ to: workspace === "platform" ? "/admin" : "/guest" } as const);
-  const displayName =
-    user?.fullName ||
-    user?.primaryEmailAddress?.emailAddress ||
-    user?.username ||
-    "Signed in";
-  const { setOpenMobile } = useSidebar();
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="px-3 py-5">
-        <Link
-          {...home}
-          onClick={() => setOpenMobile(false)}
-          className="flex items-center gap-3 px-2 py-1.5"
-        >
-          <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-            <Hotel className="size-5" />
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="gap-3 px-3 pt-4">
+        <div className="flex items-center gap-2 px-1">
+          <span className="grid size-6 place-items-center rounded-md bg-primary text-primary-foreground">
+            <Building2 className="size-3.5" />
           </span>
-          <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block truncate text-base font-semibold tracking-[-0.02em]">
-              Tattwix
-            </span>
-            <span className="block truncate text-[11px] text-sidebar-foreground/55">
-              {workspace === "hotel"
-                ? "Hotel workspace"
-                : workspace === "platform"
-                  ? "Platform administration"
-                  : "Personal account"}
-            </span>
+          <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">
+            Tattwix
           </span>
-        </Link>
+        </div>
+        <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        {workspace === "personal" ? (
-          <SidebarNavGroup label="Personal" items={guestNav} />
-        ) : null}
-        {workspace === "hotel" && canAccessHotel ? <HotelNavigation /> : null}
-        {workspace === "platform" && canAccessAdmin ? (
-          <SidebarNavGroup label="Platform" items={platformNav} />
-        ) : null}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {workspace === "hotel" ? <HotelNav /> : null}
+              {workspace === "personal" ? <FlatNav items={personalNav} /> : null}
+              {workspace === "platform" ? <FlatNav items={platformNav} /> : null}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-3">
-        <div className="grid gap-1 rounded-xl bg-muted/70 px-3 py-3 group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-xs font-medium">{displayName}</p>
-          <p className="truncate text-xs text-sidebar-foreground/55">
-            {user?.primaryEmailAddress?.emailAddress ?? "Account"}
-          </p>
-        </div>
+      <SidebarFooter className="border-t border-border p-3">
+        <UserMenu />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
 }
 
-function HotelNavigation() {
+function SwitcherTile({ label, url }: { label: string | null; url?: string }) {
+  if (url) return <img src={url} alt="" className="size-8 shrink-0 rounded-md object-cover" />;
+  return (
+    <span className="grid size-8 shrink-0 place-items-center rounded-md bg-accent text-xs font-semibold text-accent-foreground">
+      {label ? getInitials(label) : <Building2 className="size-4 text-muted-foreground" />}
+    </span>
+  );
+}
+
+function WorkspaceSwitcher() {
   const { pathname } = useLocation();
   const { auth } = useRouteContext({ from: "__root__" });
-  const destination = getHotelDestination(auth.currentUser, pathname);
-  const membership = auth.currentUser?.memberships.find(
-    (item) => item.organization.slug === destination.params?.organizationSlug,
-  );
-  const property = membership?.properties.find(
-    (item) => item.slug === destination.params?.propertySlug,
-  );
-  const params =
-    membership && property
-      ? {
-          organizationSlug: membership.organization.slug,
-          propertySlug: property.slug,
-        }
-      : null;
+  const { setOpenMobile } = useSidebar();
+  const workspace = getActiveWorkspace(pathname);
+
+  const context = workspace === "hotel" ? getActiveHotelContext(auth.currentUser, pathname) : null;
+  const { data: photos } = useQuery({
+    ...propertyPhotoQueries.list(context?.membership.organization.slug ?? "", context?.property?.slug ?? ""),
+    enabled: Boolean(context?.property),
+  });
+
+  if (workspace !== "hotel") {
+    const title = workspace === "platform" ? "Platform admin" : "Personal";
+    const detail = workspace === "platform" ? "Super admin" : "Travel & identity";
+    return (
+      <div className="flex items-center gap-2.5 rounded-lg border border-border p-2">
+        <SwitcherTile label={title} />
+        <span className="min-w-0 group-data-[collapsible=icon]:hidden">
+          <span className="block truncate text-sm font-semibold">{title}</span>
+          <span className="block truncate text-xs text-subtle-foreground">{detail}</span>
+        </span>
+      </div>
+    );
+  }
+
+  const memberships =
+    auth.currentUser?.memberships.filter((item) =>
+      item.permissions.includes("hotel:view"),
+    ) ?? [];
+  const title = context?.membership.organization.name ?? "Choose a hotel";
+  const detail = context
+    ? [
+        context.property && context.property.name !== title
+          ? context.property.name
+          : null,
+        formatRole(context.membership.role),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : `${memberships.length} ${memberships.length === 1 ? "hotel" : "hotels"}`;
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>
-        {membership?.organization.name ?? "Hotel"}
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {params ? (
-            <>
-              <SidebarMenuItem>
-                <ScopedSidebarLink
-                  label="Overview"
-                  icon={Gauge}
-                  isActive={pathname.endsWith("/dashboard")}
-                  to="/hotel/$organizationSlug/$propertySlug/dashboard"
-                  params={params}
-                />
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <ScopedSidebarLink
-                  label="Check-ins & stays"
-                  icon={ClipboardCheck}
-                  isActive={pathname.includes("/stays")}
-                  to="/hotel/$organizationSlug/$propertySlug/stays"
-                  params={params}
-                />
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <ScopedSidebarLink
-                  label="Rooms"
-                  icon={BedDouble}
-                  isActive={pathname.endsWith("/rooms")}
-                  to="/hotel/$organizationSlug/$propertySlug/rooms"
-                  params={params}
-                />
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <ScopedSidebarLink
-                  label="Guests"
-                  icon={Users}
-                  isActive={pathname.endsWith("/guests")}
-                  to="/hotel/$organizationSlug/$propertySlug/guests"
-                  params={params}
-                />
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <ScopedSidebarLink
-                  label="Hotel details"
-                  icon={Building2}
-                  isActive={pathname.endsWith("/details")}
-                  to="/hotel/$organizationSlug/$propertySlug/details"
-                  params={params}
-                />
-              </SidebarMenuItem>
-              {membership?.permissions.includes("reports:view") ? (
-                <SidebarMenuItem>
-                  <ScopedSidebarLink
-                    label="Reports"
-                    icon={BarChart3}
-                    isActive={pathname.endsWith("/reports")}
-                    to="/hotel/$organizationSlug/$propertySlug/reports"
-                    params={params}
-                  />
-                </SidebarMenuItem>
-              ) : null}
-            </>
-          ) : null}
-          {membership ? (
-            <SidebarMenuItem>
-              <ScopedSidebarLink
-                label="Hotel & properties"
-                icon={Building2}
-                isActive={
-                  pathname === `/hotel/${membership.organization.slug}` ||
-                  pathname === `/hotel/${membership.organization.slug}/`
-                }
+    <div className="grid gap-2">
+      {photos?.cover ? <img src={photos.cover.url} alt="" className="h-14 w-full rounded-md object-cover group-data-[collapsible=icon]:hidden" /> : null}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="flex w-full items-center gap-2.5 rounded-lg border border-border p-2 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Switch hotel"
+      >
+        <SwitcherTile label={context ? title : null} url={photos?.cover?.url} />
+        <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+          <span className="block truncate text-sm font-semibold">{title}</span>
+          <span className="block truncate text-xs text-subtle-foreground">{detail}</span>
+        </span>
+        <ChevronsUpDown className="size-4 text-subtle-foreground group-data-[collapsible=icon]:hidden" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Hotels</DropdownMenuLabel>
+          {memberships.flatMap((membership) =>
+            membership.properties.length === 0
+              ? [
+                  <DropdownMenuItem
+                    key={`org-${membership.id}`}
+                    onClick={() => setOpenMobile(false)}
+                    render={
+                      <Link
+                        to="/hotel/$organizationSlug"
+                        params={{ organizationSlug: membership.organization.slug }}
+                      />
+                    }
+                  >
+                    <span className="flex-1 truncate">{membership.organization.name}</span>
+                  </DropdownMenuItem>,
+                ]
+              : membership.properties.map((property) => {
+                  const active =
+                    context?.membership.id === membership.id &&
+                    context.property?.id === property.id;
+                  return (
+                    <DropdownMenuItem
+                      key={`prop-${property.id}`}
+                      onClick={() => setOpenMobile(false)}
+                      render={
+                        <Link
+                          to="/hotel/$organizationSlug/$propertySlug/dashboard"
+                          params={{
+                            organizationSlug: membership.organization.slug,
+                            propertySlug: property.slug,
+                          }}
+                        />
+                      }
+                    >
+                      <span className="flex-1 truncate">
+                        {membership.organization.name}
+                        {property.name !== membership.organization.name
+                          ? ` · ${property.name}`
+                          : ""}
+                      </span>
+                      {active ? <Check className="size-4 text-primary" /> : null}
+                    </DropdownMenuItem>
+                  );
+                }),
+          )}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {context ? (
+          <DropdownMenuItem
+            onClick={() => setOpenMobile(false)}
+            render={
+              <Link
                 to="/hotel/$organizationSlug"
-                params={{ organizationSlug: membership.organization.slug }}
+                params={{ organizationSlug: context.membership.organization.slug }}
               />
-            </SidebarMenuItem>
-          ) : null}
-          <SidebarMenuItem>
-            <SidebarNavLink
-              item={{ label: "My hotels", to: "/hotel", icon: Hotel }}
+            }
+          >
+            <Building2 className="size-4" />
+            Manage properties
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem
+          onClick={() => setOpenMobile(false)}
+          render={<Link to="/hotel" />}
+        >
+          <Building2 className="size-4" />
+          All hotels
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+    </div>
+  );
+}
+
+function HotelNav() {
+  const { pathname } = useLocation();
+  const { auth } = useRouteContext({ from: "__root__" });
+  const { setOpenMobile } = useSidebar();
+  const context = getActiveHotelContext(auth.currentUser, pathname);
+  if (!context?.property) return null;
+  const params = {
+    organizationSlug: context.membership.organization.slug,
+    propertySlug: context.property.slug,
+  };
+  return getHotelNavItems(context, pathname).map((item) => {
+    const ItemIcon = hotelNavIcons[item.key];
+    return (
+      <SidebarMenuItem key={item.key}>
+        <SidebarMenuButton
+          isActive={item.isActive}
+          tooltip={item.label}
+          className="h-9 rounded-lg px-2.5 font-medium data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+          render={
+            <Link
+              to={item.to}
+              params={params}
+              onClick={() => setOpenMobile(false)}
             />
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+          }
+        >
+          <ItemIcon className="size-4" />
+          <span className="truncate">{item.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  });
 }
 
-function ScopedSidebarLink({
-  label,
-  icon: Icon,
-  isActive,
-  to,
-  params,
-}: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isActive: boolean;
-  to:
-    | "/hotel/$organizationSlug"
-    | "/hotel/$organizationSlug/$propertySlug/dashboard"
-    | "/hotel/$organizationSlug/$propertySlug/stays"
-    | "/hotel/$organizationSlug/$propertySlug/guests"
-    | "/hotel/$organizationSlug/$propertySlug/rooms"
-    | "/hotel/$organizationSlug/$propertySlug/reports"
-    | "/hotel/$organizationSlug/$propertySlug/details";
-  params: { organizationSlug: string; propertySlug?: string };
-}) {
+function FlatNav({ items }: { items: FlatNavItem[] }) {
+  const { pathname } = useLocation();
   const { setOpenMobile } = useSidebar();
-
-  return (
-    <SidebarMenuButton
-      isActive={isActive}
-      className="h-10 rounded-xl px-3 font-medium"
-      tooltip={label}
-      render={
-        <Link
-          to={to}
-          params={params}
-          onClick={() => setOpenMobile(false)}
-          className={cn(
-            isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-          )}
-        />
-      }
-    >
-      <Icon className="size-4" />
-      <span className="truncate">{label}</span>
-    </SidebarMenuButton>
-  );
+  return items.map((item) => {
+    const isActive = isFlatItemActive(item, pathname);
+    return (
+      <SidebarMenuItem key={item.to}>
+        <SidebarMenuButton
+          isActive={isActive}
+          tooltip={item.label}
+          className="h-9 rounded-lg px-2.5 font-medium data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+          render={<Link to={item.to} onClick={() => setOpenMobile(false)} />}
+        >
+          <item.icon className="size-4" />
+          <span className="truncate">{item.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  });
 }
 
-function SidebarNavGroup({
-  label,
-  items,
-}: {
-  label: string;
-  items: NavItem[];
-}) {
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.to}>
-              <SidebarNavLink item={item} />
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
-
-function SidebarNavLink({ item }: { item: NavItem }) {
-  const location = useLocation();
+function UserMenu() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const { auth } = useRouteContext({ from: "__root__" });
+  const { pathname } = useLocation();
   const { setOpenMobile } = useSidebar();
-  const isActive =
-    location.pathname === item.to ||
-    (item.to === "/stays" && location.pathname.startsWith("/stays/"));
+  const workspace = getActiveWorkspace(pathname);
+  const hotelDestination = getHotelDestination(auth.currentUser, pathname);
+  const name =
+    user?.fullName ||
+    user?.primaryEmailAddress?.emailAddress ||
+    user?.username ||
+    "Signed in";
+  const close = () => setOpenMobile(false);
 
   return (
-    <SidebarMenuButton
-      isActive={isActive}
-      className="h-10 rounded-xl px-3 font-medium"
-      tooltip={item.label}
-      render={
-        <Link
-          to={item.to}
-          onClick={() => setOpenMobile(false)}
-          className={cn(
-            isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-          )}
-        />
-      }
-    >
-      <item.icon className="size-4" />
-      <span>{item.label}</span>
-    </SidebarMenuButton>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Account and workspaces"
+      >
+        {user?.imageUrl ? (
+          <img src={user.imageUrl} alt="" className="size-8 shrink-0 rounded-full" />
+        ) : (
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
+            {getInitials(name)}
+          </span>
+        )}
+        <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+          <span className="block truncate text-sm font-medium">{name}</span>
+          <span className="block truncate text-xs text-subtle-foreground">Switch workspace</span>
+        </span>
+        <ChevronsUpDown className="size-4 text-subtle-foreground group-data-[collapsible=icon]:hidden" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="top" className="w-60">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+          <DropdownMenuItem onClick={close} render={<Link to="/guest" />}>
+            <UserRound className="size-4" />
+            <span className="flex-1">Personal</span>
+            {workspace === "personal" ? <Check className="size-4 text-primary" /> : null}
+          </DropdownMenuItem>
+          {hasAnyHotelPermission(auth, "hotel:view") ? (
+            <DropdownMenuItem onClick={close} render={<Link {...hotelDestination} />}>
+              <Building2 className="size-4" />
+              <span className="flex-1">Hotel</span>
+              {workspace === "hotel" ? <Check className="size-4 text-primary" /> : null}
+            </DropdownMenuItem>
+          ) : null}
+          {hasPlatformPermission(auth, "platform:admin") ? (
+            <DropdownMenuItem onClick={close} render={<Link to="/admin" />}>
+              <ShieldCheck className="size-4" />
+              <span className="flex-1">Platform</span>
+              {workspace === "platform" ? <Check className="size-4 text-primary" /> : null}
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={close} render={<Link to="/settings" />}>
+          <Settings className="size-4" />
+          Account settings
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/login" })}>
+          <LogOut className="size-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+}
+
+function formatRole(role: string) {
+  return role.charAt(0) + role.slice(1).toLowerCase();
 }

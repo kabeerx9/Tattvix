@@ -14,6 +14,7 @@ import { useState } from "react";
 import { platformOrganizationMutations } from "@/features/platform-organizations/mutations";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
 import { ApiError } from "@/lib/api";
+import { PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 
 export function OrganizationOnboardingPage() {
   const queryClient = useQueryClient();
@@ -74,20 +75,11 @@ export function OrganizationOnboardingPage() {
       : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Platform administration
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Onboard a hotel</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Create the organization, its first property, and an initial owner in one
-          operation. Search for an existing Tattwix account to assign as owner.
-        </p>
-      </div>
+    <div className="mx-auto grid max-w-[1400px] gap-6">
+      <PageHeader title="Onboard a hotel" />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <form className="app-surface grid gap-7 p-5 sm:p-7" onSubmit={onSubmit}>
+        <form onSubmit={onSubmit}><Panel>
           <FormSection icon={Building2} title="Organization" description="The hotel business or ownership group.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Organization name" error={fieldErrors["organization.name"]}>
@@ -130,31 +122,28 @@ export function OrganizationOnboardingPage() {
             </p>
           ) : null}
 
-          <div className="flex justify-end border-t pt-5">
+          <PanelSection className="flex justify-end">
             <Button type="submit" disabled={onboardingMutation.isPending}>
               {onboardingMutation.isPending ? "Creating hotel..." : "Create organization"}
             </Button>
-          </div>
-        </form>
+          </PanelSection>
+        </Panel></form>
 
-        <aside className="app-surface h-fit p-5 sm:p-6">
-          <h2 className="text-sm font-medium">Onboarding result</h2>
+        <aside><Panel><PanelHeader title="Onboarding result" /> <PanelSection>
           {result ? (
             <div className="mt-5 grid gap-4 text-sm">
               <ResultItem label="Organization" value={result.organization.name} />
               <ResultItem label="Property" value={result.property.name} />
               <ResultItem label="Owner" value={result.owner.email} />
               <ResultItem label="Role" value={result.membership.role} />
-              <p className="border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs leading-5 text-emerald-700 dark:text-emerald-300">
-                Hotel onboarding completed successfully.
-              </p>
+              <div><StatusPill tone="success">Onboarding complete</StatusPill><p className="mt-1 text-xs text-subtle-foreground">Hotel onboarding completed successfully.</p></div>
             </div>
           ) : (
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               The created organization, property, and owner assignment will appear here.
             </p>
           )}
-        </aside>
+        </PanelSection></Panel></aside>
       </div>
     </div>
   );
@@ -167,13 +156,13 @@ function FormSection({ icon: Icon, title, description, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-4">
+    <PanelSection className="grid gap-4">
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-primary"><Icon className="size-4" /></span>
+        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div><h2 className="text-sm font-medium">{title}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>
       </div>
       {children}
-    </section>
+    </PanelSection>
   );
 }
 

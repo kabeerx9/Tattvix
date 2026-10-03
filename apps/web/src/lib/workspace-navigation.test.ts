@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { MeResponse } from "@tattvix/contracts";
 import {
+  getActiveHotelContext,
+  getHotelNavItems,
   getActiveWorkspace,
   getHotelDestination,
 } from "./workspace-navigation";
@@ -87,5 +89,69 @@ describe("workspace navigation", () => {
       to: "/hotel/$organizationSlug",
       params: { organizationSlug: "first" },
     });
+  });
+});
+
+describe("active hotel context", () => {
+  it("returns no context outside a hotel URL", () => {
+    assert.equal(getActiveHotelContext(user, "/hotel"), null);
+    assert.equal(getActiveHotelContext(user, "/profile"), null);
+    assert.equal(getActiveHotelContext(null, "/hotel/first/main"), null);
+  });
+  it("resolves the organization and property named in the URL", () => {
+    const context = getActiveHotelContext(user, "/hotel/second/branch/rooms");
+    assert.equal(context?.membership.organization.slug, "second");
+    assert.equal(context?.property?.slug, "branch");
+  });
+  it("returns the organization without a property", () => {
+    const context = getActiveHotelContext(user, "/hotel/first");
+    assert.equal(context?.membership.organization.slug, "first");
+    assert.equal(context?.property, null);
+  });
+  it("ignores organizations the user cannot view", () => {
+    assert.equal(getActiveHotelContext(user, "/hotel/someone-else/main"), null);
+    const noView: MeResponse = {
+      ...user,
+      memberships: [{ ...user.memberships[0], permissions: [] }],
+    };
+    assert.equal(getActiveHotelContext(noView, "/hotel/first/main"), null);
+  });
+});
+
+describe("hotel navigation items", () => {
+  const context = getActiveHotelContext(user, "/hotel/first/main/stays/abc")!;
+  it("lists property pages in order and marks the active one", () => {
+    const items = getHotelNavItems(context, "/hotel/first/main/stays/abc");
+    assert.deepEqual(
+      items.map((item) => item.key),
+      ["overview", "stays", "rooms", "guests", "settings"],
+    );
+    assert.deepEqual(
+      items.filter((item) => item.isActive).map((item) => item.key),
+      ["stays"],
+    );
+  });
+  it("maps the details route to property settings", () => {
+    const items = getHotelNavItems(context, "/hotel/first/main/details");
+    assert.equal(items.find((item) => item.isActive)?.label, "Property settings");
+  });
+  it("hides reports without permission", () => {
+    const keys = getHotelNavItems(context, "/hotel/first/main").map((i) => i.key);
+    assert.equal(keys.includes("reports"), false);
+  });
+  it("shows reports with permission", () => {
+    const withReports = {
+      ...context,
+      membership: {
+        ...context.membership,
+        permissions: [...context.membership.permissions, "reports:view" as const],
+      },
+    };
+    const keys = getHotelNavItems(withReports, "/hotel/first/main").map((i) => i.key);
+    assert.deepEqual(keys, ["overview", "stays", "rooms", "guests", "reports", "settings"]);
+  });
+  it("returns no nav items without a property", () => {
+    const orgOnly = getActiveHotelContext(user, "/hotel/first")!;
+    assert.deepEqual(getHotelNavItems(orgOnly, "/hotel/first"), []);
   });
 });

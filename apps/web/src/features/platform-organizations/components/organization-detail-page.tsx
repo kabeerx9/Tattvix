@@ -17,7 +17,8 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { Hotel, Plus, UserRoundPlus, Users } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, Fact, FactsRow, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { getInitials } from "@/lib/initials";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
 import { ApiError } from "@/lib/api";
 
@@ -36,14 +37,14 @@ export function OrganizationDetailPage({
   );
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader
-        eyebrow="Platform administration"
         title={data.organization.name}
-        description={`${data.organization.slug} · ${
+        meta={`${data.organization.slug} · ${
           data.organization.isActive ? "Active" : "Inactive"
         }`}
       />
+      <FactsRow><Fact label="Properties" value={data.properties.length} /><Fact label="Members" value={data.members.length} /></FactsRow>
 
       <PropertiesSection
         organizationSlug={organizationSlug}
@@ -95,28 +96,17 @@ function PropertiesSection({
         : null;
 
   return (
-    <Surface>
-      <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-            <Hotel className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">Properties</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Physical hotels operated under this organization.
-            </p>
-          </div>
-        </div>
+    <Panel>
+      <PanelHeader title="Properties" icon={Hotel} meta={properties.length} actions={
         <Button variant="outline" onClick={() => setShowForm((value) => !value)}>
           <Plus />
           Add property
         </Button>
-      </div>
+      } />
 
       {showForm ? (
         <form
-          className="grid gap-4 border-b p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end sm:p-6"
+          className="grid gap-4 border-b border-border-soft px-5 py-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
           onSubmit={createProperty}
         >
           <div className="grid gap-2">
@@ -149,7 +139,7 @@ function PropertiesSection({
           {errorMessage ? (
             <p
               role="alert"
-              className="sm:col-span-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              className="sm:col-span-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
             >
               {errorMessage}
             </p>
@@ -158,22 +148,16 @@ function PropertiesSection({
       ) : null}
 
       {properties.length ? (
-        <div className="divide-y">
+        <div className="overflow-x-auto"><div role="table" aria-label="Properties" className="min-w-[520px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_160px_120px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Property</span><span role="columnheader">Slug</span><span role="columnheader">Status</span></div>
           {properties.map((property) => (
             <div
-              key={property.id}
-              className="flex items-center justify-between gap-4 p-5 sm:p-6"
+              key={property.id} role="row"
+              className="grid min-h-11 grid-cols-[minmax(0,1fr)_160px_120px] items-center gap-4 border-t border-border-soft px-5 py-2"
             >
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">{property.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {property.slug}
-                </p>
-              </div>
-              <StatusBadge isActive={property.isActive} />
+              <span role="cell" className="text-sm font-medium">{property.name}</span><span role="cell" className="text-xs text-subtle-foreground">{property.slug}</span><span role="cell"><StatusBadge isActive={property.isActive} /></span>
             </div>
           ))}
-        </div>
+        </div></div>
       ) : (
         <EmptyState
           icon={Hotel}
@@ -181,7 +165,7 @@ function PropertiesSection({
           description="Add the first property for this organization."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -270,24 +254,13 @@ function MembersSection({
         : null;
 
   return (
-    <Surface>
-      <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-            <Users className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">Members</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              People with access to this organization and its properties.
-            </p>
-          </div>
-        </div>
+    <Panel>
+      <PanelHeader title="Members" icon={Users} meta={members.length} actions={
         <Button variant="outline" onClick={() => setShowForm((value) => !value)}>
           <UserRoundPlus />
           Add member
         </Button>
-      </div>
+      } />
 
       {showForm ? (
         <form
@@ -326,7 +299,7 @@ function MembersSection({
           {addErrorMessage ? (
             <p
               role="alert"
-              className="sm:col-span-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              className="sm:col-span-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
             >
               {addErrorMessage}
             </p>
@@ -335,11 +308,11 @@ function MembersSection({
       ) : null}
 
       {members.length ? (
-        <div className="divide-y">
+        <div className="overflow-x-auto"><div role="table" aria-label="Members" className="min-w-[740px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_340px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Member</span><span role="columnheader">Role · Status · Actions</span></div>
           {members.map((member) => (
-            <div key={member.id} className="grid gap-3 p-5 sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="min-w-0">
+            <div key={member.id} role="row" className="grid gap-3 border-t border-border-soft px-5 py-2">
+              <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_340px] items-center gap-4">
+                <div role="cell" className="flex min-w-0 items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials([member.user.firstName, member.user.lastName].filter(Boolean).join(" ") || member.user.email)}</span><div className="min-w-0">
                   <h3 className="text-sm font-semibold">
                     {[member.user.firstName, member.user.lastName]
                       .filter(Boolean)
@@ -348,8 +321,8 @@ function MembersSection({
                   <p className="mt-1 text-xs text-muted-foreground">
                     {member.user.email}
                   </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+                </div></div>
+                <div role="cell" className="flex flex-wrap items-center gap-2">
                   <Select
                     value={member.role}
                     onValueChange={(value) =>
@@ -385,14 +358,14 @@ function MembersSection({
               {rowError && rowError.id === member.id ? (
                 <p
                   role="alert"
-                  className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                  className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
                 >
                   {rowError.message}
                 </p>
               ) : null}
             </div>
           ))}
-        </div>
+        </div></div>
       ) : (
         <EmptyState
           icon={Users}
@@ -400,23 +373,11 @@ function MembersSection({
           description="Add the first member for this organization."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={
-        isActive
-          ? "rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
-          : "rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-      }
-    >
-      {isActive ? "Active" : "Inactive"}
-    </span>
-  );
-}
+function StatusBadge({ isActive }: { isActive: boolean }) { return <StatusPill tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Inactive"}</StatusPill>; }
 
 function roleLabel(role: PlatformMembershipRole) {
   return {

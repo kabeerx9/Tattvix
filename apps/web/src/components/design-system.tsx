@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@tattvix/ui/lib/utils";
-import { Card } from "@tattvix/ui/components/card";
 import { Button } from "@tattvix/ui/components/button";
 import {
   AlertDialog,
@@ -15,16 +14,30 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
 
-export function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
-  return <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div className="max-w-2xl"><p className="app-kicker">{eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">{title}</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p></div>{action}</header>;
-}
-
-export function Surface({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <Card className={cn("app-surface gap-0 py-0", className)}>{children}</Card>;
-}
-
-export function MetricCard({ icon: Icon, label, value, detail }: { icon: LucideIcon; label: string; value: string; detail: string }) {
-  return <Surface className="flex items-center gap-4 p-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted text-foreground"><Icon className="size-5" /></span><div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-0.5 text-xl font-semibold tracking-tight">{value}</p><p className="truncate text-xs text-muted-foreground">{detail}</p></div></Surface>;
+export function PageHeader({
+  title,
+  meta,
+  actions,
+}: {
+  title: string;
+  meta?: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 items-baseline gap-3">
+        <h1 className="truncate text-[22px] font-semibold tracking-[-0.02em]">
+          {title}
+        </h1>
+        {meta ? (
+          <p className="truncate text-sm text-subtle-foreground">{meta}</p>
+        ) : null}
+      </div>
+      {actions ? (
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
+      ) : null}
+    </header>
+  );
 }
 
 /**
@@ -53,7 +66,7 @@ export function EmptyState({
       <span
         className={cn(
           "grid size-12 place-items-center rounded-xl",
-          tone === "accent" ? "bg-accent text-primary" : "bg-muted text-foreground",
+          tone === "accent" ? "bg-muted text-muted-foreground" : "bg-muted text-foreground",
         )}
       >
         <Icon className="size-6" />
@@ -163,5 +176,154 @@ export function RouteErrorState({
         </Button>
       </div>
     </div>
+  );
+}
+
+/** One bordered strip of KPIs separated by vertical dividers (never separate cards). */
+export function KpiStrip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)] sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
+      {children}
+    </div>
+  );
+}
+
+export function Kpi({
+  icon: Icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 p-5">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-tint text-primary">
+          <Icon className="size-4" />
+        </span>
+        <span className="min-w-0 leading-tight">{label}</span>
+      </div>
+      <p className="mt-3 text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
+        {value}
+      </p>
+      {detail ? (
+        <p className="mt-2 text-xs leading-relaxed text-subtle-foreground">{detail}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function Panel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)]",
+        className,
+      )}
+    >
+      {children}
+    </section>
+  );
+}
+
+export function PanelHeader({
+  title,
+  icon: Icon,
+  meta,
+  actions,
+}: {
+  title: string;
+  icon?: LucideIcon;
+  meta?: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border-soft px-5 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
+        <h2 className="truncate text-sm font-semibold">{title}</h2>
+        {meta ? <span className="text-sm text-subtle-foreground tabular-nums">{meta}</span> : null}
+      </div>
+      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+    </header>
+  );
+}
+
+/** A section inside a Panel. Consecutive sections are divided by a soft hairline. */
+export function PanelSection({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("border-border-soft px-5 py-5 [&+&]:border-t", className)}>
+      {children}
+    </div>
+  );
+}
+
+/** Plain inline facts (label over value). No borders or cells. */
+export function FactsRow({ children }: { children: React.ReactNode }) {
+  return <dl className="flex flex-wrap gap-x-10 gap-y-4">{children}</dl>;
+}
+
+export function Fact({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-subtle-foreground">{label}</dt>
+      <dd className="mt-1 text-sm font-medium tabular-nums">
+        {value}
+        {detail ? (
+          <span className="ml-1.5 font-normal text-subtle-foreground">{detail}</span>
+        ) : null}
+      </dd>
+    </div>
+  );
+}
+
+const statusPillTones = {
+  success: "bg-success-tint text-success",
+  warning: "bg-warning-tint text-warning",
+  danger: "bg-destructive-tint text-destructive",
+  neutral: "bg-muted text-muted-foreground",
+} as const;
+
+export function StatusPill({
+  tone,
+  children,
+}: {
+  tone: keyof typeof statusPillTones;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        statusPillTones[tone],
+      )}
+    >
+      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+      {children}
+    </span>
   );
 }

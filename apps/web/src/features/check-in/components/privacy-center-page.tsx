@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, PageHeader, Panel, PanelHeader, StatusPill, KpiStrip, Kpi } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -63,17 +63,20 @@ export function PrivacyCenterPage() {
   );
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
-        eyebrow="Guest privacy"
         title="Hotel access history"
-        description="See where each shared stay stands, when hotel staff opened your identity, and whether access is still active."
       />
 
+      <KpiStrip>
+        <Kpi icon={Hotel} label="Current stays" value={currentStays.length} />
+        <Kpi icon={History} label="Past stays" value={pastStays.length} />
+        <Kpi icon={ShieldOff} label="Revoked" value={data.stays.filter((stay) => stay.status === "REVOKED").length} />
+      </KpiStrip>
       {error ? (
         <p
           role="alert"
-          className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
           {error}
         </p>
@@ -82,12 +85,12 @@ export function PrivacyCenterPage() {
       {data.stays.length ? (
         <>
           <Section
-            title="Current stay"
-            description="Your most recent shared stay, live from the hotel's front desk."
+            title="Current stays"
+            description="Your current stays and the identity access you approved."
             icon={Hotel}
           >
             {currentStays.length ? (
-              <div className="grid gap-4">
+              <div className="grid">
                 {currentStays.map((stay) => (
                   <ShareCard
                     key={stay.id}
@@ -101,13 +104,13 @@ export function PrivacyCenterPage() {
                 ))}
               </div>
             ) : (
-              <Surface>
+              <>
                 <EmptyState
                   icon={Hotel}
                   title="No active stay right now"
                   description="Once a hotel checks you in, it will show up here with your room number."
                 />
-              </Surface>
+              </>
             )}
           </Section>
 
@@ -117,7 +120,7 @@ export function PrivacyCenterPage() {
             icon={History}
           >
             {pastStays.length ? (
-              <div className="grid gap-4">
+              <div className="grid">
                 {pastStays.map((stay) => (
                   <ShareCard
                     key={stay.id}
@@ -131,29 +134,18 @@ export function PrivacyCenterPage() {
                 ))}
               </div>
             ) : (
-              <Surface>
+              <>
                 <EmptyState
                   icon={History}
                   title="No past stays yet"
                   description="Past stays will appear here after checkout."
                 />
-              </Surface>
+              </>
             )}
           </Section>
         </>
       ) : (
-        <Surface className="grid place-items-center gap-4 p-8 text-center sm:p-12">
-          <span className="grid size-12 place-items-center rounded-xl bg-muted">
-            <ShieldCheck className="size-6" />
-          </span>
-          <div className="max-w-md">
-            <h2 className="text-lg font-semibold">Nothing shared yet</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Saving your profile and documents does not share them. Approved
-              hotel check-ins will appear here.
-            </p>
-          </div>
-        </Surface>
+        <Panel><EmptyState icon={ShieldCheck} title="Nothing shared yet" description="Saving your profile and documents does not share them. Approved hotel check-ins will appear here." /></Panel>
       )}
       <ConfirmDialog
         open={revokeTarget !== null}
@@ -184,20 +176,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-          <Icon className="size-5" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {description}
-          </p>
-        </div>
-      </div>
+    <Panel>
+      <PanelHeader title={title} icon={Icon} />
+      <p className="px-5 py-3 text-xs text-subtle-foreground">{description}</p>
       {children}
-    </div>
+    </Panel>
   );
 }
 
@@ -216,32 +199,30 @@ function ShareCard({
       stay.hotelAccessExpiresAt &&
         new Date(stay.hotelAccessExpiresAt).getTime() > Date.now(),
     );
-  const operational = operationalStatusPill(stay);
+
 
   return (
-    <Surface className="grid gap-0 overflow-hidden">
-      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+    <div className="border-t border-border-soft">
+      <div className="group flex min-h-11 flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted">
-            <Hotel className="size-5" />
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
+            <Hotel className="size-[18px]" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-base font-semibold">
+              <h2 className="truncate text-sm font-semibold">
                 {stay.property.name}
               </h2>
-              <span className={operational.className}>
-                {operational.label}
-              </span>
+              <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{stay.operationalStatus === "PENDING_CHECK_IN" ? "Awaiting check-in" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}</StatusPill>
               {stay.room ? (
-                <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                <span className="flex items-center gap-1 text-xs text-subtle-foreground">
                   <BedDouble className="size-3" />
                   Room {stay.room.number}
                 </span>
               ) : null}
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <StatusPill tone={stay.status === "REVOKED" ? "danger" : accessActive ? "success" : "neutral"}>
                 {accessActive ? "Identity access active" : statusLabel(stay)}
-              </span>
+              </StatusPill>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {stay.property.organization.name}
@@ -265,7 +246,7 @@ function ShareCard({
         ) : null}
       </div>
 
-      <div className="grid gap-4 border-t bg-muted/30 p-5 sm:grid-cols-[220px_220px_minmax(0,1fr)] sm:p-6">
+      <div className="grid gap-4 border-t border-border-soft px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
         <div>
           <p className="text-xs font-medium">Stay timeline</p>
           <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
@@ -288,17 +269,14 @@ function ShareCard({
                 : "No active hotel access"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-medium">Recorded activity</p>
           {stay.accessEvents.length ? (
-            <div className="mt-2 grid gap-2">
+            <div className="mt-2 overflow-x-auto"><table className="w-full min-w-[300px] text-xs"><thead className="bg-muted text-left text-subtle-foreground"><tr><th className="px-3 py-2 font-medium">Activity</th><th className="px-3 py-2 text-right font-medium">Last recorded</th></tr></thead><tbody>
               {groupAccessEvents(stay.accessEvents)
                 .slice(0, 8)
                 .map((group, index) => (
-                  <div
-                    key={`${group.lastAt}-${index}`}
-                    className="flex items-center gap-2 text-xs text-muted-foreground"
-                  >
+                  <tr key={`${group.lastAt}-${index}`} className="border-t border-border-soft text-muted-foreground"><td className="px-3 py-2">
                     {group.action === "DOCUMENT_VIEWED" ? (
                       <FileImage className="size-3.5" />
                     ) : (
@@ -308,12 +286,9 @@ function ShareCard({
                       {activityLabel(group.action, group.imageSide, group.companionName)}
                       {group.count > 1 ? ` ×${group.count}` : ""}
                     </span>
-                    <span className="ml-auto whitespace-nowrap">
-                      {formatDateTime(group.lastAt)}
-                    </span>
-                  </div>
+                    </td><td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">{formatDateTime(group.lastAt)}</td></tr>
                 ))}
-            </div>
+            </tbody></table></div>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
               No hotel identity views have been recorded.
@@ -321,7 +296,7 @@ function ShareCard({
           )}
         </div>
       </div>
-    </Surface>
+    </div>
   );
 }
 
@@ -375,28 +350,6 @@ function activityLabel(
   if (action === "DETAILS_VIEWED") return "Identity details opened";
   if (action === "STAY_CLOSED") return "Hotel finished identity review";
   return "Consent revoked";
-}
-
-function operationalStatusPill(stay: GuestShare) {
-  if (stay.operationalStatus === "CHECKED_IN") {
-    return {
-      label: "Checked in",
-      className:
-        "rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300",
-    };
-  }
-  if (stay.operationalStatus === "CHECKED_OUT") {
-    return {
-      label: "Checked out",
-      className:
-        "rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground",
-    };
-  }
-  return {
-    label: "Awaiting check-in",
-    className:
-      "rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300",
-  };
 }
 
 function statusLabel(stay: GuestShare) {

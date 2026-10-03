@@ -37,7 +37,7 @@ export function pickSmallerFile(original: File, compressed: File): File {
     : compressed;
 }
 
-export async function compressImage(file: File): Promise<File> {
+export async function compressImage(file: File, maxEdge = MAX_IMAGE_EDGE): Promise<File> {
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -46,16 +46,22 @@ export async function compressImage(file: File): Promise<File> {
   }
 
   try {
+    const requiresResize = maxEdge < MAX_IMAGE_EDGE &&
+      (bitmap.width > maxEdge || bitmap.height > maxEdge);
+    const fallback = () => {
+      if (requiresResize) throw new Error("This photo could not be resized. Try another photo.");
+      return file;
+    };
     const { width, height } = fitWithin(
       bitmap.width,
       bitmap.height,
-      MAX_IMAGE_EDGE,
+      maxEdge,
     );
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (!context) return file;
+    if (!context) return fallback();
 
     // JPEG has no alpha channel; paint transparent PNG areas white, not black.
     context.fillStyle = "#fff";
@@ -65,13 +71,15 @@ export async function compressImage(file: File): Promise<File> {
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY),
     );
-    if (!blob) return file;
+    if (!blob) return fallback();
 
     const compressed = new File([blob], jpegFileName(file.name), {
       type: "image/jpeg",
       lastModified: file.lastModified,
     });
-    return pickSmallerFile(file, compressed);
+    return requiresResize
+      ? compressed
+      : pickSmallerFile(file, compressed);
   } finally {
     bitmap.close();
   }

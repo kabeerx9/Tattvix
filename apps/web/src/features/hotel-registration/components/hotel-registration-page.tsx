@@ -8,7 +8,7 @@ import { Building2, CheckCircle2, CircleAlert, Clock3, RefreshCw, Send } from "l
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Panel, PanelHeader, PanelSection, StatusPill, KpiStrip, Kpi } from "@/components/design-system";
 import { currentUserKeys } from "@/features/current-user/keys";
 import { ApiError } from "@/lib/api";
 
@@ -78,12 +78,11 @@ export function HotelRegistrationPage() {
       : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
-        eyebrow="Hotel ownership"
         title="Register your hotel"
-        description="Tell us about your hotel business. A platform administrator will review the request before hotel workspace access is granted."
-        action={
+        meta="Reviewed by a platform admin before access is granted"
+        actions={
           <Button variant="outline" onClick={() => requestQuery.refetch()} disabled={requestQuery.isFetching}>
             <RefreshCw className={requestQuery.isFetching ? "animate-spin" : undefined} />
             Refresh status
@@ -91,6 +90,7 @@ export function HotelRegistrationPage() {
         }
       />
 
+      {requestQuery.data ? <KpiStrip><Kpi icon={Clock3} label="Pending" value={requests.filter((request) => request.status === "PENDING").length} /><Kpi icon={CheckCircle2} label="Approved" value={requests.filter((request) => request.status === "APPROVED").length} /><Kpi icon={CircleAlert} label="Rejected" value={requests.filter((request) => request.status === "REJECTED").length} /></KpiStrip> : null}
       {requestQuery.isPending ? <LoadingState /> : null}
       {requestQuery.isError ? <QueryError onRetry={() => requestQuery.refetch()} /> : null}
       {requestQuery.data ? (
@@ -127,7 +127,7 @@ function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitt
   return (
     <form className="grid gap-6" onSubmit={onSubmit}>
       {latestRejection ? (
-        <Surface className="border-destructive/30 bg-destructive/5 p-5">
+        <Panel className="border-destructive/30 bg-destructive/5 p-5">
           <div className="flex gap-3">
             <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
             <div>
@@ -135,13 +135,10 @@ function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitt
               <p className="mt-1 text-sm leading-6 text-muted-foreground">{latestRejection.rejectionReason}</p>
             </div>
           </div>
-        </Surface>
+        </Panel>
       ) : null}
-      <Surface className="grid gap-6 p-5 sm:p-7">
-        <div>
-          <h2 className="text-lg font-semibold">Hotel details</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">Use the legal business name and a contact number your team monitors.</p>
-        </div>
+      <Panel><PanelHeader title="Hotel details" icon={Building2} /><PanelSection className="grid gap-6">
+        <p className="text-xs text-subtle-foreground">Use the legal business name and a contact number your team monitors.</p>
         <Field label="Hotel name" error={fieldErrors.hotelName}>
           <Input id="hotelName" name="hotelName" defaultValue={latestRejection?.hotelName} maxLength={255} required autoComplete="organization" placeholder="The Fern Jaipur" aria-invalid={Boolean(fieldErrors.hotelName)} />
         </Field>
@@ -151,33 +148,32 @@ function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitt
         <Field label="Contact phone" error={fieldErrors.contactPhone}>
           <Input id="contactPhone" name="contactPhone" defaultValue={latestRejection?.contactPhone} maxLength={32} required type="tel" autoComplete="tel" placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.contactPhone)} />
         </Field>
-        {submitError ? <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</p> : null}
+        {submitError ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</p> : null}
         <div className="flex justify-end border-t pt-5">
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Submitting request..." : <><Send />Submit for review</>}</Button>
         </div>
-      </Surface>
+      </PanelSection></Panel>
     </form>
   );
 }
 
 function PendingState() {
-  return <Surface className="p-6 sm:p-8"><div className="flex gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Clock3 className="size-5" /></span><div><h2 className="text-lg font-semibold">Your request is under review</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">We will update this page when a platform administrator has made a decision. Hotel workspace access is not available until the request is approved.</p></div></div></Surface>;
+  return <Panel className="p-6 sm:p-8"><div className="flex gap-4"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><Clock3 className="size-5" /></span><div><StatusPill tone="warning">Under review</StatusPill><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">We will update this page when a platform administrator has made a decision. Hotel workspace access is not available until the request is approved.</p></div></div></Panel>;
 }
 
 function RequestHistory({ requests, accessRefreshPending }: { requests: HotelRegistrationRequest[]; accessRefreshPending: boolean }) {
-  return <Surface className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Request history</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Your submitted hotel ownership requests.</p>{requests.length ? <div className="mt-5 grid gap-4">{requests.map((request) => <RequestHistoryItem key={request.id} request={request} accessRefreshPending={accessRefreshPending} />)}</div> : <EmptyState className="px-0 py-8" icon={Building2} title="No requests submitted" description="Submit your hotel details to begin the review." />}</Surface>;
+  return <Panel><PanelHeader title="Request history" meta={requests.length} />{requests.length ? <div>{requests.map((request) => <RequestHistoryItem key={request.id} request={request} accessRefreshPending={accessRefreshPending} />)}</div> : <EmptyState className="px-0 py-8" icon={Building2} title="No requests submitted" description="Submit your hotel details to begin the review." />}</Panel>;
 }
 
 function RequestHistoryItem({ request, accessRefreshPending }: { request: HotelRegistrationRequest; accessRefreshPending: boolean }) {
-  return <div className="rounded-xl border bg-muted/40 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{request.hotelName}</p><p className="mt-1 text-xs text-muted-foreground">Submitted {formatDate(request.submittedAt)}</p></div><StatusBadge status={request.status} /></div>{request.status === "REJECTED" ? <p className="mt-3 text-sm leading-6 text-destructive">{request.rejectionReason}</p> : null}{request.status === "APPROVED" ? <div className="mt-3"><p className="text-sm text-muted-foreground">{accessRefreshPending ? "Updating your hotel workspace access…" : request.organization?.name ?? request.property?.name ?? "Your hotel workspace is ready."}</p><Button className="mt-3" size="sm" disabled={accessRefreshPending} nativeButton={false} render={<Link to="/hotel" />}><CheckCircle2 />Open hotel workspace</Button></div> : null}</div>;
+  return <div className="min-h-11 border-t border-border-soft px-5 py-3 first:border-t-0"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{request.hotelName}</p><p className="mt-1 text-xs text-muted-foreground">Submitted {formatDate(request.submittedAt)}</p></div><StatusBadge status={request.status} /></div>{request.status === "REJECTED" ? <p className="mt-3 text-sm leading-6 text-destructive">{request.rejectionReason}</p> : null}{request.status === "APPROVED" ? <div className="mt-3"><p className="text-sm text-muted-foreground">{accessRefreshPending ? "Updating your hotel workspace access…" : request.organization?.name ?? request.property?.name ?? "Your hotel workspace is ready."}</p><Button variant="outline" className="mt-3" size="sm" disabled={accessRefreshPending} nativeButton={false} render={<Link to="/hotel" />}><CheckCircle2 />Open hotel workspace</Button></div> : null}</div>;
 }
 
 export function StatusBadge({ status }: { status: HotelRegistrationRequest["status"] }) {
-  const classes = status === "APPROVED" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : status === "REJECTED" ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-700 dark:text-amber-300";
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${classes}`}>{status[0] + status.slice(1).toLowerCase()}</span>;
+  return <StatusPill tone={status === "APPROVED" ? "success" : status === "REJECTED" ? "danger" : "warning"}>{status[0] + status.slice(1).toLowerCase()}</StatusPill>;
 }
 
-function LoadingState() { return <Surface className="p-8 text-sm text-muted-foreground">Loading your registration requests…</Surface>; }
-function QueryError({ onRetry }: { onRetry: () => void }) { return <Surface className="p-8"><p className="text-sm text-destructive">Your registration requests could not be loaded.</p><Button className="mt-4" variant="outline" onClick={onRetry}><RefreshCw />Try again</Button></Surface>; }
+function LoadingState() { return <Panel className="p-8 text-sm text-muted-foreground">Loading your registration requests…</Panel>; }
+function QueryError({ onRetry }: { onRetry: () => void }) { return <Panel className="p-8"><p className="text-sm text-destructive">Your registration requests could not be loaded.</p><Button className="mt-4" variant="outline" onClick={onRetry}><RefreshCw />Try again</Button></Panel>; }
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) { const id = label === "Hotel name" ? "hotelName" : label === "Hotel address" ? "address" : "contactPhone"; return <div className="grid gap-2"><Label htmlFor={id}>{label}</Label>{children}{error ? <p className="text-xs text-destructive">{error}</p> : null}</div>; }
 function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value)); }

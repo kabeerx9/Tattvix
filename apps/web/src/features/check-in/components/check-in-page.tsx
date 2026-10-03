@@ -17,8 +17,6 @@ import {
 } from "@tanstack/react-query";
 import {
   ArrowRight,
-  Building2,
-  CheckCircle2,
   Clock3,
   FileCheck2,
   Hotel,
@@ -28,8 +26,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ModeToggle } from "@/components/mode-toggle";
-import { Surface } from "@/components/design-system";
+import { Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { companionQueries } from "@/features/companions/queries";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
@@ -57,7 +54,7 @@ export function CheckInPage({ token }: { token: string }) {
       <header className="border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-20 max-w-5xl items-center justify-between px-5">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <span className="grid size-9 place-items-center rounded-md bg-muted text-muted-foreground">
               <Hotel className="size-5" />
             </span>
             <div>
@@ -67,15 +64,12 @@ export function CheckInPage({ token }: { token: string }) {
               </p>
             </div>
           </div>
-          <ModeToggle />
         </div>
       </header>
 
       <main className="mx-auto grid max-w-5xl gap-7 px-5 py-8 sm:py-12">
         <div className="grid gap-3">
-          <p className="app-kicker">
-            Arriving at {context.property.organization.name}
-          </p>
+
           <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
             Check in to {context.property.name}
           </h1>
@@ -121,11 +115,7 @@ function SignedOutCheckIn({
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <Surface className="p-6 sm:p-8">
-        <span className="grid size-11 place-items-center rounded-xl bg-accent text-primary">
-          <ShieldCheck className="size-5" />
-        </span>
-        <h2 className="mt-5 text-xl font-semibold">Sign in before sharing</h2>
+      <Panel><PanelHeader title="Sign in before sharing" icon={ShieldCheck} /><PanelSection>
         <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
           Your hotel cannot see anything yet. Sign in to review your saved
           profile and provide stay-specific consent.
@@ -148,7 +138,7 @@ function SignedOutCheckIn({
             Create an account
           </Button>
         </div>
-      </Surface>
+      </PanelSection></Panel>
       <PrivacySummary accessPolicy={accessPolicy} />
     </div>
   );
@@ -264,12 +254,8 @@ function AuthenticatedCheckIn({
 
   if (!profile.readiness.isReady || readyDocuments.length === 0) {
     return (
-      <Surface className="grid gap-5 p-6 sm:p-8">
-        <span className="grid size-11 place-items-center rounded-xl bg-muted text-foreground">
-          <FileCheck2 className="size-5" />
-        </span>
+      <Panel><PanelHeader title="Finish your travel profile" icon={FileCheck2} /><PanelSection className="grid gap-5">
         <div>
-          <h2 className="text-xl font-semibold">Finish your travel profile</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             A complete profile and one ready identity document are required
             before anything can be shared with {propertyName}.
@@ -283,20 +269,18 @@ function AuthenticatedCheckIn({
           Complete profile
           <ArrowRight />
         </Button>
-      </Surface>
+      </PanelSection></Panel>
     );
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <Surface className="grid gap-7 p-6 sm:p-8">
-        <section className="grid gap-3">
+      <Panel>
+        <PanelSection className="grid gap-3">
           <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-              <FileCheck2 className="size-5" />
-            </span>
+            <FileCheck2 className="size-4 text-muted-foreground" />
             <div>
-              <h2 className="text-lg font-semibold">Identity document</h2>
+              <h2 className="text-sm font-semibold">Identity document</h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 Choose the document snapshot that this property will receive.
               </p>
@@ -321,15 +305,13 @@ function AuthenticatedCheckIn({
               ))}
             </SelectContent>
           </Select>
-        </section>
+        </PanelSection>
 
-        <section className="grid gap-3 border-t pt-6">
+        <PanelSection className="grid gap-3">
           <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-foreground">
-              <UsersRound className="size-5" />
-            </span>
+            <UsersRound className="size-4 text-muted-foreground" />
             <div>
-              <h2 className="text-lg font-semibold">Companions</h2>
+              <h2 className="text-sm font-semibold">Companions</h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 Optional. Only selected, complete companion profiles are shared.
               </p>
@@ -357,7 +339,7 @@ function AuthenticatedCheckIn({
                 return (
                   <div
                     key={companion.id}
-                    className="grid gap-3 rounded-xl border bg-muted/40 p-3"
+                    className="grid gap-3 rounded-lg border bg-muted/40 p-3"
                   >
                     <label className="flex items-center gap-3">
                       <Checkbox
@@ -449,14 +431,14 @@ function AuthenticatedCheckIn({
               })}
             </div>
           ) : (
-            <p className="rounded-xl bg-muted/60 p-4 text-xs leading-5 text-muted-foreground">
+            <p className="rounded-lg bg-muted p-4 text-xs leading-5 text-muted-foreground">
               No companions saved. You can continue as the primary guest.
             </p>
           )}
-        </section>
+        </PanelSection>
 
-        <section className="grid gap-4 border-t pt-6">
-          <label className="flex items-start gap-3 rounded-2xl border bg-muted/40 p-4">
+        <PanelSection className="grid gap-4">
+          <label className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
             <Checkbox
               className="mt-0.5"
               checked={consentAccepted}
@@ -476,7 +458,7 @@ function AuthenticatedCheckIn({
           {submitError ? (
             <p
               role="alert"
-              className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
             >
               {submitError}
             </p>
@@ -487,8 +469,8 @@ function AuthenticatedCheckIn({
               : "Send check-in request"}
             <ShieldCheck />
           </Button>
-        </section>
-      </Surface>
+        </PanelSection>
+      </Panel>
       <PrivacySummary accessPolicy={accessPolicy} />
     </div>
   );
@@ -513,17 +495,10 @@ function ExistingStay({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <Surface className="p-6 sm:p-8">
-        <span className="grid size-11 place-items-center rounded-xl bg-accent text-primary">
-          {revoked ? (
-            <ShieldCheck className="size-5" />
-          ) : (
-            <CheckCircle2 className="size-5" />
-          )}
-        </span>
-        <h2 className="mt-5 text-xl font-semibold">
+      <Panel><PanelHeader title="Your stay" /><PanelSection>
+        <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
           {guestStayStatusLabel(stay.operationalStatus)}
-        </h2>
+        </StatusPill>
         <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
           {revoked
             ? `${propertyName} can no longer open this identity package.`
@@ -571,7 +546,7 @@ function ExistingStay({
             {revokeMutation.isPending ? "Revoking..." : "Revoke hotel access"}
           </Button>
         ) : null}
-      </Surface>
+      </PanelSection></Panel>
       <PrivacySummary accessPolicy={accessPolicy} />
     </div>
   );
@@ -579,22 +554,17 @@ function ExistingStay({
 
 function PrivacySummary({ accessPolicy }: { accessPolicy: AccessPolicy }) {
   return (
-    <Surface className="h-fit p-6">
-      <span className="grid size-10 place-items-center rounded-xl bg-muted">
-        <Building2 className="size-5" />
-      </span>
-      <h2 className="mt-5 text-sm font-semibold">How access works</h2>
-      <ul className="mt-3 grid gap-3 text-xs leading-5 text-muted-foreground">
+    <Panel className="h-fit"><PanelHeader title="How access works" /><PanelSection>
+      <ul className="mt-3 grid list-disc gap-3 pl-4 text-xs leading-5 text-muted-foreground">
         <li>Saving a document does not share it with a hotel.</li>
-        <li>The hotel receives a frozen snapshot only after approval.</li>
-        <li>Each document view uses a fresh, short-lived private link.</li>
+        <li>The hotel receives your selected details only after approval.</li>
         <li>
           Access lasts up to {accessPolicy.maximumDays} days, ends immediately
           on revocation, and is capped to {accessPolicy.postCheckoutGraceHours}{" "}
           hours after checkout.
         </li>
       </ul>
-    </Surface>
+    </PanelSection></Panel>
   );
 }
 

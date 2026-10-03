@@ -14,8 +14,9 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { EmptyState, MetricCard, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
+import { getInitials } from "@/lib/initials";
 
 import { hotelReportsApi } from "../api";
 import { hotelReportsQueries } from "../queries";
@@ -29,7 +30,6 @@ function todayIsoDate() {
 export function HotelReportsPage({
   organizationSlug,
   propertySlug,
-  propertyName,
 }: {
   organizationSlug: string;
   propertySlug: string;
@@ -85,14 +85,11 @@ export function HotelReportsPage({
   }
 
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
-      <PageHeader
-        eyebrow={propertyName}
-        title="Reports"
-        description="Operational reports only — names, dates, rooms, and statuses. No document numbers, no payment data."
-      />
+    <div className="mx-auto grid max-w-[1400px] gap-6">
+      <PageHeader title="Reports" />
 
-      <Surface className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+      <Panel>
+      <PanelSection className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap items-end gap-4">
           <label className="grid gap-1.5 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
@@ -122,7 +119,8 @@ export function HotelReportsPage({
             Applies to the register and status counts below.
           </p>
         </div>
-      </Surface>
+      </PanelSection>
+      </Panel>
 
       <OccupancySection occupancy={occupancy} />
 
@@ -155,22 +153,7 @@ function SectionHeader({
   icon: typeof Gauge;
   action?: React.ReactNode;
 }) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b p-5 sm:p-6">
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-          <Icon className="size-5" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {description}
-          </p>
-        </div>
-      </div>
-      {action}
-    </div>
-  );
+  return <PanelHeader title={title} icon={Icon} actions={action} />;
 }
 
 function OccupancySection({
@@ -183,38 +166,32 @@ function OccupancySection({
   };
 }) {
   return (
-    <section className="grid gap-4">
-      <div className="flex items-center gap-2">
-        <Gauge className="size-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Occupancy — today</h2>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
+    <KpiStrip>
+        <Kpi
           icon={BedDouble}
           label="Occupied / active rooms"
           value={`${occupancy.occupiedRooms} / ${occupancy.activeRooms}`}
           detail="Rooms currently occupied out of active inventory"
         />
-        <MetricCard
+        <Kpi
           icon={BedDouble}
           label="Vacant"
           value={String(occupancy.statusCounts.VACANT)}
           detail="Ready to assign"
         />
-        <MetricCard
+        <Kpi
           icon={BedDouble}
           label="Cleaning"
           value={String(occupancy.statusCounts.CLEANING)}
           detail="Turned over, not yet vacant"
         />
-        <MetricCard
+        <Kpi
           icon={BedDouble}
           label="Maintenance"
           value={String(occupancy.statusCounts.MAINTENANCE)}
           detail="Out of service"
         />
-      </div>
-    </section>
+    </KpiStrip>
   );
 }
 
@@ -226,7 +203,7 @@ function StatusCountsSection({
   isLoading: boolean;
 }) {
   return (
-    <Surface>
+    <Panel>
       <SectionHeader
         title="Status counts"
         description="Stays by operational status over the selected date range."
@@ -243,7 +220,7 @@ function StatusCountsSection({
           <StatusCountTile label="Checked out" value={counts.checkedOut} />
         </div>
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -258,34 +235,14 @@ function StatusCountTile({ label, value }: { label: string; value: number }) {
 
 function InHouseSection({ entries }: { entries: HotelReportInHouseEntry[] }) {
   return (
-    <Surface>
+    <Panel>
       <SectionHeader
         title="Current in-house"
         description="Guests who are checked in and currently occupy a room."
         icon={UserRound}
       />
       {entries.length ? (
-        <div className="divide-y">
-          {entries.map((entry) => (
-            <div
-              key={entry.stayId}
-              className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6"
-            >
-              <div>
-                <p className="text-sm font-semibold">{entry.guestName}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Checked in {entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}
-                </p>
-              </div>
-              {entry.roomNumber ? (
-                <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                  <BedDouble className="size-3" />
-                  Room {entry.roomNumber}
-                </span>
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="bg-muted text-xs text-subtle-foreground"><th className="p-4 font-medium sm:px-5">Guest</th><th className="p-4 font-medium sm:px-5">Room</th><th className="p-4 font-medium sm:px-5">Checked in</th></tr></thead><tbody className="divide-y">{entries.map((entry) => <tr key={entry.stayId}><td className="p-4 sm:px-5"><span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.guestName)}</span><span className="font-medium">{entry.guestName}</span></span></td><td className="p-4 tabular-nums text-muted-foreground sm:px-5">{entry.roomNumber ?? "—"}</td><td className="p-4 tabular-nums text-muted-foreground sm:px-5">{entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}</td></tr>)}</tbody></table></div>
       ) : (
         <EmptyState
           icon={UserRound}
@@ -293,7 +250,7 @@ function InHouseSection({ entries }: { entries: HotelReportInHouseEntry[] }) {
           description="Guests appear here once reception assigns a room and confirms check-in."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -311,7 +268,7 @@ function RegisterSection({
   downloadError: string | null;
 }) {
   return (
-    <Surface>
+    <Panel>
       <SectionHeader
         title="Register"
         description="Check-ins and check-outs over the selected date range."
@@ -341,9 +298,9 @@ function RegisterSection({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b text-xs text-muted-foreground">
+              <tr className="bg-muted text-xs text-subtle-foreground">
                 <th className="p-4 font-medium sm:p-5">Guest</th>
-                <th className="p-4 font-medium sm:p-5">Companions</th>
+                <th className="p-4 text-right font-medium sm:p-5">Companions</th>
                 <th className="p-4 font-medium sm:p-5">Room</th>
                 <th className="p-4 font-medium sm:p-5">Checked in</th>
                 <th className="p-4 font-medium sm:p-5">Checked out</th>
@@ -353,21 +310,21 @@ function RegisterSection({
             <tbody className="divide-y">
               {entries.map((entry) => (
                 <tr key={entry.stayId}>
-                  <td className="p-4 font-medium sm:p-5">{entry.guestName}</td>
-                  <td className="p-4 text-muted-foreground sm:p-5">
+                  <td className="p-4 font-medium sm:p-5"><span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.guestName)}</span>{entry.guestName}</span></td>
+                  <td className="p-4 text-right text-muted-foreground tabular-nums sm:p-5">
                     {entry.companionCount}
                   </td>
-                  <td className="p-4 text-muted-foreground sm:p-5">
+                  <td className="p-4 text-muted-foreground tabular-nums sm:p-5">
                     {entry.roomNumber ?? "—"}
                   </td>
-                  <td className="p-4 text-muted-foreground sm:p-5">
+                  <td className="p-4 text-muted-foreground tabular-nums sm:p-5">
                     {entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}
                   </td>
                   <td className="p-4 text-muted-foreground sm:p-5">
                     {entry.checkedOutAt ? formatDateTime(entry.checkedOutAt) : "—"}
                   </td>
                   <td className="p-4 text-muted-foreground sm:p-5">
-                    {formatStatus(entry.operationalStatus)}
+                    <ReportStatusPill status={entry.operationalStatus} />
                   </td>
                 </tr>
               ))}
@@ -381,7 +338,7 @@ function RegisterSection({
           description="No check-ins or check-outs were recorded for the selected dates."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -394,6 +351,10 @@ function formatStatus(status: string) {
     default:
       return "Pending check-in";
   }
+}
+
+function ReportStatusPill({ status }: { status: string }) {
+  return <StatusPill tone={status === "CHECKED_IN" ? "success" : status === "CHECKED_OUT" ? "neutral" : "warning"}>{formatStatus(status)}</StatusPill>;
 }
 
 function formatDateTime(value: string) {

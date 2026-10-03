@@ -15,7 +15,9 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ClipboardList, Hotel, LineChart, RefreshCw, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, PageHeader, Surface } from "@/components/design-system";
+import { EmptyState, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { Input } from "@tattvix/ui/components/input";
+import { getInitials } from "@/lib/initials";
 import { ApiError } from "@/lib/api";
 
 import { platformOversightQueries } from "../queries";
@@ -35,11 +37,9 @@ const AUDIT_ACTIONS = [
 
 export function OversightPage() {
   return (
-    <div className="mx-auto grid max-w-[1400px] gap-7">
+    <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader
-        eyebrow="Platform administration"
         title="Oversight"
-        description="Stay activity and the identity-access audit trail across every hotel, without ever surfacing identity documents."
       />
 
       <StaysOverviewSection />
@@ -54,31 +54,21 @@ function StaysOverviewSection() {
   const properties = data.properties;
 
   return (
-    <Surface>
-      <div className="flex items-start gap-3 border-b p-5 sm:p-6">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-          <Hotel className="size-5" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold">Stays overview</h2>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Stay counts by status for every active property. Guest identity
-            is never shown here.
-          </p>
-        </div>
-      </div>
+    <Panel>
+      <PanelHeader title="Stays overview" icon={Hotel} meta={properties.length} />
+      <PanelSection className="text-xs text-subtle-foreground">Stay counts across active properties.</PanelSection>
 
       {properties.length ? (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/60 text-left text-xs text-muted-foreground">
+              <tr className="border-b bg-muted text-left text-xs text-subtle-foreground">
                 <th className="p-4 font-medium">Property</th>
                 <th className="p-4 font-medium">Organization</th>
-                <th className="p-4 font-medium">Pending check-in</th>
-                <th className="p-4 font-medium">Checked in</th>
-                <th className="p-4 font-medium">Checked out</th>
-                <th className="p-4 font-medium">Total</th>
+                <th className="px-5 py-3 text-right font-medium">Pending check-in</th>
+                <th className="px-5 py-3 text-right font-medium">Checked in</th>
+                <th className="px-5 py-3 text-right font-medium">Checked out</th>
+                <th className="px-5 py-3 text-right font-medium">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -95,7 +85,7 @@ function StaysOverviewSection() {
           description="Onboard a hotel to see stay activity here."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -105,17 +95,17 @@ function PropertyRow({
   property: PlatformOversightPropertyStays;
 }) {
   return (
-    <tr>
-      <td className="p-4">
+    <tr className="h-11 border-t border-border-soft">
+      <td className="px-5 py-2">
         <p className="font-medium">{property.propertyName}</p>
       </td>
-      <td className="p-4 text-muted-foreground">
+      <td className="px-5 py-2 text-muted-foreground">
         {property.organizationName}
       </td>
-      <td className="p-4">{property.statusCounts.pendingCheckIn}</td>
-      <td className="p-4">{property.statusCounts.checkedIn}</td>
-      <td className="p-4">{property.statusCounts.checkedOut}</td>
-      <td className="p-4 font-medium">{property.totalStays}</td>
+      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.pendingCheckIn}</td>
+      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.checkedIn}</td>
+      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.checkedOut}</td>
+      <td className="px-5 py-2 text-right font-medium tabular-nums">{property.totalStays}</td>
     </tr>
   );
 }
@@ -129,26 +119,14 @@ function WeeklyCheckInsSection() {
   const grid = buildWeeklyCheckInsGrid(data.rows);
 
   return (
-    <Surface>
-      <div className="flex items-start gap-3 border-b p-5 sm:p-6">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-          <LineChart className="size-5" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold">Weekly check-ins</h2>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Check-ins per property over the last {WEEKLY_CHECK_INS_WEEKS} weeks —
-            the pilot-adoption trend. Weeks a property had zero check-ins are
-            filled in as 0 rather than omitted.
-          </p>
-        </div>
-      </div>
+    <Panel>
+      <PanelHeader title="Weekly check-ins" icon={LineChart} meta={`${WEEKLY_CHECK_INS_WEEKS} weeks`} />
 
       {grid.properties.length && grid.weeks.length ? (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/60 text-left text-xs text-muted-foreground">
+              <tr className="border-b bg-muted text-left text-xs text-subtle-foreground">
                 <th className="p-4 font-medium">Property</th>
                 {grid.weeks.map((weekStart) => (
                   <th key={weekStart} className="p-4 font-medium whitespace-nowrap">
@@ -160,7 +138,7 @@ function WeeklyCheckInsSection() {
             <tbody className="divide-y">
               {grid.properties.map((property) => (
                 <tr key={`${property.organizationSlug}-${property.propertyId}`}>
-                  <td className="p-4">
+                  <td className="px-5 py-2">
                     <p className="font-medium">{property.propertyName}</p>
                     <p className="text-xs text-muted-foreground">
                       {property.organizationSlug}
@@ -169,7 +147,7 @@ function WeeklyCheckInsSection() {
                   {grid.weeks.map((weekStart) => {
                     const checkIns = property.byWeek.get(weekStart) ?? 0;
                     return (
-                      <td key={weekStart} className="p-4">
+                      <td key={weekStart} className="px-5 py-2">
                         <WeeklyCheckInsBar
                           checkIns={checkIns}
                           max={grid.maxCheckIns}
@@ -189,7 +167,7 @@ function WeeklyCheckInsSection() {
           description="Check-in a guest at any property to see the weekly trend here."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
@@ -269,29 +247,18 @@ function AuditFeedSection() {
     error instanceof ApiError ? error.message : "The audit trail could not be loaded.";
 
   return (
-    <Surface>
-      <div className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
-            <ShieldAlert className="size-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">Audit trail</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Who viewed identity details, and every platform-admin action.
-              Document images are never included.
-            </p>
-          </div>
-        </div>
+    <Panel className="[&>header]:flex-wrap">
+      <PanelHeader title="Audit trail" icon={ShieldAlert} actions={
         <div className="flex flex-wrap gap-2">
-          <input
-            className="h-9 w-[200px] rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          <Input
+            className="w-[200px]"
             placeholder="Filter by organization slug"
             aria-label="Filter by organization slug"
             value={organizationSlug}
             onChange={(event) => setOrganizationSlug(event.target.value)}
           />
           <Select
+            items={AUDIT_ACTIONS.map((option) => ({ value: option.value || "__all__", label: option.label }))}
             value={action || "__all__"}
             onValueChange={(value) =>
               setAction(value === "__all__" || !value ? "" : value)
@@ -312,7 +279,7 @@ function AuditFeedSection() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      } />
 
       {isPending ? (
         <p className="p-6 text-sm text-muted-foreground">
@@ -331,11 +298,7 @@ function AuditFeedSection() {
           }
         />
       ) : entries.length ? (
-        <div className="divide-y">
-          {entries.map((entry) => (
-            <AuditRow key={entry.id} entry={entry} />
-          ))}
-        </div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-sm"><thead className="bg-muted text-left text-xs text-subtle-foreground"><tr><th className="px-5 py-3 font-medium">Kind / Action</th><th className="px-5 py-3 font-medium">Actor</th><th className="px-5 py-3 font-medium">Organization / Target</th><th className="px-5 py-3 text-right font-medium">Recorded</th></tr></thead><tbody>{entries.map((entry) => <AuditRow key={entry.id} entry={entry} />)}</tbody></table></div>
       ) : (
         <EmptyState
           icon={ClipboardList}
@@ -343,46 +306,16 @@ function AuditFeedSection() {
           description="Clear the filters, or check back after the next platform action."
         />
       )}
-    </Surface>
+    </Panel>
   );
 }
 
 function AuditRow({ entry }: { entry: PlatformOversightAuditEntry }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <KindBadge kind={entry.kind} />
-          <p className="text-sm font-medium">{actionLabel(entry.action)}</p>
-        </div>
-        <p className="mt-1 truncate text-xs text-muted-foreground">
-          {entry.actorEmail} · {entry.organizationSlug}
-          {entry.kind === "IDENTITY_ACCESS"
-            ? ` · ${entry.propertyName}`
-            : ` · ${entry.target}`}
-        </p>
-      </div>
-      <p className="shrink-0 text-xs text-muted-foreground">
-        <ClipboardList className="mr-1 inline size-3.5 align-[-2px]" />
-        {formatDateTime(entry.at)}
-      </p>
-    </div>
-  );
+  return <tr className="h-11 border-t border-border-soft"><td className="px-5 py-2"><div className="flex flex-wrap items-center gap-2"><KindBadge kind={entry.kind} /><span className="font-medium">{actionLabel(entry.action)}</span></div></td><td className="px-5 py-2"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.actorEmail)}</span><span className="text-muted-foreground">{entry.actorEmail}</span></div></td><td className="px-5 py-2 text-xs text-muted-foreground">{entry.organizationSlug} · {entry.kind === "IDENTITY_ACCESS" ? entry.propertyName : entry.target}</td><td className="px-5 py-2 text-right text-xs whitespace-nowrap text-subtle-foreground tabular-nums">{formatDateTime(entry.at)}</td></tr>;
 }
 
 function KindBadge({ kind }: { kind: PlatformOversightAuditEntry["kind"] }) {
-  const isIdentity = kind === "IDENTITY_ACCESS";
-  return (
-    <span
-      className={
-        isIdentity
-          ? "rounded-full bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-700 dark:text-sky-300"
-          : "rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
-      }
-    >
-      {isIdentity ? "Identity access" : "Platform admin"}
-    </span>
-  );
+  return <StatusPill tone="neutral">{kind === "IDENTITY_ACCESS" ? "Identity access" : "Platform admin"}</StatusPill>;
 }
 
 function actionLabel(action: string) {

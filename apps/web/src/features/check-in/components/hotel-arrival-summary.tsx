@@ -1,5 +1,5 @@
 import type { CheckInProperty } from "@tattvix/contracts";
-import { Surface } from "@/components/design-system";
+import { Panel, PanelHeader, PanelSection } from "@/components/design-system";
 import { formatMoneyMinor } from "@/lib/money";
 export function HotelArrivalSummary({
   property,
@@ -11,9 +11,8 @@ export function HotelArrivalSummary({
   const from = details.nightlyRateFromMinor;
   const to = details.nightlyRateToMinor;
   return (
-    <Surface className="grid gap-5 p-6 sm:grid-cols-2">
+    <Panel><PanelHeader title="About your hotel" /><PanelSection className="grid gap-5 sm:grid-cols-2">
       <div>
-        <h2 className="text-lg font-semibold">About your hotel</h2>
         {details.description && (
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {details.description}
@@ -53,6 +52,6 @@ export function HotelArrivalSummary({
           </p>
         )}
       </div>
-    </Surface>
+    </PanelSection></Panel>
   );
 }

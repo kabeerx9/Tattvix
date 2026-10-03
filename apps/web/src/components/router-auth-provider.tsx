@@ -3,7 +3,7 @@ import { Button } from "@tattvix/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import Loader from "@/components/loader";
+import { hideBootSplash } from "@/lib/boot-splash";
 import { currentUserQueries } from "@/features/current-user/queries";
 import type { RouterAuthContext } from "@/lib/router-auth";
 import { setClerkAuthTokenGetter } from "@/utils/clerk-auth";
@@ -24,9 +24,13 @@ export function RouterAuthProvider({
     return () => setClerkAuthTokenGetter(null);
   }, [getToken]);
 
-  if (!isLoaded || (isSignedIn && currentUserQuery.isPending)) {
-    return <Loader />;
-  }
+  const isResolving = !isLoaded || (isSignedIn && currentUserQuery.isPending);
+  useEffect(() => {
+    if (!isResolving) hideBootSplash();
+  }, [isResolving]);
+
+  // The index.html boot splash covers the screen until auth resolves.
+  if (isResolving) return null;
 
   if (isSignedIn && currentUserQuery.isError) {
     return (
