@@ -49,6 +49,8 @@ export {
   type StayStatus,
 } from "./check-in";
 export {
+  hotelOverviewSummaryResponseSchema,
+  type HotelOverviewSummaryResponse,
   hotelGuestListResponseSchema,
   hotelGuestStaySchema,
   hotelReportDateRangeQuerySchema,
@@ -230,4 +232,10 @@ export {
 export {
   hotelRoomRateInputSchema,
   type HotelRoomRateInput,
+} from "./hotel-operations";
+export {
+  propertyPhotoKindSchema, propertyPhotoSlotSchema, propertyPhotosResponseSchema,
+  propertyPhotoUploadRequestSchema, propertyPhotoUploadResponseSchema,
+  type PropertyPhotoKind, type PropertyPhotoSlot, type PropertyPhotosResponse,
+  type PropertyPhotoUploadRequest, type PropertyPhotoUploadResponse,
 } from "./hotel-operations";

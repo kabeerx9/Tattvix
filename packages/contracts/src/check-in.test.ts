@@ -6,6 +6,7 @@ import {
   guestCheckInSubmitInputSchema,
   guestShareSchema,
   hotelStayDetailSchema,
+  hotelStayListItemSchema,
   hotelStayListQuerySchema,
   sharedCompanionSchema,
 } from "./check-in";
@@ -84,6 +85,7 @@ test("guest share carries live operational status and a room number once checked
 test("hotel detail accepts an active immutable identity snapshot", () => {
   const result = hotelStayDetailSchema.safeParse({
     ...submittedStay,
+    expectedCheckOutDate: null,
     guestName: "Kabeer Joshi",
     companionCount: 0,
     identityAccess: {
@@ -186,4 +188,15 @@ test("historical companion snapshots remain readable without ID fields", () => {
   });
   assert.deepEqual(companion.images, []);
   assert.equal(companion.document, undefined);
+});
+
+
+test("hotel stay expected checkout is a nullable calendar date", () => {
+  const item = {
+    ...submittedStay, guestName: "Kabeer Joshi", companionCount: 0,
+    identityAccess: { isActive: true, reason: "ACTIVE", expiresAt: null },
+  };
+  assert.equal(hotelStayListItemSchema.parse({ ...item, expectedCheckOutDate: "2026-10-04" }).expectedCheckOutDate, "2026-10-04");
+  assert.equal(hotelStayListItemSchema.parse({ ...item, expectedCheckOutDate: null }).expectedCheckOutDate, null);
+  assert.equal(hotelStayListItemSchema.safeParse({ ...item, expectedCheckOutDate: "tomorrow" }).success, false);
 });

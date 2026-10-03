@@ -160,3 +160,55 @@ export type HotelReportStatusCountsResponse = z.infer<
 >;
 
 export { roomStatusSchema };
+
+export const hotelOverviewSummaryResponseSchema = z.object({
+  dateFrom: z.iso.date(),
+  dateTo: z.iso.date(),
+  activeRooms: z.number().int().nonnegative(),
+  occupancy: z.array(z.object({
+    date: z.iso.date(),
+    occupiedRooms: z.number().int().nonnegative(),
+  })),
+  revenue: z.object({
+    totalMinor: z.number().int().nonnegative(),
+    byDay: z.array(z.object({
+      date: z.iso.date(),
+      amountMinor: z.number().int().nonnegative(),
+    })),
+  }).nullable(),
+});
+
+export type HotelOverviewSummaryResponse = z.infer<typeof hotelOverviewSummaryResponseSchema>;
+
+export const propertyPhotoKindSchema = z.enum(["COVER", "ROOM_TYPE"]);
+const photoSlotFields = {
+  kind: propertyPhotoKindSchema,
+  roomType: z.string().max(100).optional(),
+};
+const validPhotoSlot = (slot: { kind: string; roomType?: string }) =>
+  slot.kind !== "COVER" || !slot.roomType;
+export const propertyPhotoSlotSchema = z.object(photoSlotFields).refine(validPhotoSlot, {
+  message: "A cover photo cannot have a room type.",
+});
+export const propertyPhotosResponseSchema = z.object({
+  cover: z.object({ url: z.string().url() }).nullable(),
+  roomTypes: z.array(z.object({ roomType: z.string(), url: z.string().url() })),
+});
+export const propertyPhotoUploadRequestSchema = z.object({
+  ...photoSlotFields,
+  contentType: z.string().min(1),
+  contentLength: z.number().int().positive(),
+}).refine(validPhotoSlot, { message: "A cover photo cannot have a room type." });
+export const propertyPhotoUploadResponseSchema = z.object({
+  upload: z.object({
+    url: z.string().url(),
+    method: z.literal("PUT"),
+    headers: z.record(z.string(), z.string()),
+    expiresInSeconds: z.number().int().positive(),
+  }),
+});
+export type PropertyPhotoKind = z.infer<typeof propertyPhotoKindSchema>;
+export type PropertyPhotoSlot = z.infer<typeof propertyPhotoSlotSchema>;
+export type PropertyPhotosResponse = z.infer<typeof propertyPhotosResponseSchema>;
+export type PropertyPhotoUploadRequest = z.infer<typeof propertyPhotoUploadRequestSchema>;
+export type PropertyPhotoUploadResponse = z.infer<typeof propertyPhotoUploadResponseSchema>;

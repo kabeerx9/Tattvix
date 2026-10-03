@@ -164,6 +164,7 @@ export const hotelIdentityAccessSchema = z.object({
 });
 
 export const hotelStayListItemSchema = guestStaySchema.extend({
+  expectedCheckOutDate: z.iso.date().nullable(),
   guestName: z.string().min(1),
   companionCount: z.number().int().nonnegative(),
   identityAccess: hotelIdentityAccessSchema,

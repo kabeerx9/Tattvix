@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   hotelGuestListResponseSchema,
+  hotelOverviewSummaryResponseSchema,
   hotelReportOccupancyResponseSchema,
   hotelReportRegisterResponseSchema,
   hotelRoomCreateInputSchema,
@@ -89,4 +90,25 @@ test("occupancy response tracks all four room statuses", () => {
   });
 
   assert.equal(result.success, true);
+});
+
+
+const overview = {
+  dateFrom: "2026-10-01", dateTo: "2026-10-03", activeRooms: 24,
+  occupancy: [{ date: "2026-10-01", occupiedRooms: 9 }],
+  revenue: { totalMinor: 350000, byDay: [{ date: "2026-10-01", amountMinor: 350000 }] },
+};
+
+test("overview summary accepts revenue and reception's null revenue", () => {
+  assert.deepEqual(hotelOverviewSummaryResponseSchema.parse(overview), overview);
+  assert.equal(hotelOverviewSummaryResponseSchema.parse({ ...overview, revenue: null }).revenue, null);
+});
+
+test("overview summary rejects negative revenue totals and daily amounts", () => {
+  assert.equal(hotelOverviewSummaryResponseSchema.safeParse({ ...overview,
+    revenue: { ...overview.revenue, totalMinor: -1 },
+  }).success, false);
+  assert.equal(hotelOverviewSummaryResponseSchema.safeParse({ ...overview,
+    revenue: { totalMinor: 0, byDay: [{ date: "2026-10-01", amountMinor: -1 }] },
+  }).success, false);
 });
