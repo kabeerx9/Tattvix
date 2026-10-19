@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import { hideBootSplash } from "@/lib/boot-splash";
+import { setTelemetryUser } from "@/lib/telemetry";
 import { currentUserQueries } from "@/features/current-user/queries";
 import type { RouterAuthContext } from "@/lib/router-auth";
 import { setClerkAuthTokenGetter } from "@/utils/clerk-auth";
@@ -23,6 +24,10 @@ export function RouterAuthProvider({
     setClerkAuthTokenGetter(() => getToken());
     return () => setClerkAuthTokenGetter(null);
   }, [getToken]);
+
+  useEffect(() => {
+    if (isLoaded) setTelemetryUser(isSignedIn ? (userId ?? null) : null);
+  }, [isLoaded, isSignedIn, userId]);
 
   const isResolving = !isLoaded || (isSignedIn && currentUserQuery.isPending);
   useEffect(() => {

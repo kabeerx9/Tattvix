@@ -8,6 +8,8 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
+from tattvix.monitoring import init_sentry
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -200,6 +202,12 @@ CORS_ALLOWED_ORIGINS = env_list(
     "http://localhost:3001,http://127.0.0.1:3001",
 )
 CORS_ALLOW_CREDENTIALS = True
+
+# Error reporting is off unless SENTRY_DSN is set (local dev and tests).
+init_sentry(
+    dsn=os.environ.get("SENTRY_DSN", "").strip(),
+    environment=os.environ.get("VERCEL_ENV", "development"),
+)
 
 CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SIGNING_SECRET = os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "")

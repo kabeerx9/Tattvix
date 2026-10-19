@@ -1,8 +1,10 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 
+import { reportError } from "@/lib/telemetry";
+
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache(),
-  mutationCache: new MutationCache(),
+  queryCache: new QueryCache({ onError: reportError }),
+  mutationCache: new MutationCache({ onError: reportError }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

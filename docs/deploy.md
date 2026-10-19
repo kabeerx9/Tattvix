@@ -49,20 +49,38 @@ production build at creation for a week — 2026-09-26 to 2026-10-03.)
 | ✅ `CORS_ALLOWED_ORIGINS` | `https://tattwix.in` |
 | ✅ `TRUSTED_PROXY_COUNT` | `1` |
 | ✅ `CRON_SECRET` | generated, sensitive; Vercel Cron sends it as a Bearer token |
-| `DATABASE_URL` | Supabase → Connect → **Transaction pooler** URI (port 6543) |
+| ✅ `DATABASE_URL` | Supabase → Connect → **Transaction pooler** URI (port 6543) |
 | ✅ `DATABASE_SSL_REQUIRE` | `true` |
 | ✅ `DATABASE_TRANSACTION_POOLER` | `true` |
-| `CLERK_SECRET_KEY` | Clerk production `sk_live_…` |
-| `CLERK_WEBHOOK_SIGNING_SECRET` | Clerk webhook → `https://api.tattwix.in/api/webhooks/clerk/` |
+| ✅ `CLERK_SECRET_KEY` | Clerk production `sk_live_…` |
+| ✅ `CLERK_WEBHOOK_SIGNING_SECRET` | Clerk webhook → `https://api.tattwix.in/api/webhooks/clerk/` |
 | ✅ `CLERK_AUTHORIZED_PARTIES` | `https://tattwix.in` |
 | ✅ `OBJECT_STORAGE_ENDPOINT_URL` | `https://s3.ap-south-1.amazonaws.com` |
 | ✅ `OBJECT_STORAGE_REGION` | `ap-south-1` |
 | ✅ `OBJECT_STORAGE_BUCKET_NAME` | `tattwix-identity-documents` |
 | ✅ `OBJECT_STORAGE_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | IAM user `tattwix-api-object-storage`, sensitive |
+| `SENTRY_DSN` | Sentry project `tattwix-api` → Client Keys (DSN) |
 
 `tattwix-web` (production): ✅ `VITE_SERVER_URL=https://api.tattwix.in`,
-`VITE_CLERK_PUBLISHABLE_KEY=pk_live_…`. `VITE_*` values are baked in at
-build time; changing one needs a redeploy.
+`VITE_CLERK_PUBLISHABLE_KEY=pk_live_…`; to add: `VITE_SENTRY_DSN` (Sentry
+project `tattwix-web`) and `VITE_GA_MEASUREMENT_ID=G-YENGRV5FFC` (GA4
+property "Tattwix"). `VITE_*` values are baked in at build time; changing
+one needs a redeploy.
+
+## Error reporting and analytics
+
+Sentry (org `kabeer-joshi`, projects `tattwix-web` and `tattwix-api`) and
+GA4 are off unless their env vars are set. Both are scrubbed for identity
+data: no request bodies, headers, cookies, query strings, frame locals,
+session replay or emails; users are identified by Clerk id only. Check-in
+tokens are bearer secrets and are redacted everywhere
+(`apps/server/tattvix/monitoring.py`, `apps/web/src/lib/telemetry-privacy.ts`);
+GA sees `/check-in/:token`. Expected 4xx API errors are not reported. GA
+enhanced measurement has site search and form interactions turned off.
+Product events: `check_in_qr_generated`, `identity_document_saved`,
+`check_in_submitted`, `stay_checked_in`, `stay_checked_out` — params are
+slugs and counts only. Source maps are not uploaded yet, so browser stack
+traces are minified.
 
 Add a secret without it touching the terminal history:
 

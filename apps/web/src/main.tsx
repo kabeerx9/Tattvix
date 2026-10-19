@@ -10,7 +10,10 @@ import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
 import { queryClient } from "./core/query/query-client";
+import { reactErrorHandler, initTelemetry, trackPageView } from "./lib/telemetry";
 import { routeTree } from "./routeTree.gen";
+
+initTelemetry();
 
 const router = createRouter({
   routeTree,
@@ -26,6 +29,8 @@ const router = createRouter({
   },
 });
 
+router.subscribe("onResolved", () => trackPageView(window.location.href));
+
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
@@ -39,7 +44,11 @@ if (!rootElement) {
 }
 
 if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
+  const root = ReactDOM.createRoot(rootElement, {
+    onUncaughtError: reactErrorHandler(),
+    onCaughtError: reactErrorHandler(),
+    onRecoverableError: reactErrorHandler(),
+  });
   root.render(
     <ThemeProvider
       attribute="class"

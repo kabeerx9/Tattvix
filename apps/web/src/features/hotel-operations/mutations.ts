@@ -5,6 +5,8 @@ import type {
 } from "@tattvix/contracts";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { trackEvent } from "@/lib/telemetry";
+
 import { invalidateOperations } from "./invalidation";
 
 import { hotelOperationsApi } from "./api";
@@ -79,13 +81,23 @@ export const hotelOperationsMutations = {
         roomId,
         nights,
       }),
-    onSuccess: (_stay: unknown, variables: StayScope) =>
-      invalidateOperations(queryClient, variables, variables.stayId),
+    onSuccess: (
+      _stay: unknown,
+      variables: StayScope & { roomId: number; nights: number },
+    ) => {
+      trackEvent("stay_checked_in", {
+        property: variables.propertySlug,
+        nights: variables.nights,
+      });
+      return invalidateOperations(queryClient, variables, variables.stayId);
+    },
   }),
   checkout: (queryClient: QueryClient) => ({
     mutationFn: ({ organizationSlug, propertySlug, stayId }: StayScope) =>
       hotelOperationsApi.checkout(organizationSlug, propertySlug, stayId),
-    onSuccess: (_stay: unknown, variables: StayScope) =>
-      invalidateOperations(queryClient, variables, variables.stayId),
+    onSuccess: (_stay: unknown, variables: StayScope) => {
+      trackEvent("stay_checked_out", { property: variables.propertySlug });
+      return invalidateOperations(queryClient, variables, variables.stayId);
+    },
   }),
 };

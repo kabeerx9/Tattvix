@@ -7,6 +7,7 @@ import type {
 import type { QueryClient } from "@tanstack/react-query";
 
 import { guestProfileKeys } from "@/features/guest-profile/keys";
+import { trackEvent } from "@/lib/telemetry";
 
 import { createIdentityDocumentsApi } from "./api";
 import { identityDocumentKeys } from "./keys";
@@ -79,6 +80,9 @@ export const identityDocumentMutations = {
         return uploads.length ? api.get(document.id) : document;
       },
       onSuccess: (document: IdentityDocument) => {
+        trackEvent("identity_document_saved", {
+          for_companion: companionId !== undefined,
+        });
         updateCachedDocuments(queryClient, companionId, (documents) => {
           const exists = documents.some((item) => item.id === document.id);
           return exists

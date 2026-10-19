@@ -4,6 +4,8 @@ import type {
   StayBillVoidInput,
 } from "@tattvix/contracts";
 
+import { trackEvent } from "@/lib/telemetry";
+
 import { invalidateStayBill } from "../hotel-operations/invalidation";
 
 import { hotelStaysApi } from "./api";
@@ -22,6 +24,10 @@ export const hotelStayMutations = {
       propertySlug,
     }: Omit<StayScope, "stayId">) =>
       hotelStaysApi.generateQr(organizationSlug, propertySlug),
+    onSuccess: (_qr: unknown, variables: Omit<StayScope, "stayId">) =>
+      trackEvent("check_in_qr_generated", {
+        property: variables.propertySlug,
+      }),
   }),
   close: (queryClient: QueryClient) => ({
     mutationFn: ({ organizationSlug, propertySlug, stayId }: StayScope) =>
