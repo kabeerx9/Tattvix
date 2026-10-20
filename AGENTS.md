@@ -25,4 +25,4 @@ Issues and specs live as GitHub issues in `kabeerx9/Tattvix`, driven by the `gh`
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root, with `plans/` as the MVP scope source. See `docs/agents/domain.md`.
+Single-context: domain docs are `docs/adr/` and `plans/` at the repo root (no `CONTEXT.md` exists yet); see `docs/agents/domain.md`.

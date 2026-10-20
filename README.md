@@ -89,7 +89,7 @@ CLERK_WEBHOOK_SIGNING_SECRET="whsec_replace_me"
 CLERK_AUTHORIZED_PARTIES="http://localhost:3001,http://127.0.0.1:3001"
 COMPANION_MINOR_AGE_YEARS="18"
 HOTEL_QR_TOKEN_TTL_DAYS="365"
-HOTEL_IDENTITY_MAX_ACCESS_DAYS="30"
+HOTEL_IDENTITY_MAX_ACCESS_DAYS="7"
 HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS="24"
 OBJECT_STORAGE_ENDPOINT_URL="http://127.0.0.1:9000"
 OBJECT_STORAGE_ACCESS_KEY_ID="tattvix-server"
@@ -121,8 +121,8 @@ storage must use HTTPS and separately managed, bucket-scoped credentials.
 ## Private Object Storage
 
 Identity-document images use a private S3-compatible bucket. Local development
-uses MinIO, while production can later switch to Cloudflare R2 by changing only
-the server-side object-storage environment variables.
+uses MinIO. Production uses Amazon S3 in `ap-south-1`; see
+[`docs/deploy.md`](docs/deploy.md) for the production setup.
 
 `pnpm run dev` starts MinIO and creates the private development bucket before
 launching the application processes. To start storage by itself:

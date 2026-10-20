@@ -61,5 +61,9 @@ jobs:
       - name: Type checks
         run: pnpm run check-types
 
+      - name: Migrations are committed
+        run: uv run python manage.py makemigrations --check --dry-run
+        working-directory: apps/server
+
       - name: Tests
         run: pnpm test

@@ -1,3 +1,9 @@
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
@@ -8,6 +14,48 @@ from tattvix.settings import (
 )
 
 SUPABASE_POOLER_URL = "postgresql://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+SERVER_DIR = Path(__file__).resolve().parents[2]
+BROWSABLE_RENDERER = "rest_framework.renderers.BrowsableAPIRenderer"
+
+
+def renderer_classes_for_debug(debug: str) -> list[str]:
+    # tattvix.settings enforces production env requirements at import time
+    # and cannot be re-imported safely in-process, so import it in a fresh
+    # interpreter with the given DJANGO_DEBUG value.
+    env = {
+        **os.environ,
+        "DJANGO_DEBUG": debug,
+        "DJANGO_SECRET_KEY": "a-sufficiently-long-random-production-secret",
+        "DJANGO_ALLOWED_HOSTS": "example.com",
+        "OBJECT_STORAGE_ENDPOINT_URL": "https://storage.example.com",
+        "OBJECT_STORAGE_SECRET_ACCESS_KEY": "a-production-object-storage-secret",
+    }
+    code = (
+        "import json; from tattvix.settings import REST_FRAMEWORK; "
+        "print(json.dumps(REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES']))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=SERVER_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
+
+
+class RendererSettingsTests(SimpleTestCase):
+    def test_browsable_api_renderer_is_absent_when_debug_is_false(self):
+        renderers = renderer_classes_for_debug("false")
+
+        self.assertIn("rest_framework.renderers.JSONRenderer", renderers)
+        self.assertNotIn(BROWSABLE_RENDERER, renderers)
+
+    def test_browsable_api_renderer_is_present_when_debug_is_true(self):
+        renderers = renderer_classes_for_debug("true")
+
+        self.assertIn(BROWSABLE_RENDERER, renderers)
 
 
 class BuildDatabaseConfigTests(SimpleTestCase):

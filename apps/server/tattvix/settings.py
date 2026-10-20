@@ -312,9 +312,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.ClerkAuthentication",
     ],
+    # The browsable API renders internal endpoint shapes; keep it out of
+    # production responses.
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
+        *(
+            ["rest_framework.renderers.BrowsableAPIRenderer"]
+            if DEBUG
+            else []
+        ),
     ],
     # Scopes are opted into per-view via ScopedRateThrottle subclasses; a
     # view without a matching `throttle_scope` is never throttled, so

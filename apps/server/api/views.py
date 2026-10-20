@@ -1,5 +1,6 @@
 import hmac
 
+import sentry_sdk
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import (
@@ -83,6 +84,12 @@ def cron_purge_identity_images(request):
         storage=PrivateObjectStorage(),
         batch_size=CRON_PURGE_BATCH_SIZE,
     )
+    if failed_count:
+        # Count only: object keys and check-in identifiers must never reach Sentry.
+        sentry_sdk.capture_message(
+            f"Identity image purge deferred {failed_count} object(s)",
+            level="error",
+        )
     return Response(
         {"deleted": deleted_count, "deferred": failed_count},
         # Non-2xx marks the run failed in Vercel, the only signal we get

@@ -2,11 +2,11 @@
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
-This repo is **single-context**: one `CONTEXT.md` and one `docs/adr/` at the root. The repo is a monorepo by build layout (`apps/*`, `packages/*`) but serves a single domain — consent-driven hotel identity sharing and check-in — and `packages/contracts` is already the shared vocabulary across `apps/web`, `apps/server`, and `apps/native`. Don't split the glossary per app.
+This repo is **single-context**: one `docs/adr/` directory at the root, plus a `CONTEXT.md` glossary once it is created (none exists yet). The repo is a monorepo by build layout (`apps/*`, `packages/*`) but serves a single domain — consent-driven hotel identity sharing and check-in — and `packages/contracts` is already the shared vocabulary across `apps/web`, `apps/server`, and `apps/native`. Don't split the glossary per app.
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root — the domain glossary.
+- **`CONTEXT.md`** at the repo root — the domain glossary, if it exists (none yet).
 - **`docs/adr/`** — read the ADRs that touch the area you're about to work in.
 - **`plans/`** — the MVP roadmap and phase plans. `plans/001-tattvix-web-mvp-roadmap.md` is the master scope and sequencing source; `plans/README.md` carries the status table.
 - **`docs/tattvix-platform-overview.md`** and **`docs/mvp-identity-contract.md`** — product and identity-contract background.

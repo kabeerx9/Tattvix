@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 PURGE = "api.views.purge_expired_shared_identity_images"
+CAPTURE_MESSAGE = "api.views.sentry_sdk.capture_message"
 CRON_SECRET = "a-long-random-cron-secret-for-tests"
 
 
@@ -45,6 +46,16 @@ class PurgeIdentityImagesCronTests(APITestCase):
         self.assertEqual(response.json(), {"deleted": 3, "deferred": 0})
         purge.assert_called_once()
 
+    def test_clean_run_does_not_report_to_sentry(self):
+        with (
+            override_settings(CRON_SECRET=CRON_SECRET),
+            patch(PURGE, return_value=(3, 0)),
+            patch(CAPTURE_MESSAGE) as capture_message,
+        ):
+            self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {CRON_SECRET}")
+
+        capture_message.assert_not_called()
+
     def test_deferred_deletions_surface_as_server_error(self):
         # Vercel marks non-2xx cron runs as failed, which is the only alert
         # we get that storage deletes are stuck.
@@ -58,3 +69,15 @@ class PurgeIdentityImagesCronTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertEqual(response.json(), {"deleted": 1, "deferred": 2})
+
+    def test_deferred_deletions_report_count_only_to_sentry(self):
+        with (
+            override_settings(CRON_SECRET=CRON_SECRET),
+            patch(PURGE, return_value=(1, 2)),
+            patch(CAPTURE_MESSAGE) as capture_message,
+        ):
+            self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {CRON_SECRET}")
+
+        capture_message.assert_called_once_with(
+            "Identity image purge deferred 2 object(s)", level="error"
+        )
