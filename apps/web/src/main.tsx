@@ -1,10 +1,12 @@
 import "@fontsource-variable/inter";
 import { env } from "@tattvix/env/web";
 import { ClerkProvider } from "@clerk/react";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { Link, RouterProvider, createRouter } from "@tanstack/react-router";
+import { Button } from "@tattvix/ui/components/button";
+import { SearchX } from "lucide-react";
 import ReactDOM from "react-dom/client";
 
-import { RouteErrorState } from "./components/design-system";
+import { EmptyState, RouteErrorState } from "./components/design-system";
 import { RoutePendingBar } from "./components/route-pending-bar";
 import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
@@ -22,6 +24,20 @@ const router = createRouter({
   defaultPendingComponent: RoutePendingBar,
   defaultErrorComponent: ({ error, reset }) => (
     <RouteErrorState error={error} reset={reset} />
+  ),
+  defaultNotFoundComponent: () => (
+    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center px-5">
+      <EmptyState
+        icon={SearchX}
+        title="Page not found"
+        description="The link may be wrong or the page may have moved."
+        action={
+          <Button nativeButton={false} variant="outline" render={<Link to="/" />}>
+            Go to Tattwix
+          </Button>
+        }
+      />
+    </div>
   ),
   context: {
     auth: undefined!,

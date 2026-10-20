@@ -21,13 +21,19 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
       {
         name: "description",
-        content: "A fullstack TypeScript application starter",
+        content:
+          "Tattwix lets hotel guests share identity documents securely for check-in by scanning the property's QR code.",
       },
     ],
     links: [
       {
         rel: "icon",
-        href: "/favicon.ico",
+        type: "image/svg+xml",
+        href: "/favicon.svg",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/favicon.svg",
       },
     ],
   }),

@@ -34,6 +34,9 @@ export const Route = createFileRoute("/check-in/$token")({
       throw error;
     }
   },
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex" }],
+  }),
   errorComponent: CheckInRouteError,
   component: CheckInRoute,
 });

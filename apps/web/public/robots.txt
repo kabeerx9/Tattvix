@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /check-in/
+Disallow: /login
+Disallow: /sign-up
