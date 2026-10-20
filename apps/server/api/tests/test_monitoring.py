@@ -86,3 +86,17 @@ class SentryInitOptionsTests(SimpleTestCase):
         self.assertIs(options["before_send"], scrub_event)
         self.assertIs(options["before_send_transaction"], scrub_event)
         self.assertEqual(options["environment"], "production")
+
+    def test_release_is_included_when_given(self):
+        options = sentry_init_options(
+            dsn="https://k@o1.ingest.sentry.io/1", environment="preview", release="abc1234"
+        )
+
+        self.assertEqual(options["release"], "abc1234")
+
+    def test_release_key_is_omitted_when_none(self):
+        options = sentry_init_options(
+            dsn="https://k@o1.ingest.sentry.io/1", environment="preview", release=None
+        )
+
+        self.assertNotIn("release", options)

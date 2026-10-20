@@ -64,7 +64,8 @@ production build at creation for a week — 2026-09-26 to 2026-10-03.)
 `tattwix-web` (production): ✅ `VITE_SERVER_URL=https://api.tattwix.in`,
 `VITE_CLERK_PUBLISHABLE_KEY=pk_live_…`; to add: `VITE_SENTRY_DSN` (Sentry
 project `tattwix-web`) and `VITE_GA_MEASUREMENT_ID=G-YENGRV5FFC` (GA4
-property "Tattwix"). `VITE_*` values are baked in at build time; changing
+property "Tattwix"); `SENTRY_AUTH_TOKEN` (sensitive, build-time source map
+upload, see Error reporting). `VITE_*` values are baked in at build time; changing
 one needs a redeploy.
 
 ## Error reporting and analytics
@@ -79,8 +80,14 @@ GA sees `/check-in/:token`. Expected 4xx API errors are not reported. GA
 enhanced measurement has site search and form interactions turned off.
 Product events: `check_in_qr_generated`, `identity_document_saved`,
 `check_in_submitted`, `stay_checked_in`, `stay_checked_out` — params are
-slugs and counts only. Source maps are not uploaded yet, so browser stack
-traces are minified.
+slugs and counts only.
+
+Source maps upload during the Vercel build when `SENTRY_AUTH_TOKEN` is set on
+`tattwix-web`. Use a Sentry org auth token with `project:releases` and
+`org:read` scopes, added as a sensitive env var. Without the token the build
+still emits hidden maps, but nothing is uploaded and no maps are deleted. Web
+and API releases are tagged with the git commit SHA (`VERCEL_GIT_COMMIT_SHA`),
+and the Sentry environment is `production` or `preview` from `VERCEL_ENV`.
 
 Add a secret without it touching the terminal history:
 

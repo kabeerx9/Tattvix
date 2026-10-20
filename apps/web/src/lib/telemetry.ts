@@ -23,7 +23,8 @@ export function initTelemetry() {
   if (env.VITE_SENTRY_DSN) {
     Sentry.init({
       dsn: env.VITE_SENTRY_DSN,
-      environment: import.meta.env.MODE,
+      environment: __APP_ENVIRONMENT__,
+      release: __APP_RELEASE__,
       sendDefaultPii: false,
       // No session replay: guest screens show identity documents.
       beforeSend: (event, hint) =>

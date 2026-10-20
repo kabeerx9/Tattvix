@@ -207,6 +207,7 @@ CORS_ALLOW_CREDENTIALS = True
 init_sentry(
     dsn=os.environ.get("SENTRY_DSN", "").strip(),
     environment=os.environ.get("VERCEL_ENV", "development"),
+    release=os.environ.get("VERCEL_GIT_COMMIT_SHA") or None,
 )
 
 CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")

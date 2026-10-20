@@ -34,6 +34,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@sentry/vite-plugin": "^11.8.0",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/router-plugin": "^1.167.22",
     "@tattvix/config": "workspace:*",

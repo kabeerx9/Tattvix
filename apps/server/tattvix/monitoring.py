@@ -36,10 +36,12 @@ def scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]:
     return redact(event)
 
 
-def sentry_init_options(*, dsn: str, environment: str) -> dict[str, Any] | None:
+def sentry_init_options(
+    *, dsn: str, environment: str, release: str | None = None
+) -> dict[str, Any] | None:
     if not dsn:
         return None
-    return {
+    options: dict[str, Any] = {
         "dsn": dsn,
         "environment": environment,
         "send_default_pii": False,
@@ -49,10 +51,13 @@ def sentry_init_options(*, dsn: str, environment: str) -> dict[str, Any] | None:
         "before_send": scrub_event,
         "before_send_transaction": scrub_event,
     }
+    if release:
+        options["release"] = release
+    return options
 
 
-def init_sentry(*, dsn: str, environment: str) -> None:
-    options = sentry_init_options(dsn=dsn, environment=environment)
+def init_sentry(*, dsn: str, environment: str, release: str | None = None) -> None:
+    options = sentry_init_options(dsn=dsn, environment=environment, release=release)
     if options is None:
         return
 
