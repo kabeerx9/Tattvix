@@ -1,5 +1,7 @@
 # Privacy and legal requirements for Tattwix (India): research notes
 
+> Second pass with primary-source resolutions: `privacy-legal-gaps-resolved.md`. Note the 27 May 2022 UIDAI advisory cited in section 3 was withdrawn on 29 May 2022; see gap 5 there. Working rulebook: `docs/compliance/rules.md`.
+
 Research date: 2026-10-20. This is research, not legal advice. Every claim carries a URL. "Read" means I downloaded and read the primary text myself. "Secondary" means I only saw it reported elsewhere and it is labelled so. Where I could not confirm something, it says so.
 
 Primary sources used (read in full or in the relevant parts):
