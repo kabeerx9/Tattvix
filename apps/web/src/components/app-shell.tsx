@@ -129,8 +129,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="min-w-0 bg-background">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur sm:px-8">
+        <SidebarInset className="min-w-0 bg-background pr-[env(safe-area-inset-right,0px)] pl-[env(safe-area-inset-left,0px)]">
+          <header className="sticky top-0 z-20 flex h-[calc(--spacing(14)+env(safe-area-inset-top,0px))] items-center pt-[env(safe-area-inset-top,0px)] gap-3 border-b border-border bg-background/90 px-4 backdrop-blur sm:px-8">
             <SidebarTrigger className="-ml-1" />
             <p className="truncate text-sm font-medium">{sectionLabel}</p>
           </header>

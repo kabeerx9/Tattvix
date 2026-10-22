@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_auth/unauthorized")({
 
 function UnauthorizedPage() {
   return (
-    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center text-center">
+    <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center text-center">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Access restricted

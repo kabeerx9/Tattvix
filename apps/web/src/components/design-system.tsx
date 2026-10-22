@@ -163,7 +163,7 @@ export function RouteErrorState({
   }
 
   return (
-    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center px-5 text-center">
+    <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center px-5 text-center">
       <div>
         <span className="mx-auto grid size-12 place-items-center rounded-xl bg-destructive/10 text-destructive">
           <AlertTriangle className="size-6" />

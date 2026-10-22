@@ -43,7 +43,7 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
-      <div className="min-h-svh">
+      <div className="min-h-dvh">
         <Outlet />
       </div>
       <Toaster richColors />

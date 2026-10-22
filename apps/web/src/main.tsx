@@ -12,6 +12,7 @@ import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
 import { queryClient } from "./core/query/query-client";
+import { clerkAppearance, clerkLocalization } from "./lib/clerk-config";
 import { reactErrorHandler, initTelemetry, trackPageView } from "./lib/telemetry";
 import { routeTree } from "./routeTree.gen";
 
@@ -26,7 +27,7 @@ const router = createRouter({
     <RouteErrorState error={error} reset={reset} />
   ),
   defaultNotFoundComponent: () => (
-    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center px-5">
+    <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center px-5">
       <EmptyState
         icon={SearchX}
         title="Page not found"
@@ -69,6 +70,7 @@ if (!rootElement.innerHTML) {
     <ThemeProvider
       attribute="class"
       forcedTheme="light"
+      enableSystem={false}
       defaultTheme="light"
       disableTransitionOnChange
       storageKey="vite-ui-theme"
@@ -79,6 +81,8 @@ if (!rootElement.innerHTML) {
         signUpUrl="/sign-up"
         signInFallbackRedirectUrl="/guest"
         signUpFallbackRedirectUrl="/guest"
+        appearance={clerkAppearance}
+        localization={clerkLocalization}
       >
         <AppProviders client={queryClient}>
           <RouterAuthProvider>
