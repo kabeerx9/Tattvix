@@ -22,15 +22,31 @@ import { ChevronLeft } from "lucide-react";
 export function DocumentSheet({
   open,
   onOpenChange,
+  presentation = "page",
   children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * "page": full screen on phones, a side sheet on desktop.
+   * "bottom": a tall bottom sheet, for flows that are themselves a phone-first
+   * page (check-in), so the guest stays visually inside that flow.
+   */
+  presentation?: "page" | "bottom";
   children: React.ReactNode;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="gap-0 text-sm sm:max-w-lg">{children}</SheetContent>
+      {presentation === "bottom" ? (
+        <SheetContent
+          side="bottom"
+          className="mx-auto h-[min(92dvh,52rem)] w-full max-w-lg gap-0 rounded-t-xl text-sm data-[side=bottom]:h-[min(92dvh,52rem)] sm:border-x"
+        >
+          {children}
+        </SheetContent>
+      ) : (
+        <SheetContent className="gap-0 text-sm sm:max-w-lg">{children}</SheetContent>
+      )}
     </Sheet>
   );
 }

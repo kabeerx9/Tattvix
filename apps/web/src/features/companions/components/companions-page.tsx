@@ -243,7 +243,7 @@ function EmptyCompanions({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-function CompanionEditor({
+export function CompanionEditor({
   companion,
   isSaving,
   isRemoving,

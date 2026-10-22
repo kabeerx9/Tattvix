@@ -34,13 +34,9 @@ import {
   maskDocumentNumber,
   summarizeDocument,
 } from "@/features/identity-documents/document-model";
-import {
-  IdentityDocumentSaveError,
-  identityDocumentMutations,
-  type IdentityDocumentSaveInput,
-  type IdentityDocumentSaveProgress,
-} from "@/features/identity-documents/mutations";
+import { identityDocumentMutations } from "@/features/identity-documents/mutations";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
+import { useDocumentSave } from "@/features/identity-documents/use-document-save";
 import { ApiError } from "@/lib/api";
 
 const typeIcons: Record<IdentityDocumentType, LucideIcon> = {
@@ -72,13 +68,15 @@ export function IdentityDocumentsSection({
   const queryClient = useQueryClient();
   const documentsQuery = useQuery(identityDocumentQueries.list(companionId));
   const [sheet, setSheet] = useState<SheetState | null>(null);
-  const [progress, setProgress] = useState<IdentityDocumentSaveProgress | null>(null);
   const [photo, setPhoto] = useState<{ url: string; title: string } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<IdentityDocument | null>(null);
   const sessionRef = useRef(0);
-  const saveMutation = useMutation(
-    identityDocumentMutations.save(queryClient, companionId),
-  );
+  const saver = useDocumentSave(companionId, {
+    onSaved: (document) => setSheet({ screen: "view", id: document.id }),
+    // Details were saved; retrying updates that draft instead of creating a duplicate.
+    onDraftSaved: (document) =>
+      setSheet((state) => (state?.screen === "edit" ? { ...state, id: document.id } : state)),
+  });
   const removeMutation = useMutation(
     identityDocumentMutations.remove(queryClient, companionId),
   );
@@ -88,32 +86,9 @@ export function IdentityDocumentsSection({
     sheet?.id != null ? (documents.find((item) => item.id === sheet.id) ?? null) : null;
 
   function openEditor(id: number | null, focus?: "photos") {
-    saveMutation.reset();
+    saver.reset();
     sessionRef.current += 1;
     setSheet({ screen: "edit", id, focus, session: sessionRef.current });
-  }
-
-  function saveDocument(input: IdentityDocumentSaveInput) {
-    setProgress(null);
-    saveMutation.mutate(
-      { ...input, onProgress: setProgress },
-      {
-        onSuccess: (document) => {
-          toast.success(input.documentId ? "Document updated" : "Document added");
-          setSheet({ screen: "view", id: document.id });
-        },
-        onError: (error) => {
-          if (error instanceof IdentityDocumentSaveError) {
-            // Details were saved; retrying updates that draft instead of
-            // creating a duplicate.
-            setSheet((state) =>
-              state?.screen === "edit" ? { ...state, id: error.document.id } : state,
-            );
-          }
-        },
-        onSettled: () => setProgress(null),
-      },
-    );
   }
 
   function confirmDelete() {
@@ -131,14 +106,6 @@ export function IdentityDocumentsSection({
       },
     });
   }
-
-  const saveError = saveMutation.error;
-  const submitError =
-    saveError instanceof IdentityDocumentSaveError || saveError instanceof ApiError
-      ? saveError.message
-      : saveError
-        ? "The document could not be saved."
-        : null;
 
   const addButton = (
     <Button
@@ -230,7 +197,7 @@ export function IdentityDocumentsSection({
       <DocumentSheet
         open={sheet !== null}
         onOpenChange={(open) => {
-          if (!open && !saveMutation.isPending) setSheet(null);
+          if (!open && !saver.isSaving) setSheet(null);
         }}
       >
         {sheet?.screen === "edit" ? (
@@ -239,10 +206,10 @@ export function IdentityDocumentsSection({
             document={current}
             focus={sheet.focus}
             companionId={companionId}
-            isSaving={saveMutation.isPending}
-            progress={progress}
-            submitError={submitError}
-            onSubmit={saveDocument}
+            isSaving={saver.isSaving}
+            progress={saver.progress}
+            submitError={saver.submitError}
+            onSubmit={saver.save}
             onCancel={() =>
               setSheet(current ? { screen: "view", id: current.id } : null)
             }

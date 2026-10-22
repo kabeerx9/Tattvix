@@ -1,23 +1,16 @@
 // The ID step chooses which saved, complete document goes to the hotel.
-// Adding or editing documents (form, photos, upload) is owned by the
-// identity-documents feature; this step composes it unchanged in a sheet and
-// picks up new documents from the shared query cache.
+// Adding or finishing a document (form, photos, upload) is owned by the
+// identity-documents feature; this step opens its editor in a bottom sheet
+// and picks up saved documents from the shared query cache.
 
 import type { IdentityDocument } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@tattvix/ui/components/sheet";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { StatusPill } from "@/components/design-system";
 import { documentImagesLabel, documentLabel } from "@/features/check-in/format";
-import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
+import { DocumentEditorSheet } from "@/features/identity-documents/components/document-editor-sheet";
 
 import { ChoiceCard } from "./check-in-choice-card";
 
@@ -32,11 +25,12 @@ export function DocumentStep({
   showError: boolean;
   onSelect: (id: number) => void;
 }) {
-  const [managing, setManaging] = useState(false);
+  // null: closed; "new": adding; a document: finishing that one.
+  const [editing, setEditing] = useState<IdentityDocument | "new" | null>(null);
   const ready = documents.filter((document) => document.readiness.isReady);
 
-  // A document that becomes ready while the sheet is open (added or finished
-  // there) is chosen for the guest, so closing the sheet lands on Continue.
+  // A document that becomes ready in the editor (added or finished there) is
+  // chosen for the guest, so closing the sheet lands on Continue.
   const knownReady = useRef(new Set(ready.map((document) => document.id)));
   useEffect(() => {
     const fresh = ready.find((document) => !knownReady.current.has(document.id));
@@ -75,7 +69,7 @@ export function DocumentStep({
                 {isReady ? null : (
                   <div className="flex items-center justify-between gap-3">
                     <StatusPill tone="warning">Incomplete</StatusPill>
-                    <Button variant="outline" size="sm" onClick={() => setManaging(true)}>
+                    <Button variant="outline" size="sm" onClick={() => setEditing(document)}>
                       Finish this ID
                     </Button>
                   </div>
@@ -95,25 +89,21 @@ export function DocumentStep({
       <Button
         variant={documents.length ? "outline" : "default"}
         className="h-12 w-full text-[15px]"
-        onClick={() => setManaging(true)}
+        onClick={() => setEditing("new")}
       >
-        {documents.length ? <Settings2 /> : <Plus />}
-        {documents.length ? "Add or edit IDs" : "Add your ID"}
+        <Plus />
+        {documents.length ? "Add another ID" : "Add your ID"}
       </Button>
 
-      <Sheet open={managing} onOpenChange={setManaging}>
-        <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-xl">
-          <SheetHeader className="pr-12">
-            <SheetTitle>Your IDs</SheetTitle>
-            <SheetDescription>
-              Saved to your profile. Only the one you choose is shared, and only after you agree.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-            <IdentityDocumentsSection />
-          </div>
-        </SheetContent>
-      </Sheet>
+      <DocumentEditorSheet
+        open={editing !== null}
+        onOpenChange={(open) => (open ? null : setEditing(null))}
+        document={editing === "new" ? null : editing}
+        presentation="bottom"
+        onSaved={(saved) => {
+          if (saved.readiness.isReady) onSelect(saved.id);
+        }}
+      />
     </div>
   );
 }
