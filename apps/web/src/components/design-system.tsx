@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@tattvix/ui/components/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
@@ -34,7 +35,7 @@ export function PageHeader({
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-3">
       {/* Titles wrap instead of truncating: long hotel names must stay readable on phones. */}
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="min-w-0 text-[22px] leading-tight font-semibold tracking-[-0.02em] wrap-anywhere">
+        <h1 className="min-w-0 text-2xl leading-tight font-bold tracking-[-0.025em] wrap-anywhere md:text-[28px]">
           {title}
         </h1>
         {meta ? (
@@ -196,7 +197,7 @@ export function RouteErrorState({
  */
 export function KpiStrip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)] max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
+    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border bg-card shadow-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
       {children}
     </div>
   );
@@ -241,7 +242,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)]",
+        "overflow-hidden rounded-card border border-border bg-card shadow-card",
         className,
       )}
     >
@@ -361,18 +362,27 @@ export function PageCover({ src, className }: { src: string; className?: string 
 }
 
 /** Initials in a neutral circle (people) or rounded square (places). We never store guest photos. */
+const initialsAvatarSizes = {
+  sm: "size-8 text-xs",
+  md: "size-11 text-sm",
+  lg: "size-14 text-base",
+} as const;
+
 export function InitialsAvatar({
   name,
   shape = "circle",
+  size = "sm",
 }: {
   name: string;
   shape?: "circle" | "square";
+  size?: keyof typeof initialsAvatarSizes;
 }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "grid size-8 shrink-0 place-items-center bg-muted text-xs font-semibold",
+        "grid shrink-0 place-items-center bg-muted font-semibold",
+        initialsAvatarSizes[size],
         shape === "circle" ? "rounded-full" : "rounded-md text-muted-foreground",
       )}
     >
@@ -598,5 +608,147 @@ export function FilterBar({
     <div className={cn("grid gap-3 sm:flex sm:flex-wrap sm:items-end", className)}>
       {children}
     </div>
+  );
+}
+
+/**
+ * Large page title (30–34px) for top-level staff pages. On a phone it
+ * collapses into a compact sticky bar once it scrolls out of view, the way
+ * native apps do; from `md` up it is just a big heading under the top nav.
+ */
+export function LargeTitle({
+  title,
+  meta,
+  actions,
+}: {
+  title: string;
+  meta?: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    // Collapse once the title has passed under the 48px compact bar.
+    const observer = new IntersectionObserver(
+      ([entry]) => setCollapsed(!entry!.isIntersecting),
+      { rootMargin: "-48px 0px 0px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <>
+      <div
+        className="large-title-bar sticky top-0 z-20 -mx-4 -mt-4 -mb-8 bg-background/95 backdrop-blur sm:-mx-8 md:hidden"
+        data-collapsed={collapsed ? "" : undefined}
+        aria-hidden
+      >
+        <div className="flex h-12 items-center justify-center px-14">
+          <p className="large-title-bar-text truncate text-[15px] font-semibold">{title}</p>
+        </div>
+      </div>
+      <header className="flex min-w-0 flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-[30px] leading-[1.1] font-bold tracking-[-0.03em] wrap-anywhere md:text-[34px]">
+            {title}
+          </h1>
+          {meta ? <p className="mt-1.5 text-[15px] text-muted-foreground wrap-anywhere">{meta}</p> : null}
+          <div ref={sentinel} aria-hidden className="h-px" />
+        </div>
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      </header>
+    </>
+  );
+}
+
+/** Section heading inside a page: 22px title, optional grey line and trailing action. */
+export function SectionTitle({
+  title,
+  meta,
+  action,
+  className,
+}: {
+  title: string;
+  meta?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 items-end justify-between gap-4", className)}>
+      <div className="min-w-0">
+        <h2 className="text-[22px] leading-tight font-semibold tracking-[-0.02em]">{title}</h2>
+        {meta ? <p className="mt-0.5 text-sm text-muted-foreground">{meta}</p> : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+export type BottomTabBarItem = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  isActive: boolean;
+  /** Render the tab as a link (e.g. a router `Link`); otherwise it is a button. */
+  render?: (props: { className: string; children: React.ReactNode; "aria-current"?: "page" }) => React.ReactElement;
+  onClick?: () => void;
+};
+
+/**
+ * Mobile bottom tab bar (below `md`): outline icons with labels, the active
+ * tab teal with a filled icon. Pads itself above the home indicator. Pages
+ * under it need `pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)]`.
+ */
+export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; label: string }) {
+  return (
+    <nav
+      aria-label={label}
+      data-bottom-tab-bar=""
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pr-[env(safe-area-inset-right,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] backdrop-blur md:hidden"
+    >
+      <ul
+        className="mx-auto grid h-(--tab-bar-height) max-w-md"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => {
+          const Icon = item.icon;
+          const className = cn(
+            "press grid h-full place-content-center justify-items-center gap-1 text-[11px] outline-none focus-visible:bg-muted",
+            item.isActive ? "font-semibold text-primary" : "text-muted-foreground",
+          );
+          const children = (
+            <>
+              <Icon
+                aria-hidden
+                className="size-6"
+                strokeWidth={item.isActive ? 2.1 : 1.6}
+                fill={item.isActive ? "currentColor" : "none"}
+                fillOpacity={item.isActive ? 0.16 : 0}
+              />
+              <span className="max-w-full truncate px-1">{item.label}</span>
+            </>
+          );
+          return (
+            <li key={item.key} className="grid min-w-0">
+              {item.render ? (
+                item.render({ className, children, "aria-current": item.isActive ? "page" : undefined })
+              ) : (
+                <button
+                  type="button"
+                  className={className}
+                  onClick={item.onClick}
+                  aria-current={item.isActive ? "page" : undefined}
+                >
+                  {children}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }

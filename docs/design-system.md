@@ -1,7 +1,9 @@
 # Tattvix Web Design System
 
-This document is the implementation contract for all Tattvix web UI. Decision record:
-`docs/adr/0001-web-visual-language.md`. Visual reference: `docs/design/reference/`.
+This document is the implementation contract for all Tattvix web UI. Decision records:
+`docs/adr/0001-web-visual-language.md` (palette, density) and
+`docs/adr/0002-airbnb-style-staff-shell.md` (hotel staff shell, card radius, shadows, titles).
+Visual reference: `docs/design/reference/`.
 
 
 ## Product character
@@ -17,7 +19,7 @@ Build with shadcn components from `@tattvix/ui`, then the composed patterns in
 `apps/web/src/components/design-system.tsx`:
 
 1. Existing `@tattvix/ui` component.
-2. A pattern from `design-system.tsx` (`PageHeader`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`).
+2. A pattern from `design-system.tsx` (`PageHeader`, `LargeTitle`, `SectionTitle`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`, `BottomTabBar`).
 3. A feature component composed from those.
 4. A new shared primitive only when none of the above can express the interaction.
 
@@ -43,8 +45,11 @@ multicolour metric cards, or purple.
 
 ## Shape and elevation
 
-- Radius 8px for panels and controls (`rounded-lg`); 6px for icon tiles and thumbnails; status pills fully rounded.
-- Panels: 1px `border` + `0 1px 2px rgb(16 24 40 / 0.04)`. No other shadows.
+- Cards and panels: 16px radius via the `rounded-card` token (`--card-radius`). Controls stay 8px
+  (`rounded-lg`); photo tiles 12px (`rounded-xl`); pills and filter tabs fully rounded.
+- Card shadow: `shadow-card` (`--elevation-card`, a soft two-layer shadow) on top of the 1px
+  `border`. Floating surfaces (sheets, menus) use `shadow-raised`. No other shadows.
+- Change radius and shadows through the tokens in `globals.css`, never with one-off values.
 - **No box in a box.** Sections inside a panel are separated by `border-soft` dividers, never by nested cards.
 
 ## Typography
@@ -53,8 +58,10 @@ Inter (variable) with `cv11`, `ss01`; `tabular-nums` for every number column, KP
 
 | Element | Size / weight |
 |---|---|
-| Page title | 22px / 600 — date or count beside it in 14px `subtle-foreground` |
-| Panel / section title | 14px / 600, optional 16px line icon |
+| Large title (`LargeTitle`, hub pages like Today) | 30px / 700 (34px from `md`) with a 15px grey meta line; collapses into a centred 15px bar on scroll on phones |
+| Page title (`PageHeader`) | 24px / 700 (28px from `md`), tight tracking — meta beside it in 14px `subtle-foreground` |
+| Section title (`SectionTitle`) | 22px / 600 with an optional grey line under it |
+| Panel title | 14px / 600, optional 16px line icon |
 | Body | 14px |
 | Label (above a value) | 12px `subtle-foreground` |
 | KPI value | 28px / 600 |
@@ -72,6 +79,25 @@ Sentence case everywhere. No uppercase eyebrows.
   `switchAt` as the smallest size where every column fits. Never ship a table that scrolls sideways
   on a phone.
 - Filters above a list go in a `FilterBar`: full-width stacked controls on a phone.
+- Groups of cards that would stack into a long column on a phone go in a `Rail` (`@tattvix/ui`):
+  a scroll-snap row that bleeds to the screen edge, switching to a grid at `md`.
+- Pick-one filters with counts ("Arriving (3)") use `PillTabs` (`@tattvix/ui`): a tablist of
+  rounded pills that scrolls sideways instead of wrapping.
+
+## Hotel staff shell
+
+Hotel staff routes (`/hotel/...`) use `HotelShell` (`apps/web/src/components/hotel-shell.tsx`),
+not the sidebar. Personal and platform-admin workspaces keep the sidebar `AppShell`.
+
+- **`md` and up:** sticky top nav — logo left, section links centred (active = foreground text
+  with an underline), account menu right (property cover + name, switcher, workspaces, sign out).
+- **Phones:** `BottomTabBar` with Today, Stays, Rooms, Guests and **Menu**. Menu opens a
+  `BottomSheet` with the remaining destinations (Reports, Property settings), the hotel switcher
+  and account links. Which items become tabs is decided by `splitHotelNavForTabBar` in
+  `lib/workspace-navigation.ts`; permission gating stays in `getHotelNavItems`.
+- Main content leaves room for the tab bar and the safe areas (`--tab-bar-height`,
+  `env(safe-area-inset-*)`). Toasts lift above the tab bar automatically (`--toast-clearance`).
+- Do not add another fixed bottom element on phones; put actions in the page or a sheet.
 
 ## Page anatomy
 
@@ -102,15 +128,24 @@ data (`pnpm seed -- --email <you>`), not an empty dev database.
 - Buttons: `default` (teal) for the one primary; `outline` for secondary; `ghost` for tertiary (Print).
 - Inputs: visible labels; placeholder is an example, not the label. Selects must render the selected option's **label**, never its raw value.
 - Remote-record selection uses a shadcn Combobox with loading, empty and error states.
+- Focused tasks started from a card (assign a room, check out, change room status) open in a
+  `BottomSheet` (`@tattvix/ui`): a drag-to-dismiss sheet on phones, a centred dialog from 768px.
+  One primary action in its footer. Use `Dialog` only for confirmations.
+- Pressable cards use the `press` class (scale 0.97 while pressed). Motion uses `--ease-out-strong`
+  for UI and `--ease-drawer` for sheets; everything honours `prefers-reduced-motion`.
 - Whole rows/cards that navigate are the link — not just a small arrow inside them.
 - Empty states: what belongs here + one useful next action.
-- Navigation: active item = `sidebar-accent` fill (teal tint) + `primary` text; inactive items quiet.
+- Navigation: sidebar active item = `sidebar-accent` fill (teal tint) + `primary` text; top nav
+  active item = foreground text + underline; tab bar active item = `primary` icon and label.
+  Inactive items quiet.
 - Icons: Lucide, 16px, stroke 1.75, `muted-foreground`. The only tinted icon tile is the 28px KPI icon (`bg-primary-tint text-primary`).
 
 ## Imagery
 
 - **Hotel imagery is real data only:** property cover and room-type photos uploaded in Property
-  settings. Without a photo, omit the slot rather than showing a placeholder.
+  settings. Where a layout is built around a photo (room tiles on Today, room choices in a sheet),
+  a missing photo shows a quiet `muted` tile with a line icon so the grid stays even; elsewhere
+  omit the slot.
 - **Guest-facing pages may use decorative travel photography** to feel alive: the guest home hero,
   destination cards, and a `PageCover` strip under personal page headers. Sources live in
   `apps/web/public/images/travel` (self-hosted WebP, credits in `CREDITS.md`), referenced through

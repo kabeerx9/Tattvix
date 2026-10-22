@@ -40,6 +40,12 @@
   --chart-4: #8fcfc9;
   --chart-5: #d0d5dd;
   --radius: 0.5rem;
+  /* Staff shell (docs/adr/0002-airbnb-style-staff-shell.md): cards and
+     photos are rounder and sit on a soft two-layer shadow. */
+  --card-radius: 16px;
+  --elevation-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.04);
+  --elevation-raised: 0 2px 4px rgb(16 24 40 / 0.04), 0 10px 28px rgb(16 24 40 / 0.1);
+  --tab-bar-height: 64px;
   --sidebar: #ffffff;
   --sidebar-foreground: #0f1720;
   --sidebar-primary: #0f5f5c;
@@ -135,6 +141,11 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --radius-card: var(--card-radius);
+  --shadow-card: var(--elevation-card);
+  --shadow-raised: var(--elevation-raised);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @layer base {
@@ -191,7 +202,162 @@
 
 @layer components {
   .app-surface {
-    @apply rounded-lg border border-border bg-card shadow-[0_1px_2px_rgb(16_24_40/0.04)];
+    @apply rounded-card border border-border bg-card shadow-card;
+  }
+
+  /* Toasts clear the mobile bottom tab bar (see the Toaster's mobileOffset). */
+  body:has([data-bottom-tab-bar]) {
+    --toast-clearance: var(--tab-bar-height);
+  }
+
+  /* Press feedback for cards and custom controls: instant, on pointer-down. */
+  .press {
+    transition:
+      transform 140ms var(--ease-out-strong),
+      box-shadow 200ms var(--ease-out-strong),
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* Horizontal card rail: native scroll + snap, the next card peeks. Bleeds
+     to the screen edge on phones (matches the 16px page gutter). */
+  .scroll-rail {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    padding-inline: 16px;
+    margin-inline: -16px;
+    scrollbar-width: none;
+  }
+  .scroll-rail > * {
+    scroll-snap-align: start;
+  }
+  /* Pill filters that scroll sideways on narrow screens. */
+  .scroll-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-inline: 16px;
+    margin-inline: -16px;
+  }
+  .scroll-rail::-webkit-scrollbar,
+  .scroll-pills::-webkit-scrollbar {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .scroll-rail,
+    .scroll-pills {
+      padding-inline: 32px;
+      margin-inline: -32px;
+      scroll-padding-inline: 32px;
+    }
+  }
+  @media (min-width: 768px) {
+    .scroll-rail,
+    .scroll-pills {
+      padding-inline: 0;
+      margin-inline: 0;
+      scroll-padding-inline: 0;
+    }
+  }
+
+  /* Bottom sheet on phones, centred dialog from 768px (BottomSheet). */
+  .sheet-backdrop {
+    opacity: 0;
+    transition: opacity 240ms var(--ease-out-strong);
+  }
+  .sheet-backdrop[data-open] {
+    opacity: 1;
+  }
+  .bottom-sheet {
+    transform: translate3d(0, 100%, 0);
+    transition: transform 320ms var(--ease-drawer);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-sheet[data-open] {
+    transform: translate3d(0, 0, 0);
+  }
+  .bottom-sheet[data-closing] {
+    transition-duration: 220ms;
+  }
+  .bottom-sheet[data-dragging] {
+    transition: none;
+  }
+  @media (min-width: 768px) {
+    .bottom-sheet {
+      padding-bottom: 0;
+      opacity: 0;
+      transform: translate3d(0, 12px, 0) scale(0.97);
+      transition:
+        transform 220ms var(--ease-out-strong),
+        opacity 220ms var(--ease-out-strong);
+    }
+    .bottom-sheet[data-open] {
+      opacity: 1;
+      transform: none;
+    }
+    .bottom-sheet[data-closing] {
+      transition-duration: 160ms;
+    }
+  }
+
+  /* LargeTitle: compact sticky bar whose title fades in once the large
+     title scrolls away (phones only). */
+  .large-title-bar {
+    padding-top: env(safe-area-inset-top, 0px);
+    transition: box-shadow 200ms var(--ease-out-strong);
+  }
+  .large-title-bar[data-collapsed] {
+    box-shadow: 0 1px 0 var(--border);
+  }
+  .large-title-bar-text {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 200ms var(--ease-out-strong),
+      transform 200ms var(--ease-out-strong);
+  }
+  .large-title-bar[data-collapsed] .large-title-bar-text {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Entrance for cards on mount; set --i on each for a short stagger. */
+  .enter-up {
+    animation: enter-up 320ms var(--ease-out-strong) both;
+    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .press,
+    .sheet-backdrop,
+    .bottom-sheet,
+    .large-title-bar-text {
+      transition-duration: 0ms !important;
+    }
+    .press:active {
+      transform: none;
+    }
+    .enter-up {
+      animation: none;
+    }
+  }
+}
+
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 

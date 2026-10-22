@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import {
+  HotelTodayPage,
+  HotelTodaySkeleton,
+} from "@/features/hotel-overview/components/hotel-today-page";
 import { hotelOverviewQueries } from "@/features/hotel-overview/queries";
-import { HotelOverviewPage } from "@/features/hotel-overview/components/hotel-overview-page";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 
@@ -20,15 +23,23 @@ export const Route = createFileRoute(
         hotelOperationsQueries.rooms(params.organizationSlug, params.propertySlug),
       ),
     ]),
+  pendingComponent: HotelTodaySkeleton,
   component: PropertyDashboardRoute,
 });
 
 function PropertyDashboardRoute() {
   const params = Route.useParams();
+  const { activeMembership, activeProperty, auth } = Route.useRouteContext();
+  const permissions = activeMembership.permissions;
   return (
-    <HotelOverviewPage
+    <HotelTodayPage
       organizationSlug={params.organizationSlug}
       propertySlug={params.propertySlug}
+      propertyName={activeProperty.name}
+      firstName={auth.currentUser?.firstName}
+      canAssign={permissions.includes("rooms:assign")}
+      canCheckout={permissions.includes("stays:update")}
+      canManageRooms={permissions.includes("rooms:manage")}
     />
   );
 }

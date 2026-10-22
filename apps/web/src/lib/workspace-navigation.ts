@@ -105,17 +105,24 @@ export type HotelNavRoute =
 export type HotelNavItem = {
   key: HotelNavKey;
   label: string;
+  /** Label for tight spaces: the top nav tabs and the mobile tab bar. */
+  shortLabel: string;
   to: HotelNavRoute;
   isActive: boolean;
 };
 
-const hotelNav: { key: HotelNavKey; label: string; segment: string }[] = [
-  { key: "overview", label: "Overview", segment: "dashboard" },
+const hotelNav: {
+  key: HotelNavKey;
+  label: string;
+  shortLabel?: string;
+  segment: string;
+}[] = [
+  { key: "overview", label: "Today", segment: "dashboard" },
   { key: "stays", label: "Stays", segment: "stays" },
   { key: "rooms", label: "Rooms", segment: "rooms" },
   { key: "guests", label: "Guests", segment: "guests" },
   { key: "reports", label: "Reports", segment: "reports" },
-  { key: "settings", label: "Property settings", segment: "details" },
+  { key: "settings", label: "Property settings", shortLabel: "Settings", segment: "details" },
 ];
 
 export function getHotelNavItems(
@@ -130,7 +137,82 @@ export function getHotelNavItems(
     .map((item) => ({
       key: item.key,
       label: item.label,
+      shortLabel: item.shortLabel ?? item.label,
       to: `/hotel/$organizationSlug/$propertySlug/${item.segment}` as HotelNavRoute,
       isActive: item.segment === activeSegment,
     }));
+}
+
+/** Pages that get their own tab in the mobile bottom tab bar. */
+const tabBarKeys: readonly HotelNavKey[] = ["overview", "stays", "rooms", "guests"];
+
+/**
+ * Splits the hotel nav for the mobile bottom tab bar: four everyday pages get
+ * a tab, everything else (reports, property settings) lives behind "Menu".
+ * `menuActive` lights the Menu tab when one of those pages is open, so the
+ * bar always shows where the user is.
+ */
+export function splitHotelNavForTabBar(items: HotelNavItem[]): {
+  tabs: HotelNavItem[];
+  overflow: HotelNavItem[];
+  menuActive: boolean;
+} {
+  const tabs = items.filter((item) => tabBarKeys.includes(item.key));
+  const overflow = items.filter((item) => !tabBarKeys.includes(item.key));
+  return { tabs, overflow, menuActive: overflow.some((item) => item.isActive) };
+}
+
+export type HotelSwitchOption =
+  | {
+      key: string;
+      label: string;
+      isActive: boolean;
+      to: "/hotel/$organizationSlug/$propertySlug/dashboard";
+      params: { organizationSlug: string; propertySlug: string };
+    }
+  | {
+      key: string;
+      label: string;
+      isActive: boolean;
+      to: "/hotel/$organizationSlug";
+      params: { organizationSlug: string };
+    };
+
+/**
+ * Every property the user can open, for the hotel switcher. Organizations
+ * without properties link to their setup page. Only memberships with
+ * hotel:view are listed.
+ */
+export function getHotelSwitchOptions(
+  user: MeResponse | null,
+  context: ActiveHotelContext | null,
+): HotelSwitchOption[] {
+  const memberships =
+    user?.memberships.filter((item) => item.permissions.includes("hotel:view")) ?? [];
+  return memberships.flatMap((membership): HotelSwitchOption[] =>
+    membership.properties.length === 0
+      ? [
+          {
+            key: `org-${membership.id}`,
+            label: membership.organization.name,
+            isActive: context?.membership.id === membership.id && !context.property,
+            to: "/hotel/$organizationSlug",
+            params: { organizationSlug: membership.organization.slug },
+          },
+        ]
+      : membership.properties.map((property) => ({
+          key: `prop-${property.id}`,
+          label:
+            property.name === membership.organization.name
+              ? property.name
+              : `${membership.organization.name} · ${property.name}`,
+          isActive:
+            context?.membership.id === membership.id && context.property?.id === property.id,
+          to: "/hotel/$organizationSlug/$propertySlug/dashboard",
+          params: {
+            organizationSlug: membership.organization.slug,
+            propertySlug: property.slug,
+          },
+        })),
+  );
 }

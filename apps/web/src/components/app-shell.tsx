@@ -1,23 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import { useEffect } from "react";
 import {
-  BarChart3,
-  BedDouble,
   Building2,
   Check,
   ChevronsUpDown,
   ClipboardCheck,
   Contact,
-  Gauge,
   IdCard,
   LogOut,
   Settings,
   ShieldCheck,
   UserRound,
-  Users,
   UsersRound,
 } from "lucide-react";
 
@@ -48,18 +42,13 @@ import {
 } from "@tattvix/ui/components/sidebar";
 import { TooltipProvider } from "@tattvix/ui/components/tooltip";
 
+import { HotelShell } from "@/components/hotel-shell";
 import { getInitials } from "@/lib/initials";
 import {
   hasAnyHotelPermission,
   hasPlatformPermission,
 } from "@/lib/router-auth";
-import {
-  getActiveHotelContext,
-  getActiveWorkspace,
-  getHotelDestination,
-  getHotelNavItems,
-  type HotelNavKey,
-} from "@/lib/workspace-navigation";
+import { getActiveWorkspace, getHotelDestination } from "@/lib/workspace-navigation";
 
 type Icon = React.ComponentType<{ className?: string }>;
 type FlatNavItem = {
@@ -92,15 +81,6 @@ const platformNav: FlatNavItem[] = [
   { label: "Hotel requests", to: "/admin/requests", icon: ClipboardCheck },
 ];
 
-const hotelNavIcons: Record<HotelNavKey, Icon> = {
-  overview: Gauge,
-  stays: ClipboardCheck,
-  rooms: BedDouble,
-  guests: Users,
-  reports: BarChart3,
-  settings: Settings,
-};
-
 // 44px rows in the mobile sheet (touch), the denser 36px rail from md up.
 const navButtonClassName =
   "h-11 rounded-lg px-2.5 font-medium md:h-9 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground";
@@ -114,21 +94,20 @@ function isFlatItemActive(item: FlatNavItem, pathname: string) {
 
 function useSectionLabel() {
   const { pathname } = useLocation();
-  const { auth } = useRouteContext({ from: "__root__" });
   const workspace = getActiveWorkspace(pathname);
-  if (workspace === "hotel") {
-    const context = getActiveHotelContext(auth.currentUser, pathname);
-    if (!context) return "Hotels";
-    return (
-      getHotelNavItems(context, pathname).find((item) => item.isActive)
-        ?.label ?? context.membership.organization.name
-    );
-  }
   const items = workspace === "platform" ? platformNav : personalNav;
   return items.find((item) => isFlatItemActive(item, pathname))?.label ?? "";
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  // Hotel staff get the top nav / bottom tab bar shell (ADR 0002); personal
+  // and platform workspaces keep the sidebar.
+  if (getActiveWorkspace(pathname) === "hotel") return <HotelShell>{children}</HotelShell>;
+  return <SidebarShell>{children}</SidebarShell>;
+}
+
+function SidebarShell({ children }: { children: React.ReactNode }) {
   const sectionLabel = useSectionLabel();
   return (
     <TooltipProvider>
@@ -182,7 +161,6 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {workspace === "hotel" ? <HotelNav /> : null}
               {workspace === "personal" ? <FlatNav items={personalNav} /> : null}
               {workspace === "platform" ? <FlatNav items={platformNav} /> : null}
             </SidebarMenu>
@@ -197,181 +175,29 @@ function AppSidebar() {
   );
 }
 
-function SwitcherTile({ label, url }: { label: string | null; url?: string }) {
-  if (url) return <img src={url} alt="" className="size-8 shrink-0 rounded-md object-cover" />;
+function SwitcherTile({ label }: { label: string }) {
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-md bg-accent text-xs font-semibold text-accent-foreground">
-      {label ? getInitials(label) : <Building2 className="size-4 text-muted-foreground" />}
+      {getInitials(label)}
     </span>
   );
 }
 
+/** Which workspace the sidebar belongs to. Hotel staff use HotelShell instead. */
 function WorkspaceSwitcher() {
   const { pathname } = useLocation();
-  const { auth } = useRouteContext({ from: "__root__" });
-  const { setOpenMobile } = useSidebar();
   const workspace = getActiveWorkspace(pathname);
-
-  const context = workspace === "hotel" ? getActiveHotelContext(auth.currentUser, pathname) : null;
-  const { data: photos } = useQuery({
-    ...propertyPhotoQueries.list(context?.membership.organization.slug ?? "", context?.property?.slug ?? ""),
-    enabled: Boolean(context?.property),
-  });
-
-  if (workspace !== "hotel") {
-    const title = workspace === "platform" ? "Platform admin" : "Personal";
-    const detail = workspace === "platform" ? "Super admin" : "Travel & identity";
-    return (
-      <div className="flex items-center gap-2.5 rounded-lg border border-border p-2">
-        <SwitcherTile label={title} />
-        <span className="min-w-0 group-data-[collapsible=icon]:hidden">
-          <span className="block truncate text-sm font-semibold">{title}</span>
-          <span className="block truncate text-xs text-subtle-foreground">{detail}</span>
-        </span>
-      </div>
-    );
-  }
-
-  const memberships =
-    auth.currentUser?.memberships.filter((item) =>
-      item.permissions.includes("hotel:view"),
-    ) ?? [];
-  const title = context?.membership.organization.name ?? "Choose a hotel";
-  const detail = context
-    ? [
-        context.property && context.property.name !== title
-          ? context.property.name
-          : null,
-        formatRole(context.membership.role),
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : `${memberships.length} ${memberships.length === 1 ? "hotel" : "hotels"}`;
-
+  const title = workspace === "platform" ? "Platform admin" : "Personal";
+  const detail = workspace === "platform" ? "Super admin" : "Travel & identity";
   return (
-    <div className="grid gap-2">
-      {photos?.cover ? <img src={photos.cover.url} alt="" className="h-14 w-full rounded-md object-cover group-data-[collapsible=icon]:hidden" /> : null}
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="flex w-full items-center gap-2.5 rounded-lg border border-border p-2 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Switch hotel"
-      >
-        <SwitcherTile label={context ? title : null} url={photos?.cover?.url} />
-        <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-          <span className="block truncate text-sm font-semibold">{title}</span>
-          <span className="block truncate text-xs text-subtle-foreground">{detail}</span>
-        </span>
-        <ChevronsUpDown className="size-4 text-subtle-foreground group-data-[collapsible=icon]:hidden" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Hotels</DropdownMenuLabel>
-          {memberships.flatMap((membership) =>
-            membership.properties.length === 0
-              ? [
-                  <DropdownMenuItem
-                    key={`org-${membership.id}`}
-                    onClick={() => setOpenMobile(false)}
-                    render={
-                      <Link
-                        to="/hotel/$organizationSlug"
-                        params={{ organizationSlug: membership.organization.slug }}
-                      />
-                    }
-                  >
-                    <span className="flex-1 truncate">{membership.organization.name}</span>
-                  </DropdownMenuItem>,
-                ]
-              : membership.properties.map((property) => {
-                  const active =
-                    context?.membership.id === membership.id &&
-                    context.property?.id === property.id;
-                  return (
-                    <DropdownMenuItem
-                      key={`prop-${property.id}`}
-                      onClick={() => setOpenMobile(false)}
-                      render={
-                        <Link
-                          to="/hotel/$organizationSlug/$propertySlug/dashboard"
-                          params={{
-                            organizationSlug: membership.organization.slug,
-                            propertySlug: property.slug,
-                          }}
-                        />
-                      }
-                    >
-                      <span className="flex-1 truncate">
-                        {membership.organization.name}
-                        {property.name !== membership.organization.name
-                          ? ` · ${property.name}`
-                          : ""}
-                      </span>
-                      {active ? <Check className="size-4 text-primary" /> : null}
-                    </DropdownMenuItem>
-                  );
-                }),
-          )}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        {context ? (
-          <DropdownMenuItem
-            onClick={() => setOpenMobile(false)}
-            render={
-              <Link
-                to="/hotel/$organizationSlug"
-                params={{ organizationSlug: context.membership.organization.slug }}
-              />
-            }
-          >
-            <Building2 className="size-4" />
-            Manage properties
-          </DropdownMenuItem>
-        ) : null}
-        <DropdownMenuItem
-          onClick={() => setOpenMobile(false)}
-          render={<Link to="/hotel" />}
-        >
-          <Building2 className="size-4" />
-          All hotels
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2.5 rounded-lg border border-border p-2">
+      <SwitcherTile label={title} />
+      <span className="min-w-0 group-data-[collapsible=icon]:hidden">
+        <span className="block truncate text-sm font-semibold">{title}</span>
+        <span className="block truncate text-xs text-subtle-foreground">{detail}</span>
+      </span>
     </div>
   );
-}
-
-function HotelNav() {
-  const { pathname } = useLocation();
-  const { auth } = useRouteContext({ from: "__root__" });
-  const { setOpenMobile } = useSidebar();
-  const context = getActiveHotelContext(auth.currentUser, pathname);
-  if (!context?.property) return null;
-  const params = {
-    organizationSlug: context.membership.organization.slug,
-    propertySlug: context.property.slug,
-  };
-  return getHotelNavItems(context, pathname).map((item) => {
-    const ItemIcon = hotelNavIcons[item.key];
-    return (
-      <SidebarMenuItem key={item.key}>
-        <SidebarMenuButton
-          isActive={item.isActive}
-          tooltip={item.label}
-          className={navButtonClassName}
-          render={
-            <Link
-              to={item.to}
-              params={params}
-              onClick={() => setOpenMobile(false)}
-            />
-          }
-        >
-          <ItemIcon className="size-4" />
-          <span className="truncate">{item.label}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
-  });
 }
 
 function FlatNav({ items }: { items: FlatNavItem[] }) {
