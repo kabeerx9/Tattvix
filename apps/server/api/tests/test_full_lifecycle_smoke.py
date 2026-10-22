@@ -391,7 +391,7 @@ class FullLifecycleSmokeTest(APITestCase):
         self.assertTrue(detail_response.data["identityAccess"]["isActive"])
         self.assertEqual(
             detail_response.data["snapshot"]["document"]["documentNumber"],
-            "1234-5678-9012",
+            "XXXX XXXX 9012",
         )
 
         check_in_response = self.client.post(

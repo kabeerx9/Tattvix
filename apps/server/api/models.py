@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 
 from django.db import models
@@ -81,6 +82,24 @@ class IdentityDocumentType(models.TextChoices):
     VOTER_ID = "VOTER_ID", "Voter ID"
 
 
+_AADHAAR_FULL = re.compile(r"\d{12}")
+_AADHAAR_MASKED = re.compile(r"XXXX XXXX \d{4}")
+
+
+def mask_aadhaar_number(value: str) -> str | None:
+    """Return the stored form of an Aadhaar number, or None if it is not one.
+
+    Aadhaar regulations expect the first eight digits redacted at rest, so the
+    full number never reaches the database, snapshots or logs.
+    """
+    if _AADHAAR_MASKED.fullmatch(value.strip()):
+        return value.strip()
+    digits = re.sub(r"[\s-]", "", value)
+    if _AADHAAR_FULL.fullmatch(digits):
+        return f"XXXX XXXX {digits[-4:]}"
+    return None
+
+
 class IdentityDocument(models.Model):
     companion = models.ForeignKey(
         CompanionProfile,
@@ -112,6 +131,13 @@ class IdentityDocument(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_document_type_display() or 'Identity document'} — {self.user}"
+
+    def save(self, *args, **kwargs):
+        if self.document_type == IdentityDocumentType.AADHAAR and self.document_number:
+            self.document_number = (
+                mask_aadhaar_number(self.document_number) or self.document_number
+            )
+        super().save(*args, **kwargs)
 
 
 class IdentityDocumentImageSide(models.TextChoices):
