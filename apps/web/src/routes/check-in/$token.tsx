@@ -1,6 +1,7 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Hotel, QrCode } from "lucide-react";
+import { z } from "zod";
 
 import { Panel } from "@/components/design-system";
 import { companionQueries } from "@/features/companions/queries";
@@ -8,9 +9,15 @@ import { CheckInPage } from "@/features/check-in/components/check-in-page";
 import { checkInQueries } from "@/features/check-in/queries";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
+import { checkInSteps } from "@/features/check-in/steps";
 import { ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/check-in/$token")({
+  // The current step lives in the URL so the phone's back gesture steps back.
+  validateSearch: z.object({
+    step: z.enum(checkInSteps).optional().catch(undefined),
+    edit: z.boolean().optional().catch(undefined),
+  }),
   loader: async ({ context, params }) => {
     const requests: Promise<unknown>[] = [
       context.queryClient.ensureQueryData(checkInQueries.context(params.token)),
@@ -44,8 +51,9 @@ export const Route = createFileRoute("/check-in/$token")({
 function CheckInRoute() {
   const { isValid } = Route.useLoaderData();
   const { token } = Route.useParams();
+  const { step, edit } = Route.useSearch();
   return isValid ? (
-    <CheckInPage token={token} />
+    <CheckInPage token={token} step={step} edit={edit ?? false} />
   ) : (
     <CheckInUnavailablePage
       title="This QR code is no longer active"
