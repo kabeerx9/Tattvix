@@ -23,6 +23,9 @@ export const datasets: Dataset[] = ["demo", "worst", "empty", "one"];
 const now = Date.now();
 const iso = (offsetHours: number) =>
   new Date(now + offsetHours * 3_600_000).toISOString();
+/** A calendar date `offsetDays` from today, as YYYY-MM-DD. */
+const isoDay = (offsetDays: number) =>
+  new Date(now + offsetDays * 86_400_000).toISOString().slice(0, 10);
 const uuid = (n: number) =>
   `9f8e7d6c-5b4a-4c3d-8e2f-${String(n).padStart(12, "0")}`;
 
@@ -370,6 +373,24 @@ const worstDocuments: IdentityDocument[] = [
     },
   }),
   document(203, { documentType: "VOTER_ID", documentNumber: "AB1" }),
+  document(204, {
+    documentType: "DRIVING_LICENCE",
+    documentNumber: "MH12 20110012345",
+    nameOnDocument: "Venkata S. L. N. Chakravarthula",
+    expiryDate: isoDay(12),
+    requirements: { expiryDateRequired: true, backImageRequired: true },
+  }),
+  document(205, {
+    documentType: "PASSPORT",
+    documentNumber: "K9876543",
+    expiryDate: isoDay(-40),
+    requirements: { expiryDateRequired: true, backImageRequired: false },
+    images: {
+      front: { isUploaded: true, contentType: "image/jpeg", contentLength: 240_000 },
+      back: { isUploaded: false, contentType: "", contentLength: null },
+    },
+    readiness: { isReady: false, missingFields: ["expiryDate"] },
+  }),
 ];
 
 const worstProfile: GuestProfileResponse = {
@@ -494,7 +515,19 @@ function build(name: Dataset): DatasetData {
         readiness: { isReady: true, missingFields: [] },
         updatedAt: iso(-24),
       } satisfies GuestProfileResponse,
-      documents: [document(201, {})],
+      documents: [
+        document(201, {}),
+        document(206, {
+          documentType: "PASSPORT",
+          documentNumber: "Z4471902",
+          expiryDate: isoDay(365 * 6),
+          requirements: { expiryDateRequired: true, backImageRequired: false },
+          images: {
+            front: { isUploaded: true, contentType: "image/jpeg", contentLength: 240_000 },
+            back: { isUploaded: false, contentType: "", contentLength: null },
+          },
+        }),
+      ],
       companions: [companion(101, {}), companion(102, { legalFirstName: "Meera", relationship: "Daughter", isMinor: true })],
       shares: [
         stay(1, {}),
