@@ -1,0 +1,87 @@
+/* Prototype-only mobile baseline + motion. Scoped to .proto-phone so it can't leak. */
+
+/* Prefixed so they can't collide once this chunk's CSS has loaded. */
+:root {
+  --proto-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --proto-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* The sheet portals outside .proto-phone, so it carries the baseline too. */
+.proto-phone,
+.proto-sheet {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* iOS zooms into any input under 16px; the shared Input is 14px. */
+:is(.proto-phone, .proto-sheet) :is(input, select, textarea) {
+  font-size: 16px;
+}
+
+/* No 300ms double-tap wait, no long-press text selection on controls. */
+:is(.proto-phone, .proto-sheet) :is(button, a, [role="button"], [role="radio"], label) {
+  touch-action: manipulation;
+}
+:is(.proto-phone, .proto-sheet) :is(button, [role="radio"]) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Press feedback fires on pointer-down (:active), not on click. */
+.proto-press {
+  transition: transform 160ms var(--proto-ease-out), background-color 150ms ease-out, opacity 150ms ease-out;
+}
+.proto-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Entrances: opacity + small translate, ease-out, < 300ms. */
+@keyframes proto-rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes proto-from-right {
+  from { opacity: 0; transform: translateX(20px); }
+}
+@keyframes proto-from-left {
+  from { opacity: 0; transform: translateX(-20px); }
+}
+@keyframes proto-pop {
+  from { opacity: 0; transform: scale(0.96); }
+}
+.proto-rise { animation: proto-rise 260ms var(--proto-ease-out) both; }
+.proto-forward { animation: proto-from-right 240ms var(--proto-ease-out) both; }
+.proto-back { animation: proto-from-left 240ms var(--proto-ease-out) both; }
+.proto-pop { animation: proto-pop 220ms var(--proto-ease-out) both; transform-origin: center top; }
+
+/* Hold-to-share: slow fill while deciding (2s linear), snappy release (200ms ease-out). */
+.proto-hold {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.proto-hold-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--primary-hover);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms var(--proto-ease-out);
+}
+.proto-hold[data-holding] .proto-hold-fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1600ms linear;
+}
+
+/* Bottom sheet: drawer curve, slides its full height. */
+.proto-sheet {
+  transition: transform 320ms var(--proto-ease-drawer), opacity 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-rise,
+  .proto-forward,
+  .proto-back,
+  .proto-pop { animation: none; }
+  .proto-press:active:not(:disabled) { transform: none; }
+  .proto-sheet { transition: opacity 150ms ease-out; }
+}
