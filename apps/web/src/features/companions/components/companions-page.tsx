@@ -123,7 +123,7 @@ export function CompanionsPage() {
         }}
       >
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
+          <SheetHeader className="pr-12">
             <SheetTitle>{editor === "new" ? "Add a companion" : "Edit companion"}</SheetTitle>
             <SheetDescription>
               Save the basics now. Hotels only need companion details when they are part of a future check-in.
@@ -150,8 +150,9 @@ export function CompanionsPage() {
         }}
       >
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
-          <SheetHeader>
-            <SheetTitle>
+          {/* pr-12 keeps a long companion name clear of the sheet's close button. */}
+          <SheetHeader className="pr-12">
+            <SheetTitle className="[overflow-wrap:anywhere]">
               {documentOwner
                 ? `Identity documents for ${formatCompanionName(documentOwner)}`
                 : "Companion identity documents"}
@@ -189,13 +190,14 @@ function CompanionCard({
 
   return (
     <div className="group flex min-h-11 flex-wrap items-center gap-3 border-t border-border-soft px-5 py-2">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(formatCompanionName(companion))}</span>
-      <div className="min-w-0 flex-1">
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials([companion.legalFirstName, companion.legalLastName].join(" "))}</span>
+      {/* 12rem basis: on phones the actions wrap below instead of squeezing the name to a few letters. */}
+      <div className="min-w-0 flex-[1_1_12rem]">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold [overflow-wrap:anywhere]">
             {formatCompanionName(companion)}
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
             {companion.relationship || "Relationship not added"}
           </p>
         </div>
@@ -215,7 +217,7 @@ function CompanionCard({
       ) : null}
 
       </div>
-      <div className="flex flex-wrap items-center gap-2 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+      <div className="flex flex-wrap items-center gap-2 max-sm:ml-11 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
       <Button variant="ghost" size="icon-sm" aria-label={`Edit ${formatCompanionName(companion)}`} onClick={onEdit}><Pencil /></Button>
       <Button variant="outline" size="sm" onClick={onManageDocuments}>
         <FileKey2 />

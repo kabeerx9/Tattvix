@@ -24,13 +24,14 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 items-baseline gap-3">
-        <h1 className="truncate text-[22px] font-semibold tracking-[-0.02em]">
+    <header className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+      {/* Titles wrap instead of truncating: long hotel names must stay readable on phones. */}
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="min-w-0 text-[22px] font-semibold tracking-[-0.02em] [overflow-wrap:anywhere]">
           {title}
         </h1>
         {meta ? (
-          <p className="truncate text-sm text-subtle-foreground">{meta}</p>
+          <p className="min-w-0 text-sm text-subtle-foreground">{meta}</p>
         ) : null}
       </div>
       {actions ? (
@@ -248,11 +249,12 @@ export function PanelHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border-soft px-5 py-3">
-      <div className="flex min-w-0 items-center gap-2">
+    // Wraps instead of truncating: below ~10rem for the title, actions drop to their own line.
+    <header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-border-soft px-5 py-3">
+      <div className="flex min-w-0 flex-[1_1_10rem] items-center gap-2">
         {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
-        {meta ? <span className="text-sm text-subtle-foreground tabular-nums">{meta}</span> : null}
+        <h2 className="min-w-0 text-sm font-semibold [overflow-wrap:anywhere]">{title}</h2>
+        {meta ? <span className="shrink-0 text-sm text-subtle-foreground tabular-nums">{meta}</span> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </header>

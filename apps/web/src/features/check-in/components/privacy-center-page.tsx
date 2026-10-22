@@ -92,7 +92,7 @@ export function PrivacyCenterPage() {
             icon={Hotel}
           >
             {currentStays.length ? (
-              <div className="grid">
+              <div>
                 {currentStays.map((stay) => (
                   <ShareCard
                     key={stay.id}
@@ -122,7 +122,7 @@ export function PrivacyCenterPage() {
             icon={History}
           >
             {pastStays.length ? (
-              <div className="grid">
+              <div>
                 {pastStays.map((stay) => (
                   <ShareCard
                     key={stay.id}
@@ -206,13 +206,13 @@ function ShareCard({
   return (
     <div className="border-t border-border-soft">
       <div className="group flex min-h-11 flex-wrap items-center justify-between gap-3 px-5 py-3">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-[1_1_16rem] items-start gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
             <Hotel className="size-[18px]" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-sm font-semibold">
+              <h2 className="min-w-0 text-sm font-semibold [overflow-wrap:anywhere]">
                 {stay.property.name}
               </h2>
               <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{stay.operationalStatus === "PENDING_CHECK_IN" ? "Awaiting check-in" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}</StatusPill>
@@ -226,7 +226,7 @@ function ShareCard({
                 {accessActive ? "Identity access active" : statusLabel(stay)}
               </StatusPill>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
               {stay.property.organization.name}
               {stay.submittedAt
                 ? ` · Shared ${formatDateTime(stay.submittedAt)}`
@@ -278,17 +278,17 @@ function ShareCard({
               {groupAccessEvents(stay.accessEvents)
                 .slice(0, 8)
                 .map((group, index) => (
-                  <tr key={`${group.lastAt}-${index}`} className="border-t border-border-soft text-muted-foreground"><td className="px-3 py-2">
+                  <tr key={`${group.lastAt}-${index}`} className="border-t border-border-soft text-muted-foreground"><td className="px-3 py-2"><span className="flex items-start gap-1.5">
                     {group.action === "DOCUMENT_VIEWED" ? (
-                      <FileImage className="size-3.5" />
+                      <FileImage className="mt-px size-3.5 shrink-0" />
                     ) : (
-                      <Eye className="size-3.5" />
+                      <Eye className="mt-px size-3.5 shrink-0" />
                     )}
-                    <span>
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
                       {activityLabel(group.action, group.imageSide, group.companionName)}
                       {group.count > 1 ? ` ×${group.count}` : ""}
                     </span>
-                    </td><td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">{formatDateTime(group.lastAt)}</td></tr>
+                    </span></td><td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">{formatDateTime(group.lastAt)}</td></tr>
                 ))}
             </tbody></table></div>
           ) : (
