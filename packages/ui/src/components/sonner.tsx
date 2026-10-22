@@ -32,6 +32,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      // Keep toasts clear of the home indicator and landscape notch. Sonner's
+      // defaults are 24px (desktop) and 16px (mobile); env() is 0 off-device.
+      offset={{
+        bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+        right: "calc(24px + env(safe-area-inset-right, 0px))",
+        left: "calc(24px + env(safe-area-inset-left, 0px))",
+        top: "calc(24px + env(safe-area-inset-top, 0px))",
+      }}
+      mobileOffset={{
+        bottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+        right: "calc(16px + env(safe-area-inset-right, 0px))",
+        left: "calc(16px + env(safe-area-inset-left, 0px))",
+        top: "calc(16px + env(safe-area-inset-top, 0px))",
+      }}
       toastOptions={{
         classNames: {
           toast: "cn-toast",

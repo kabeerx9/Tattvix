@@ -17,6 +17,16 @@ import { routeTree } from "./routeTree.gen";
 
 initTelemetry();
 
+// Clerk renders its own inputs at ~13px, which makes iOS zoom on focus.
+// Raise them to 16px on touch only; desktop keeps Clerk's density.
+const touchFieldFont = { "@media (pointer: coarse)": { fontSize: "16px" } };
+const clerkAppearance: React.ComponentProps<typeof ClerkProvider>["appearance"] = {
+  elements: {
+    formFieldInput: touchFieldFont,
+    otpCodeFieldInput: touchFieldFont,
+  },
+};
+
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
@@ -26,7 +36,7 @@ const router = createRouter({
     <RouteErrorState error={error} reset={reset} />
   ),
   defaultNotFoundComponent: () => (
-    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center px-5">
+    <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center px-5">
       <EmptyState
         icon={SearchX}
         title="Page not found"
@@ -79,6 +89,7 @@ if (!rootElement.innerHTML) {
         signUpUrl="/sign-up"
         signInFallbackRedirectUrl="/guest"
         signUpFallbackRedirectUrl="/guest"
+        appearance={clerkAppearance}
       >
         <AppProviders client={queryClient}>
           <RouterAuthProvider>
