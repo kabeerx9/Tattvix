@@ -14,9 +14,8 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { EmptyState, FilterBar, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, StatusPill } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
-import { getInitials } from "@/lib/initials";
 
 import { hotelReportsApi } from "../api";
 import { hotelReportsQueries } from "../queries";
@@ -89,36 +88,32 @@ export function HotelReportsPage({
       <PageHeader title="Reports" />
 
       <Panel>
-      <PanelSection className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-wrap items-end gap-4">
+      <PanelSection>
+        <FilterBar className="grid-cols-2 gap-4">
           <label className="grid gap-1.5 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              From
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">From</span>
             <Input
               type="date"
               value={dateFrom}
               max={dateTo}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="w-44"
+              className="sm:w-44"
             />
           </label>
           <label className="grid gap-1.5 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              To
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">To</span>
             <Input
               type="date"
               value={dateTo}
               min={dateFrom}
               onChange={(event) => setDateTo(event.target.value)}
-              className="w-44"
+              className="sm:w-44"
             />
           </label>
-          <p className="text-xs text-muted-foreground">
+          <p className="col-span-2 text-xs text-muted-foreground sm:pb-2">
             Applies to the register and status counts below.
           </p>
-        </div>
+        </FilterBar>
       </PanelSection>
       </Panel>
 
@@ -226,7 +221,7 @@ function StatusCountsSection({
 
 function StatusCountTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="grid gap-1 p-5 text-center sm:p-6">
+    <div className="grid content-start gap-1 p-3 text-center sm:p-6">
       <p className="text-2xl font-semibold tracking-tight">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
@@ -242,7 +237,18 @@ function InHouseSection({ entries }: { entries: HotelReportInHouseEntry[] }) {
         icon={UserRound}
       />
       {entries.length ? (
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="bg-muted text-xs text-subtle-foreground"><th className="p-4 font-medium sm:px-5">Guest</th><th className="p-4 font-medium sm:px-5">Room</th><th className="p-4 font-medium sm:px-5">Checked in</th></tr></thead><tbody className="divide-y">{entries.map((entry) => <tr key={entry.stayId}><td className="p-4 sm:px-5"><span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.guestName)}</span><span className="font-medium">{entry.guestName}</span></span></td><td className="p-4 tabular-nums text-muted-foreground sm:px-5">{entry.roomNumber ?? "—"}</td><td className="p-4 tabular-nums text-muted-foreground sm:px-5">{entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}</td></tr>)}</tbody></table></div>
+        <ResponsiveTable
+          label="Current in-house"
+          rows={entries}
+          getRowKey={(entry) => entry.stayId}
+          switchAt="lg"
+          columns={[
+            { header: "Guest", width: "minmax(0,2fr)", className: "flex items-center gap-3 font-medium", cell: (entry) => <><InitialsAvatar name={entry.guestName} /><span className="truncate">{entry.guestName}</span></> },
+            { header: "Room", width: "80px", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.roomNumber ?? "—" },
+            { header: "Checked in", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—" },
+          ]}
+          mobileRow={(entry) => <ListRow leading={<InitialsAvatar name={entry.guestName} />} title={entry.guestName} meta={`Room ${entry.roomNumber ?? "—"} · Checked in ${entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}`} />}
+        />
       ) : (
         <EmptyState
           icon={UserRound}
@@ -295,42 +301,33 @@ function RegisterSection({
           Loading…
         </div>
       ) : entries.length ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="bg-muted text-xs text-subtle-foreground">
-                <th className="p-4 font-medium sm:p-5">Guest</th>
-                <th className="p-4 text-right font-medium sm:p-5">Companions</th>
-                <th className="p-4 font-medium sm:p-5">Room</th>
-                <th className="p-4 font-medium sm:p-5">Checked in</th>
-                <th className="p-4 font-medium sm:p-5">Checked out</th>
-                <th className="p-4 font-medium sm:p-5">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {entries.map((entry) => (
-                <tr key={entry.stayId}>
-                  <td className="p-4 font-medium sm:p-5"><span className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.guestName)}</span>{entry.guestName}</span></td>
-                  <td className="p-4 text-right text-muted-foreground tabular-nums sm:p-5">
-                    {entry.companionCount}
-                  </td>
-                  <td className="p-4 text-muted-foreground tabular-nums sm:p-5">
-                    {entry.roomNumber ?? "—"}
-                  </td>
-                  <td className="p-4 text-muted-foreground tabular-nums sm:p-5">
-                    {entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}
-                  </td>
-                  <td className="p-4 text-muted-foreground sm:p-5">
-                    {entry.checkedOutAt ? formatDateTime(entry.checkedOutAt) : "—"}
-                  </td>
-                  <td className="p-4 text-muted-foreground sm:p-5">
-                    <ReportStatusPill status={entry.operationalStatus} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          label="Register"
+          rows={entries}
+          getRowKey={(entry) => entry.stayId}
+          switchAt="4xl"
+          columns={[
+            { header: "Guest", width: "minmax(0,1.5fr)", className: "flex items-center gap-3 font-medium", cell: (entry) => <><InitialsAvatar name={entry.guestName} /><span className="truncate">{entry.guestName}</span></> },
+            { header: "Companions", width: "96px", align: "end", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.companionCount },
+            { header: "Room", width: "64px", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.roomNumber ?? "—" },
+            { header: "Checked in", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—" },
+            { header: "Checked out", className: "tabular-nums text-muted-foreground", cell: (entry) => entry.checkedOutAt ? formatDateTime(entry.checkedOutAt) : "—" },
+            { header: "Status", width: "140px", cell: (entry) => <ReportStatusPill status={entry.operationalStatus} /> },
+          ]}
+          mobileRow={(entry) => (
+            <ListRow
+              leading={<InitialsAvatar name={entry.guestName} />}
+              title={entry.guestName}
+              badge={<ReportStatusPill status={entry.operationalStatus} />}
+              meta={
+                <>
+                  <span className="block">{[`Room ${entry.roomNumber ?? "—"}`, entry.companionCount > 0 ? `+${entry.companionCount}` : null].filter(Boolean).join(" · ")}</span>
+                  <span className="block">In {entry.checkedInAt ? formatDateTime(entry.checkedInAt) : "—"}{entry.checkedOutAt ? ` · Out ${formatDateTime(entry.checkedOutAt)}` : ""}</span>
+                </>
+              }
+            />
+          )}
+        />
       ) : (
         <EmptyState
           icon={ClipboardList}

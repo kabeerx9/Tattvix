@@ -17,8 +17,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { Hotel, Plus, UserRoundPlus, Users } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, Fact, FactsRow, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
-import { getInitials } from "@/lib/initials";
+import { EmptyState, Fact, FactsRow, InitialsAvatar, ListRow, PageHeader, Panel, PanelHeader, ResponsiveTable, StatusPill } from "@/components/design-system";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
 import { ApiError } from "@/lib/api";
 
@@ -148,16 +147,25 @@ function PropertiesSection({
       ) : null}
 
       {properties.length ? (
-        <div className="overflow-x-auto"><div role="table" aria-label="Properties" className="min-w-[520px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_160px_120px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Property</span><span role="columnheader">Slug</span><span role="columnheader">Status</span></div>
-          {properties.map((property) => (
-            <div
-              key={property.id} role="row"
-              className="grid min-h-11 grid-cols-[minmax(0,1fr)_160px_120px] items-center gap-4 border-t border-border-soft px-5 py-2"
-            >
-              <span role="cell" className="text-sm font-medium">{property.name}</span><span role="cell" className="text-xs text-subtle-foreground">{property.slug}</span><span role="cell"><StatusBadge isActive={property.isActive} /></span>
-            </div>
-          ))}
-        </div></div>
+        <ResponsiveTable
+          label="Properties"
+          rows={properties}
+          getRowKey={(property) => property.id}
+          switchAt="lg"
+          columns={[
+            { header: "Property", className: "font-medium", cell: (property) => property.name },
+            { header: "Slug", width: "160px", className: "text-xs text-subtle-foreground", cell: (property) => property.slug },
+            { header: "Status", width: "120px", cell: (property) => <StatusBadge isActive={property.isActive} /> },
+          ]}
+          mobileRow={(property) => (
+            <ListRow
+              leading={<InitialsAvatar name={property.name} shape="square" />}
+              title={property.name}
+              badge={<StatusBadge isActive={property.isActive} />}
+              meta={property.slug}
+            />
+          )}
+        />
       ) : (
         <EmptyState
           icon={Hotel}
@@ -308,64 +316,35 @@ function MembersSection({
       ) : null}
 
       {members.length ? (
-        <div className="overflow-x-auto"><div role="table" aria-label="Members" className="min-w-[740px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_340px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Member</span><span role="columnheader">Role · Status · Actions</span></div>
-          {members.map((member) => (
-            <div key={member.id} role="row" className="grid gap-3 border-t border-border-soft px-5 py-2">
-              <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_340px] items-center gap-4">
-                <div role="cell" className="flex min-w-0 items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials([member.user.firstName, member.user.lastName].filter(Boolean).join(" ") || member.user.email)}</span><div className="min-w-0">
-                  <h3 className="text-sm font-semibold">
-                    {[member.user.firstName, member.user.lastName]
-                      .filter(Boolean)
-                      .join(" ") || member.user.email}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {member.user.email}
-                  </p>
-                </div></div>
-                <div role="cell" className="flex flex-wrap items-center gap-2">
-                  <Select
-                    value={member.role}
-                    onValueChange={(value) =>
-                      changeRole(member, value as PlatformMembershipRole)
-                    }
-                  >
-                    <SelectTrigger
-                      className="w-[150px]"
-                      aria-label={`Role for ${member.user.email}`}
-                      disabled={updateMutation.isPending}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map((roleOption) => (
-                        <SelectItem key={roleOption} value={roleOption}>
-                          {roleLabel(roleOption)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <StatusBadge isActive={member.isActive} />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={updateMutation.isPending}
-                    onClick={() => toggleActive(member)}
-                  >
-                    {member.isActive ? "Deactivate" : "Activate"}
-                  </Button>
-                </div>
-              </div>
-              {rowError && rowError.id === member.id ? (
-                <p
-                  role="alert"
-                  className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-                >
-                  {rowError.message}
-                </p>
-              ) : null}
-            </div>
-          ))}
-        </div></div>
+        <ResponsiveTable
+          label="Members"
+          rows={members}
+          getRowKey={(member) => member.id}
+          switchAt="2xl"
+          columns={[
+            { header: "Member", className: "flex items-center gap-3", cell: (member) => <><InitialsAvatar name={memberName(member)} /><div className="min-w-0"><h3 className="truncate text-sm font-semibold">{memberName(member)}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{member.user.email}</p></div></> },
+            { header: "Role · Status · Actions", width: "340px", cell: (member) => <MemberControls member={member} disabled={updateMutation.isPending} onRoleChange={(nextRole) => changeRole(member, nextRole)} onToggleActive={() => toggleActive(member)} /> },
+          ]}
+          mobileRow={(member) => (
+            <ListRow
+              leading={<InitialsAvatar name={memberName(member)} />}
+              title={memberName(member)}
+              meta={member.user.email}
+            >
+              <MemberControls member={member} disabled={updateMutation.isPending} onRoleChange={(nextRole) => changeRole(member, nextRole)} onToggleActive={() => toggleActive(member)} />
+            </ListRow>
+          )}
+          rowFooter={(member) =>
+            rowError && rowError.id === member.id ? (
+              <p
+                role="alert"
+                className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                {rowError.message}
+              </p>
+            ) : null
+          }
+        />
       ) : (
         <EmptyState
           icon={Users}
@@ -374,6 +353,47 @@ function MembersSection({
         />
       )}
     </Panel>
+  );
+}
+
+function memberName(member: PlatformMember) {
+  return [member.user.firstName, member.user.lastName].filter(Boolean).join(" ") || member.user.email;
+}
+
+function MemberControls({
+  member,
+  disabled,
+  onRoleChange,
+  onToggleActive,
+}: {
+  member: PlatformMember;
+  disabled: boolean;
+  onRoleChange: (role: PlatformMembershipRole) => void;
+  onToggleActive: () => void;
+}) {
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2">
+      <Select value={member.role} onValueChange={(value) => onRoleChange(value as PlatformMembershipRole)}>
+        <SelectTrigger
+          className="min-w-0 flex-1 sm:w-[150px] sm:flex-none"
+          aria-label={`Role for ${member.user.email}`}
+          disabled={disabled}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {ROLES.map((roleOption) => (
+            <SelectItem key={roleOption} value={roleOption}>
+              {roleLabel(roleOption)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <StatusBadge isActive={member.isActive} />
+      <Button variant="outline" size="sm" disabled={disabled} onClick={onToggleActive}>
+        {member.isActive ? "Deactivate" : "Activate"}
+      </Button>
+    </div>
   );
 }
 

@@ -17,7 +17,7 @@ Build with shadcn components from `@tattvix/ui`, then the composed patterns in
 `apps/web/src/components/design-system.tsx`:
 
 1. Existing `@tattvix/ui` component.
-2. A pattern from `design-system.tsx` (`PageHeader`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`).
+2. A pattern from `design-system.tsx` (`PageHeader`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`).
 3. A feature component composed from those.
 4. A new shared primitive only when none of the above can express the interaction.
 
@@ -67,6 +67,11 @@ Sentence case everywhere. No uppercase eyebrows.
 - 24px between panels, 20–24px inside panels, 12–16px inside related groups.
 - Lists: 44px rows; bill/ledger: 52px rows. Table header `bg-muted`, 12px labels.
 - Mobile collapses to one column; side panels move below the main column.
+- Tables use `ResponsiveTable`: a grid table when its container is wide enough, a divided list of
+  `ListRow`s when it isn't (a container query, so it also adapts beside an expanded sidebar). Pick
+  `switchAt` as the smallest size where every column fits. Never ship a table that scrolls sideways
+  on a phone.
+- Filters above a list go in a `FilterBar`: full-width stacked controls on a phone.
 
 ## Page anatomy
 
@@ -88,7 +93,7 @@ data (`pnpm seed -- --email <you>`), not an empty dev database.
 1. **One fact, one place.** Room, rate, dates or status shown in the header don't repeat below.
 2. **One primary action per page.** Secondary actions sit where they apply ("Add charge" on the bill).
 3. **Rare content collapses** behind a link ("View images").
-4. **Row actions appear on hover/focus**, never permanently on every row.
+4. **Row actions appear on hover/focus**, never permanently on every row — on mouse devices only (`rowActionsRevealClassName`); touch screens always show them.
 5. **Dashboards show data.** No tiles that only link elsewhere.
 6. **Facts rows are plain text** (label over value), not bordered cells.
 

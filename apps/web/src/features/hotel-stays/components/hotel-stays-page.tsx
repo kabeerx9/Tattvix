@@ -26,12 +26,11 @@ import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { EmptyState, FilterBar, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { useDebouncedValue } from "@/core/hooks/use-debounced-value";
 import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
-import { getInitials } from "@/lib/initials";
 
 const STATUS_FILTERS: {
   value: OperationalStayStatus | "__all__";
@@ -130,7 +129,7 @@ export function HotelStaysPage({
       <Panel>
         <PanelHeader title="Check-ins" meta={stays.length} />
         <PanelSection>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <FilterBar className="sm:items-center">
             <div className="relative sm:w-[240px]">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -159,7 +158,7 @@ export function HotelStaysPage({
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:flex">
               <Input
                 type="date"
                 value={dateFrom}
@@ -176,7 +175,7 @@ export function HotelStaysPage({
                 className="sm:w-[160px]"
               />
             </div>
-          </div>
+          </FilterBar>
         </PanelSection>
 
         {stays.length ? (
@@ -241,7 +240,7 @@ function CheckInQrPanel({ qrToken }: { qrToken: HotelQrTokenResponse }) {
           another QR revokes this one immediately.
         </p>
         <div className="mt-5 flex gap-2">
-          <Input value={checkInUrl} readOnly aria-label="Check-in URL" />
+          <Input className="min-w-0" value={checkInUrl} readOnly aria-label="Check-in URL" />
           <Button variant="outline" onClick={copyLink}>
             <Copy />
             Copy
@@ -269,24 +268,20 @@ function StayRow({
     <Link
       to="/hotel/$organizationSlug/$propertySlug/stays/$stayId"
       params={{ organizationSlug, propertySlug, stayId: stay.id }}
-      className="flex min-h-11 items-center gap-3 border-t border-border-soft px-5 py-2 hover:bg-muted/50"
+      className="block border-t border-border-soft px-5 py-3 hover:bg-muted/50 active:bg-muted/70"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
-          {getInitials(stay.guestName)}
-        </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium">{stay.guestName}</span>
-            <StayStatusPill stay={stay} />
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+      <ListRow
+        leading={<InitialsAvatar name={stay.guestName} />}
+        title={stay.guestName}
+        badge={<StayStatusPill stay={stay} />}
+        meta={
+          <>
             Submitted {stay.submittedAt ? formatDateTime(stay.submittedAt) : "—"}
             {stay.companionCount > 0 ? ` · +${stay.companionCount}` : ""}
             {stay.room ? ` · Room ${stay.room.number}` : ""}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
     </Link>
   );
 }

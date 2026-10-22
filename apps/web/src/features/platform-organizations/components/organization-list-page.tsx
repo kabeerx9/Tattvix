@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight, Building2, ClipboardList, Plus, ShieldAlert, Users } from "lucide-react";
 
-import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
+import { EmptyState, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, ResponsiveTable, StatusPill } from "@/components/design-system";
 
 import { platformOrganizationQueries } from "../queries";
 
@@ -45,13 +45,32 @@ export function OrganizationListPage() {
 
       <KpiStrip><Kpi icon={Building2} label="Organizations" value={data.organizations.length} /><Kpi icon={Building2} label="Active" value={data.organizations.filter((organization) => organization.isActive).length} /><Kpi icon={Users} label="Members" value={data.organizations.reduce((total, organization) => total + organization.memberCount, 0)} /></KpiStrip>
       {data.organizations.length ? (
-        <Panel><PanelHeader title="Organizations" meta={data.organizations.length} /><div className="overflow-x-auto"><div role="table" className="min-w-[720px]"><div role="row" className="grid h-11 grid-cols-[minmax(0,1fr)_100px_100px_100px_20px] items-center gap-4 bg-muted px-5 text-xs text-subtle-foreground"><span role="columnheader">Organization</span><span role="columnheader" className="text-right">Properties</span><span role="columnheader" className="text-right">Members</span><span role="columnheader">Status</span><span /></div>
-          {data.organizations.map((organization) => (
-            <Link key={organization.id} role="row" to="/admin/$organizationSlug" params={{ organizationSlug: organization.slug }} className="grid min-h-11 grid-cols-[minmax(0,1fr)_100px_100px_100px_20px] items-center gap-4 border-t border-border-soft px-5 py-2 text-sm hover:bg-muted/50"><span role="cell" className="min-w-0"><span className="font-medium">{organization.name}</span><span className="ml-2 text-xs text-subtle-foreground">{organization.slug}</span></span><span role="cell" className="text-right text-xs text-subtle-foreground tabular-nums">{organization.propertyCount} propert
-                {organization.propertyCount === 1 ? "y" : "ies"}
-                </span><span role="cell" className="text-right text-xs text-subtle-foreground tabular-nums">{organization.memberCount} members</span><span role="cell"><StatusBadge isActive={organization.isActive} /></span><ArrowRight className="size-4 text-muted-foreground" /></Link>
-          ))}
-        </div></div></Panel>
+        <Panel>
+          <PanelHeader title="Organizations" meta={data.organizations.length} />
+          <ResponsiveTable
+            label="Organizations"
+            rows={data.organizations}
+            getRowKey={(organization) => organization.id}
+            switchAt="2xl"
+            rowLink={(organization, props) => <Link {...props} to="/admin/$organizationSlug" params={{ organizationSlug: organization.slug }} />}
+            columns={[
+              { header: "Organization", cell: (organization) => <><span className="font-medium">{organization.name}</span><span className="ml-2 text-xs text-subtle-foreground">{organization.slug}</span></> },
+              { header: "Properties", width: "100px", align: "end", className: "text-xs text-subtle-foreground tabular-nums", cell: (organization) => propertyCountLabel(organization.propertyCount) },
+              { header: "Members", width: "100px", align: "end", className: "text-xs text-subtle-foreground tabular-nums", cell: (organization) => `${organization.memberCount} members` },
+              { header: "Status", width: "100px", cell: (organization) => <StatusBadge isActive={organization.isActive} /> },
+              { header: "Open", width: "20px", hideHeader: true, cell: () => <ArrowRight className="size-4 text-muted-foreground" /> },
+            ]}
+            mobileRow={(organization) => (
+              <ListRow
+                leading={<InitialsAvatar name={organization.name} shape="square" />}
+                title={organization.name}
+                badge={<StatusBadge isActive={organization.isActive} />}
+                meta={`${organization.slug} · ${propertyCountLabel(organization.propertyCount)} · ${organization.memberCount} members`}
+                trailing={<ArrowRight className="size-4 text-muted-foreground" />}
+              />
+            )}
+          />
+        </Panel>
       ) : (
         <Panel>
           <EmptyState
@@ -69,6 +88,10 @@ export function OrganizationListPage() {
       )}
     </div>
   );
+}
+
+function propertyCountLabel(count: number) {
+  return `${count} ${count === 1 ? "property" : "properties"}`;
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) { return <StatusPill tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Inactive"}</StatusPill>; }

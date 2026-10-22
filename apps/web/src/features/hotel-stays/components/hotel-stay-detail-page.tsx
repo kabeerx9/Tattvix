@@ -271,8 +271,8 @@ export function HotelStayDetailPage({
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-sm font-medium">{getInitials(stay.guestName)}</span>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-[22px] font-semibold">{stay.guestName}</h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h1 className="min-w-0 text-[22px] leading-tight font-semibold wrap-anywhere">{stay.guestName}</h1>
                 <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
                   {stay.operationalStatus === "PENDING_CHECK_IN" ? "Waiting for a room" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}
                 </StatusPill>

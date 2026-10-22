@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { useClerk, useUser } from "@clerk/react";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   BarChart3,
   BedDouble,
@@ -100,6 +101,10 @@ const hotelNavIcons: Record<HotelNavKey, Icon> = {
   settings: Settings,
 };
 
+// 44px rows in the mobile sheet (touch), the denser 36px rail from md up.
+const navButtonClassName =
+  "h-11 rounded-lg px-2.5 font-medium md:h-9 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground";
+
 function isFlatItemActive(item: FlatNavItem, pathname: string) {
   return (
     pathname === item.to ||
@@ -130,8 +135,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="min-w-0 bg-background pr-[env(safe-area-inset-right,0px)] pl-[env(safe-area-inset-left,0px)]">
-          <header className="sticky top-0 z-20 flex h-[calc(--spacing(14)+env(safe-area-inset-top,0px))] items-center pt-[env(safe-area-inset-top,0px)] gap-3 border-b border-border bg-background/90 px-4 backdrop-blur sm:px-8">
-            <SidebarTrigger className="-ml-1" />
+          <CloseMobileSidebarOnNavigate />
+          <header className="sticky top-0 z-20 flex h-[calc(--spacing(14)+env(safe-area-inset-top,0px))] items-center gap-2 border-b border-border bg-background/90 px-4 pt-[env(safe-area-inset-top,0px)] backdrop-blur sm:px-8 md:gap-3">
+            {/* 44px tap target on phones; the compact 28px trigger from md up. */}
+            <SidebarTrigger className="-ml-2.5 size-11 md:-ml-1 md:size-7" />
             <p className="truncate text-sm font-medium">{sectionLabel}</p>
           </header>
           <main className="flex-1 p-4 sm:p-8">{children}</main>
@@ -139,6 +146,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </SidebarProvider>
     </TooltipProvider>
   );
+}
+
+/**
+ * The mobile sidebar is a sheet. Nav links close it on tap, but back/forward
+ * and programmatic navigation (e.g. a redirect after a mutation) would leave
+ * it open over the new page; closing on every pathname change covers both.
+ */
+function CloseMobileSidebarOnNavigate() {
+  const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
+  return null;
 }
 
 function AppSidebar() {
@@ -336,7 +357,7 @@ function HotelNav() {
         <SidebarMenuButton
           isActive={item.isActive}
           tooltip={item.label}
-          className="h-9 rounded-lg px-2.5 font-medium data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+          className={navButtonClassName}
           render={
             <Link
               to={item.to}
@@ -363,7 +384,7 @@ function FlatNav({ items }: { items: FlatNavItem[] }) {
         <SidebarMenuButton
           isActive={isActive}
           tooltip={item.label}
-          className="h-9 rounded-lg px-2.5 font-medium data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+          className={navButtonClassName}
           render={<Link to={item.to} onClick={() => setOpenMobile(false)} />}
         >
           <item.icon className="size-4" />
