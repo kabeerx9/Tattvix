@@ -22,7 +22,9 @@ import {
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { cn } from "@tattvix/ui/lib/utils";
+
+import { ListRow, Panel, PanelHeader, PanelSection, ResponsiveTable, rowActionsRevealClassName, StatusPill } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
 import { formatMoneyMinor, parseMoneyMinor } from "@/lib/money";
 
@@ -137,6 +139,9 @@ function BillContents({
         ? "The bill could not be updated."
         : null;
 
+  const canVoid = (item: StayBill["items"][number]) =>
+    canManage && !isFinal && item.kind === "EXTRA" && !item.voidedAt;
+
   function addExtra(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!validExtra || unitPriceMinor === null) return;
@@ -217,43 +222,30 @@ function BillContents({
         </p>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead className="bg-muted text-left text-xs text-subtle-foreground">
-            <tr>
-              <th className="px-5 py-3 font-medium">Item</th>
-              <th className="px-5 py-3 text-right font-medium tabular-nums">Qty</th>
-              <th className="px-5 py-3 text-right font-medium tabular-nums">Unit</th>
-              <th className="px-5 py-3 text-right font-medium tabular-nums">Amount</th>
-              <th className="px-5 py-3"><span className="sr-only">Action</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {bill.items.map((item) => (
-              <tr key={item.id} className="group h-[52px] border-t border-border-soft">
-                <td className="px-5 py-1.5">
-                  <p className={item.voidedAt ? "text-subtle-foreground line-through" : "font-medium"}>{item.description}</p>
-                  <p className="mt-1 text-xs text-subtle-foreground">
-                    {item.kind === "ROOM" ? "Room" : "Extra"} · {new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}
-                    {item.voidedAt ? ` · Void: ${item.voidReason ?? "No reason recorded"}` : ""}
-                  </p>
-                </td>
-                <td className={`px-5 py-1.5 text-right tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{item.quantity}</td>
-                <td className={`px-5 py-1.5 text-right tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{formatMoneyMinor(item.unitPriceMinor)}</td>
-                <td className={`px-5 py-1.5 text-right font-medium tabular-nums ${item.voidedAt ? "text-subtle-foreground line-through" : ""}`}>{formatMoneyMinor(item.lineTotalMinor)}</td>
-                <td className="px-5 py-1.5 text-right">
-                  {item.voidedAt ? <StatusPill tone="danger">Void</StatusPill> : null}
-                  {canManage && !isFinal && item.kind === "EXTRA" && !item.voidedAt ? (
-                    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                      <Button size="sm" variant="ghost" onClick={() => setVoidingItem(item)}><Trash2 />Void</Button>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ResponsiveTable
+        label="Bill items"
+        rows={bill.items}
+        getRowKey={(item) => item.id}
+        switchAt="xl"
+        rowClassName="min-h-[52px] py-1.5"
+        columns={[
+          { header: "Item", cell: (item) => <><p className={item.voidedAt ? "text-subtle-foreground line-through" : "font-medium"}>{item.description}</p><p className="mt-1 text-xs text-subtle-foreground">{billItemMeta(item)}</p></> },
+          { header: "Qty", width: "48px", align: "end", className: "tabular-nums", cell: (item) => <span className={voidedClassName(item)}>{item.quantity}</span> },
+          { header: "Unit", width: "110px", align: "end", className: "tabular-nums", cell: (item) => <span className={voidedClassName(item)}>{formatMoneyMinor(item.unitPriceMinor)}</span> },
+          { header: "Amount", width: "120px", align: "end", className: "font-medium tabular-nums", cell: (item) => <span className={voidedClassName(item)}>{formatMoneyMinor(item.lineTotalMinor)}</span> },
+          { header: "Action", width: "88px", align: "end", hideHeader: true, cell: (item) => <BillItemAction item={item} canVoid={canVoid(item)} onVoid={() => setVoidingItem(item)} /> },
+        ]}
+        mobileRow={(item) => (
+          <ListRow
+            title={<span className={item.voidedAt ? "font-normal text-subtle-foreground line-through" : undefined}>{item.description}</span>}
+            badge={item.voidedAt ? <StatusPill tone="danger">Void</StatusPill> : null}
+            meta={<>{item.quantity} × {formatMoneyMinor(item.unitPriceMinor)} · {billItemMeta(item)}</>}
+            trailing={<span className={`font-medium ${voidedClassName(item)}`}>{formatMoneyMinor(item.lineTotalMinor)}</span>}
+          >
+            {canVoid(item) ? <Button size="sm" variant="outline" onClick={() => setVoidingItem(item)}><Trash2 />Void</Button> : null}
+          </ListRow>
+        )}
+      />
       <PanelSection className="border-t border-border-soft">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <p className="text-xs text-subtle-foreground tabular-nums">
@@ -266,8 +258,8 @@ function BillContents({
 
       {canManage && !isFinal ? (
         <PanelSection className="border-t border-border-soft"><form className="grid gap-4" onSubmit={addExtra}>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_100px_140px_auto] sm:items-end">
-            <Field label="Description">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-[minmax(0,1fr)_100px_140px_auto] sm:items-end">
+            <Field className="col-span-2 sm:col-span-1" label="Description">
               <Input
                 required
                 value={extra.description}
@@ -310,7 +302,7 @@ function BillContents({
                 placeholder="₹500.00"
               />
             </Field>
-            <Button type="submit" variant="outline" disabled={!validExtra || chargeMutation.isPending}>
+            <Button className="col-span-2 sm:col-span-1" type="submit" variant="outline" disabled={!validExtra || chargeMutation.isPending}>
               <Plus />
               {chargeMutation.isPending ? "Adding..." : "Add charge"}
             </Button>
@@ -373,15 +365,37 @@ function BillContents({
   );
 }
 
+type BillItem = StayBill["items"][number];
+
+function billItemMeta(item: BillItem) {
+  return `${item.kind === "ROOM" ? "Room" : "Extra"} · ${new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}${item.voidedAt ? ` · Void: ${item.voidReason ?? "No reason recorded"}` : ""}`;
+}
+
+function voidedClassName(item: BillItem) {
+  return item.voidedAt ? "text-subtle-foreground line-through" : "";
+}
+
+function BillItemAction({ item, canVoid, onVoid }: { item: BillItem; canVoid: boolean; onVoid: () => void }) {
+  if (item.voidedAt) return <StatusPill tone="danger">Void</StatusPill>;
+  if (!canVoid) return null;
+  return (
+    <div className={rowActionsRevealClassName}>
+      <Button size="sm" variant="ghost" onClick={onVoid}><Trash2 />Void</Button>
+    </div>
+  );
+}
+
 function Field({
   label,
+  className,
   children,
 }: {
   label: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", className)}>
       <Label>{label}</Label>
       {children}
     </div>
