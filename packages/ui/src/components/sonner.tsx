@@ -44,8 +44,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
         left: "calc(24px + env(safe-area-inset-left, 0px))",
         top: "calc(24px + env(safe-area-inset-top, 0px))",
       }}
+      // On phones, --toast-clearance lifts toasts above a bottom tab bar
+      // (set in globals.css while one is on the page).
       mobileOffset={{
-        bottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(16px + var(--toast-clearance, 0px) + env(safe-area-inset-bottom, 0px))",
         right: "calc(16px + env(safe-area-inset-right, 0px))",
         left: "calc(16px + env(safe-area-inset-left, 0px))",
         top: "calc(16px + env(safe-area-inset-top, 0px))",
