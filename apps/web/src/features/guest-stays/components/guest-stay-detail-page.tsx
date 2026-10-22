@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@tattvix/ui/components/button";
 import { PageHeader, Panel, PanelHeader, PanelSection, FactsRow, Fact, StatusPill } from "@/components/design-system";
 import { formatMoneyMinor } from "@/lib/money";
+import { describeGuestAccess, getGuestAccessAction } from "../access";
 import { guestStayQueries } from "../queries";
 import { guestStayStatusLabel } from "../status";
 
@@ -43,6 +44,7 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
       </Panel>
     );
   const bill = billQuery.data;
+  const access = getGuestAccessAction(stay);
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
@@ -122,13 +124,15 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
       </Panel>
       <Panel><PanelHeader title="Identity sharing" /><PanelSection className="grid justify-items-start gap-3">
         <StatusPill tone={stay.status === "REVOKED" ? "danger" : stay.status === "CLOSED" ? "neutral" : "success"}>{stay.status === "REVOKED" ? "Consent revoked" : stay.status === "CLOSED" ? "Identity review complete" : "Consent approved"}</StatusPill>
-        {stay.hotelAccessExpiresAt ? <p className="text-xs text-subtle-foreground">Access ends no later than {new Date(stay.hotelAccessExpiresAt).toLocaleString()}</p> : null}
+        <p className="text-xs leading-5 text-subtle-foreground">{describeGuestAccess(access)}</p>
       </PanelSection><PanelSection className="grid gap-4">
         <div>
           <p className="mt-1 text-sm text-muted-foreground">
             {stay.status === "REVOKED"
               ? "You revoked identity access. Your stay and bill remain available."
-              : "Manage hotel identity access separately from your stay and bill."}
+              : access.kind === "revocable"
+                ? "To stop sharing before access ends, use the Privacy center."
+                : "See when the hotel opened your details in the Privacy center."}
           </p>
         </div>
         <Button

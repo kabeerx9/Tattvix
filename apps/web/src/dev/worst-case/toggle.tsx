@@ -6,6 +6,7 @@ const labels: Record<Dataset, string> = {
   worst: "Worst case",
   empty: "Empty",
   one: "One",
+  access: "Access states",
 };
 
 /**

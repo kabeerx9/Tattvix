@@ -109,11 +109,12 @@ export function ConsentStep({
 
       <NoticeSection title="Changing your mind">
         <p>
-          Stop sharing at any time from this check-in page or from{" "}
+          The hotel uses your details while you stay. After checkout you can stop sharing from this check-in
+          page or from{" "}
           <Link to="/privacy" className="font-medium text-primary underline-offset-4 hover:underline">
             Privacy
           </Link>
-          . The hotel loses access straight away.
+          , and the hotel loses access straight away. If you don’t, access ends on its own.
         </p>
       </NoticeSection>
 

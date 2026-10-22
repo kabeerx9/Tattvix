@@ -31,7 +31,7 @@ from .models import (
 from .object_storage import PrivateObjectStorage
 
 
-CONSENT_VERSION = "2026-10-03"
+CONSENT_VERSION = "2026-10-22"
 CONSENT_DATA_CATEGORIES = [
     "guest_profile",
     "identity_document",
