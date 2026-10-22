@@ -22,6 +22,12 @@ import { ConfirmDialog, EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel,
 import { travelImages } from "@/lib/travel-images";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
+import {
+  describeGuestAccess,
+  getGuestAccessAction,
+  isHotelAccessOpen,
+  type GuestAccessAction,
+} from "@/features/guest-stays/access";
 import { ApiError } from "@/lib/api";
 
 export function PrivacyCenterPage() {
@@ -195,13 +201,8 @@ function ShareCard({
   isRevoking: boolean;
   onAskRevoke: () => void;
 }) {
-  const accessActive =
-    stay.status !== "REVOKED" &&
-    Boolean(
-      stay.hotelAccessExpiresAt &&
-        new Date(stay.hotelAccessExpiresAt).getTime() > Date.now(),
-    );
-
+  const access = getGuestAccessAction(stay);
+  const accessActive = isHotelAccessOpen(access);
 
   return (
     <div className="border-t border-border-soft">
@@ -223,7 +224,7 @@ function ShareCard({
                 </span>
               ) : null}
               <StatusPill tone={stay.status === "REVOKED" ? "danger" : accessActive ? "success" : "neutral"}>
-                {accessActive ? "Identity access active" : statusLabel(stay)}
+                {accessActive ? "Identity access active" : statusLabel(access)}
               </StatusPill>
             </div>
             <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
@@ -235,7 +236,7 @@ function ShareCard({
           </div>
         </div>
 
-        {accessActive ? (
+        {access.kind === "revocable" ? (
           <Button
             variant="outline"
             size="sm"
@@ -264,11 +265,7 @@ function ShareCard({
           <p className="text-xs font-medium">Access boundary</p>
           <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
             <Clock3 className="mt-0.5 size-3.5 shrink-0" />
-            {stay.status === "REVOKED"
-              ? "Revoked by you"
-              : stay.hotelAccessExpiresAt
-                ? `No later than ${formatDateTime(stay.hotelAccessExpiresAt)}`
-                : "No active hotel access"}
+            {describeGuestAccess(access, { format: formatDateTime })}
           </p>
         </div>
         <div className="min-w-0">
@@ -354,10 +351,10 @@ function activityLabel(
   return "Consent revoked";
 }
 
-function statusLabel(stay: GuestShare) {
-  if (stay.status === "REVOKED") return "Consent revoked";
-  if (stay.status === "CLOSED") return "Identity review complete";
-  return "Access expired";
+function statusLabel(access: GuestAccessAction) {
+  if (access.kind === "ended" && access.reason === "revoked") return "Consent revoked";
+  if (access.kind === "not-shared") return "Not shared";
+  return "Access ended";
 }
 
 function formatDateTime(value: string) {

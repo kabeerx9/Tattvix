@@ -46,6 +46,7 @@ export function CheckInPage({
         token={token}
         stay={context.existingStay}
         propertyName={context.property.name}
+        graceHours={context.accessPolicy.postCheckoutGraceHours}
         onNewVisit={() => setNewVisit(true)}
       />
     );

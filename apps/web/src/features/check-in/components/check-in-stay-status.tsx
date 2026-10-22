@@ -8,22 +8,27 @@ import { useState } from "react";
 
 import { ConfirmDialog, StatusPill } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
-import { formatDateTime } from "@/features/check-in/format";
+import { describeGuestAccess, getGuestAccessAction } from "@/features/guest-stays/access";
 import { guestStayStatusLabel } from "@/features/guest-stays/status";
 import { ApiError } from "@/lib/api";
 
 import { CheckInBrandBar, StepFooter, footerButtonClassName } from "./check-in-layout";
 
-/** After sending: status that updates on its own, the room, and stop sharing. */
+/**
+ * After sending: status that updates on its own, the room, and (only after
+ * checkout, while the hotel's access window is open) stop sharing.
+ */
 export function CheckInStayStatus({
   token,
   stay,
   propertyName,
+  graceHours,
   onNewVisit,
 }: {
   token: string;
   stay: GuestStay;
   propertyName: string;
+  graceHours: number;
   onNewVisit: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -32,6 +37,8 @@ export function CheckInStayStatus({
   const revoked = stay.status === "REVOKED";
   const pending = stay.operationalStatus === "PENDING_CHECK_IN";
   const checkedOut = stay.operationalStatus === "CHECKED_OUT";
+  const access = getGuestAccessAction(stay);
+  const accessLine = describeGuestAccess(access, { graceHours });
 
   const title = revoked
     ? "Sharing stopped"
@@ -67,10 +74,14 @@ export function CheckInStayStatus({
           {title}
         </h1>
         <p className="max-w-80 text-[15px] leading-6 text-muted-foreground [overflow-wrap:anywhere]">{body}</p>
-        {!revoked && stay.hotelAccessExpiresAt ? (
-          <p className="flex items-center gap-1.5 text-[13px] text-subtle-foreground">
-            <Clock3 className="size-4" />
-            Hotel access ends by {formatDateTime(stay.hotelAccessExpiresAt)}
+        {access.kind === "hidden" ? (
+          <p className="max-w-80 rounded-lg bg-muted px-4 py-3 text-left text-[13px] leading-5 text-muted-foreground">
+            {accessLine}
+          </p>
+        ) : access.kind === "revocable" || (access.kind === "ended" && access.reason === "expired") ? (
+          <p className="flex max-w-80 items-start gap-1.5 text-left text-[13px] leading-5 text-subtle-foreground">
+            <Clock3 className="mt-0.5 size-4 shrink-0" />
+            {accessLine}
           </p>
         ) : null}
         {revokeMutation.isError ? (
@@ -96,7 +107,7 @@ export function CheckInStayStatus({
             Start a new visit
           </Button>
         ) : null}
-        {!revoked ? (
+        {access.kind === "revocable" ? (
           <Button
             variant="ghost"
             className={cn(footerButtonClassName, "font-medium text-muted-foreground")}

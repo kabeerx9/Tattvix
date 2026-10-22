@@ -17,8 +17,8 @@ import type {
   StayBill,
 } from "@tattvix/contracts";
 
-export type Dataset = "demo" | "worst" | "empty" | "one";
-export const datasets: Dataset[] = ["demo", "worst", "empty", "one"];
+export type Dataset = "demo" | "worst" | "empty" | "one" | "access";
+export const datasets: Dataset[] = ["demo", "worst", "empty", "one", "access"];
 
 const now = Date.now();
 const iso = (offsetHours: number) =>
@@ -225,6 +225,61 @@ const worstStays: GuestShare[] = [
   }),
 ];
 
+/**
+ * One stay per guest access state (see features/guest-stays/access.ts).
+ * Open a single one on the check-in status screen with
+ * `?data=access#/check-in/stay-<n>`. Checkout sets CLOSED and shortens
+ * access to checkout + 24h grace, as the server does.
+ */
+const accessStays: GuestShare[] = [
+  stay(11, {
+    operationalStatus: "PENDING_CHECK_IN",
+    room: null,
+    checkedInAt: null,
+    submittedAt: iso(-1),
+    hotelAccessExpiresAt: iso(24 * 7 - 1),
+    property: property(11, "Lakeview Residency", "Lakeview Hotels"),
+  }),
+  stay(12, {
+    operationalStatus: "CHECKED_IN",
+    room: { id: 12, number: "305" },
+    property: property(12, "Hotel Udupi Grand", "Udupi Hospitality"),
+  }),
+  stay(13, {
+    status: "CLOSED",
+    operationalStatus: "CHECKED_OUT",
+    room: { id: 13, number: "118" },
+    submittedAt: iso(-50),
+    checkedInAt: iso(-49),
+    checkedOutAt: iso(-3),
+    closedAt: iso(-3),
+    hotelAccessExpiresAt: iso(21),
+    property: property(13, "Seaside Inn", "Seaside Hotels"),
+  }),
+  stay(14, {
+    status: "CLOSED",
+    operationalStatus: "CHECKED_OUT",
+    room: { id: 14, number: "42" },
+    submittedAt: iso(-24 * 5),
+    checkedInAt: iso(-24 * 5 + 1),
+    checkedOutAt: iso(-24 * 3),
+    closedAt: iso(-24 * 3),
+    hotelAccessExpiresAt: iso(-24 * 2),
+    property: property(14, "Hill View Lodge", "Hill View Stays"),
+  }),
+  stay(15, {
+    status: "REVOKED",
+    operationalStatus: "CHECKED_OUT",
+    room: { id: 15, number: "7" },
+    submittedAt: iso(-30),
+    checkedInAt: iso(-29),
+    checkedOutAt: iso(-6),
+    closedAt: iso(-6),
+    hotelAccessExpiresAt: iso(-5),
+    property: property(15, "Palm Court", "Palm Court Hotels"),
+  }),
+];
+
 const worstBill: StayBill = {
   currency: "INR",
   isFinal: false,
@@ -428,15 +483,19 @@ function checkInContext(
   data: DatasetData,
 ): CheckInContext {
   const shares = data.shares;
-  const existing =
-    token === "existing" ? (shares[3] ?? shares[0] ?? null) : null;
+  const pinned = token.match(/^stay-(\d+)$/);
+  const existing = pinned
+    ? (shares.find((share) => share.id === uuid(Number(pinned[1]))) ?? null)
+    : token === "existing"
+      ? (shares[3] ?? shares[0] ?? null)
+      : null;
   const propertyForToken = existing?.property ?? shares[0]?.property ??
     property(9, "Lakeview Residency", "Lakeview Hotels");
   return {
     property:
       data.name === "worst" ? worstProperty : propertyForToken,
     tokenExpiresAt: iso(1),
-    accessPolicy: { maximumDays: 30, postCheckoutGraceHours: 24 },
+    accessPolicy: { maximumDays: 7, postCheckoutGraceHours: 24 },
     existingStay: existing
       ? {
           id: existing.id,
@@ -495,7 +554,7 @@ const emptyBill: StayBill = {
 };
 
 function build(name: Dataset): DatasetData {
-  const base = {
+  const bases = {
     demo: {
       me: me({}),
       profile: {
@@ -603,8 +662,11 @@ function build(name: Dataset): DatasetData {
       ],
       shares: [
         stay(1, {
+          status: "CLOSED",
           operationalStatus: "CHECKED_OUT",
           checkedOutAt: iso(-2),
+          closedAt: iso(-2),
+          hotelAccessExpiresAt: iso(22),
           accessEvents: [
             { action: "DETAILS_VIEWED", imageSide: null, createdAt: iso(-27) },
           ],
@@ -618,7 +680,8 @@ function build(name: Dataset): DatasetData {
         isFinal: true,
       }),
     },
-  }[name];
+  };
+  const base = name === "access" ? { ...bases.demo, shares: accessStays } : bases[name];
 
   const data: DatasetData = {
     name,
