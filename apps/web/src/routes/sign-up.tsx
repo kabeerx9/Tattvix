@@ -54,7 +54,7 @@ export function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4 py-6 sm:p-6">
       <div className="text-center"><h1 className="mt-2 text-3xl font-semibold tracking-tight">Create your Tattwix account</h1><p className="mt-2 text-sm text-muted-foreground">Your guest identity and hotel access begin here.</p></div>
       <SignUp
         routing="path"

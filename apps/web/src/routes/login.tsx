@@ -61,7 +61,8 @@ export function LoginPage() {
         <div className="relative max-w-lg"><h1 className="mt-4 text-5xl font-semibold leading-[1.08] tracking-[-0.045em]">Every stay starts with a calmer front desk.</h1><p className="mt-5 max-w-md text-sm leading-7 text-white/75">One thoughtful workspace for your team, your properties, and every guest arriving today.</p></div>
         <p className="relative text-xs text-white/55">Secure access powered by Clerk</p>
       </div>
-      <div className="grid place-items-center p-6 sm:p-10">
+      {/* 16px phone gutter: Clerk's card is 100vw - 2.5rem wide, so p-6 caused an 8px horizontal scroll. */}
+      <div className="grid place-items-center px-4 py-6 sm:p-10">
       <div className="grid w-full max-w-md gap-7">
         <div className="text-center">
           <h2 className="mt-2 text-3xl font-semibold tracking-tight">Sign in to Tattwix</h2>
