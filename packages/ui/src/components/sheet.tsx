@@ -34,6 +34,19 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   )
 }
 
+// Width lives in plain (non data-attribute) classes chosen from the `side`
+// prop, so tailwind-merge can resolve them against a consumer's className.
+// A `data-[side=right]:w-3/4` variant out-ranks a consumer's `w-full` and
+// `sm:max-w-xl` on specificity, which left phone sheets at 75% width and
+// capped every desktop sheet at `max-w-sm`. Side sheets are full width on
+// phones; above `sm` they default to `max-w-sm` unless the consumer overrides.
+const sideSizeClassName = {
+  top: "",
+  bottom: "",
+  left: "w-full sm:max-w-sm",
+  right: "w-full sm:max-w-sm",
+} as const
+
 function SheetContent({
   className,
   children,
@@ -51,7 +64,8 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col overscroll-contain bg-popover bg-clip-padding text-xs/relaxed text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-[side=bottom]:pb-[env(safe-area-inset-bottom,0px)] data-[side=top]:pt-[env(safe-area-inset-top,0px)] data-[side=left]:pt-[env(safe-area-inset-top,0px)] data-[side=left]:pb-[env(safe-area-inset-bottom,0px)] data-[side=left]:pl-[env(safe-area-inset-left,0px)] data-[side=right]:pt-[env(safe-area-inset-top,0px)] data-[side=right]:pb-[env(safe-area-inset-bottom,0px)] data-[side=right]:pr-[env(safe-area-inset-right,0px)]",
+          "fixed z-50 flex flex-col overscroll-contain bg-popover bg-clip-padding text-xs/relaxed text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=bottom]:pb-[env(safe-area-inset-bottom,0px)] data-[side=top]:pt-[env(safe-area-inset-top,0px)] data-[side=left]:pt-[env(safe-area-inset-top,0px)] data-[side=left]:pb-[env(safe-area-inset-bottom,0px)] data-[side=left]:pl-[env(safe-area-inset-left,0px)] data-[side=right]:pt-[env(safe-area-inset-top,0px)] data-[side=right]:pb-[env(safe-area-inset-bottom,0px)] data-[side=right]:pr-[env(safe-area-inset-right,0px)]",
+          sideSizeClassName[side],
           className
         )}
         {...props}
