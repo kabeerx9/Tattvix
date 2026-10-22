@@ -1,6 +1,5 @@
 import type {
   PlatformOversightAuditEntry,
-  PlatformOversightPropertyStays,
   PlatformOversightWeeklyCheckInsRow,
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
@@ -15,9 +14,8 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ClipboardList, Hotel, LineChart, RefreshCw, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { EmptyState, FilterBar, InitialsAvatar, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, StatusPill } from "@/components/design-system";
 import { Input } from "@tattvix/ui/components/input";
-import { getInitials } from "@/lib/initials";
 import { ApiError } from "@/lib/api";
 
 import { platformOversightQueries } from "../queries";
@@ -59,25 +57,32 @@ function StaysOverviewSection() {
       <PanelSection className="text-xs text-subtle-foreground">Stay counts across active properties.</PanelSection>
 
       {properties.length ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted text-left text-xs text-subtle-foreground">
-                <th className="p-4 font-medium">Property</th>
-                <th className="p-4 font-medium">Organization</th>
-                <th className="px-5 py-3 text-right font-medium">Pending check-in</th>
-                <th className="px-5 py-3 text-right font-medium">Checked in</th>
-                <th className="px-5 py-3 text-right font-medium">Checked out</th>
-                <th className="px-5 py-3 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {properties.map((property) => (
-                <PropertyRow key={property.propertyId} property={property} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          label="Stays overview"
+          rows={properties}
+          getRowKey={(property) => property.propertyId}
+          switchAt="3xl"
+          columns={[
+            { header: "Property", className: "font-medium", cell: (property) => property.propertyName },
+            { header: "Organization", className: "text-muted-foreground", cell: (property) => property.organizationName },
+            { header: "Pending check-in", width: "120px", align: "end", className: "tabular-nums", cell: (property) => property.statusCounts.pendingCheckIn },
+            { header: "Checked in", width: "96px", align: "end", className: "tabular-nums", cell: (property) => property.statusCounts.checkedIn },
+            { header: "Checked out", width: "96px", align: "end", className: "tabular-nums", cell: (property) => property.statusCounts.checkedOut },
+            { header: "Total", width: "64px", align: "end", className: "font-medium tabular-nums", cell: (property) => property.totalStays },
+          ]}
+          mobileRow={(property) => (
+            <ListRow
+              title={property.propertyName}
+              meta={
+                <>
+                  <span className="block">{property.organizationName}</span>
+                  <span className="block">{property.statusCounts.pendingCheckIn} pending · {property.statusCounts.checkedIn} in house · {property.statusCounts.checkedOut} checked out</span>
+                </>
+              }
+              trailing={<><span className="block font-medium">{property.totalStays}</span><span className="block text-xs text-subtle-foreground">stays</span></>}
+            />
+          )}
+        />
       ) : (
         <EmptyState
           icon={Hotel}
@@ -86,27 +91,6 @@ function StaysOverviewSection() {
         />
       )}
     </Panel>
-  );
-}
-
-function PropertyRow({
-  property,
-}: {
-  property: PlatformOversightPropertyStays;
-}) {
-  return (
-    <tr className="h-11 border-t border-border-soft">
-      <td className="px-5 py-2">
-        <p className="font-medium">{property.propertyName}</p>
-      </td>
-      <td className="px-5 py-2 text-muted-foreground">
-        {property.organizationName}
-      </td>
-      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.pendingCheckIn}</td>
-      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.checkedIn}</td>
-      <td className="px-5 py-2 text-right tabular-nums">{property.statusCounts.checkedOut}</td>
-      <td className="px-5 py-2 text-right font-medium tabular-nums">{property.totalStays}</td>
-    </tr>
   );
 }
 
@@ -123,43 +107,31 @@ function WeeklyCheckInsSection() {
       <PanelHeader title="Weekly check-ins" icon={LineChart} meta={`${WEEKLY_CHECK_INS_WEEKS} weeks`} />
 
       {grid.properties.length && grid.weeks.length ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted text-left text-xs text-subtle-foreground">
-                <th className="p-4 font-medium">Property</th>
-                {grid.weeks.map((weekStart) => (
-                  <th key={weekStart} className="p-4 font-medium whitespace-nowrap">
-                    {formatWeekStart(weekStart)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {grid.properties.map((property) => (
-                <tr key={`${property.organizationSlug}-${property.propertyId}`}>
-                  <td className="px-5 py-2">
-                    <p className="font-medium">{property.propertyName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {property.organizationSlug}
-                    </p>
-                  </td>
-                  {grid.weeks.map((weekStart) => {
-                    const checkIns = property.byWeek.get(weekStart) ?? 0;
-                    return (
-                      <td key={weekStart} className="px-5 py-2">
-                        <WeeklyCheckInsBar
-                          checkIns={checkIns}
-                          max={grid.maxCheckIns}
-                        />
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          label="Weekly check-ins"
+          rows={grid.properties}
+          getRowKey={(property) => `${property.organizationSlug}-${property.propertyId}`}
+          switchAt="4xl"
+          columns={[
+            { header: "Property", width: "minmax(140px,1.5fr)", cell: (property) => <><p className="truncate font-medium">{property.propertyName}</p><p className="truncate text-xs text-muted-foreground">{property.organizationSlug}</p></> },
+            ...grid.weeks.map((weekStart) => ({
+              header: <span className="whitespace-nowrap">{formatWeekStart(weekStart)}</span>,
+              cell: (property: WeeklyCheckInsGridProperty) => <WeeklyCheckInsBar checkIns={property.byWeek.get(weekStart) ?? 0} max={grid.maxCheckIns} />,
+            })),
+          ]}
+          mobileRow={(property) => {
+            const total = grid.weeks.reduce((sum, weekStart) => sum + (property.byWeek.get(weekStart) ?? 0), 0);
+            return (
+              <ListRow
+                title={property.propertyName}
+                meta={property.organizationSlug}
+                trailing={<><span className="block font-medium">{total}</span><span className="block text-xs text-subtle-foreground">check-ins</span></>}
+              >
+                <WeeklyCheckInsSparkline weeks={grid.weeks} byWeek={property.byWeek} max={grid.maxCheckIns} />
+              </ListRow>
+            );
+          }}
+        />
       ) : (
         <EmptyState
           icon={LineChart}
@@ -176,13 +148,31 @@ function WeeklyCheckInsBar({ checkIns, max }: { checkIns: number; max: number })
   return (
     <div className="flex items-center gap-2">
       <span className="w-6 shrink-0 text-right tabular-nums">{checkIns}</span>
-      <div className="h-2 w-full min-w-[64px] rounded-full bg-muted">
+      <div className="h-2 w-full min-w-10 rounded-full bg-muted">
         <div
           className="h-2 rounded-full bg-primary"
           style={{ width: `${widthPercent}%` }}
         />
       </div>
     </div>
+  );
+}
+
+/** Phone view of one property's weekly row: one column per week, oldest first. */
+function WeeklyCheckInsSparkline({ weeks, byWeek, max }: { weeks: string[]; byWeek: Map<string, number>; max: number }) {
+  return (
+    <ol className="flex h-8 w-full items-end gap-1" aria-label="Check-ins per week, oldest first">
+      {weeks.map((weekStart) => {
+        const checkIns = byWeek.get(weekStart) ?? 0;
+        const heightPercent = max > 0 ? Math.max((checkIns / max) * 100, checkIns > 0 ? 12 : 0) : 0;
+        return (
+          <li key={weekStart} className="flex h-full flex-1 items-end rounded-sm bg-muted" title={`${formatWeekStart(weekStart)}: ${checkIns}`}>
+            <span className="sr-only">{formatWeekStart(weekStart)}: {checkIns}</span>
+            <span aria-hidden className="w-full rounded-sm bg-primary" style={{ height: `${heightPercent}%` }} />
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -247,11 +237,12 @@ function AuditFeedSection() {
     error instanceof ApiError ? error.message : "The audit trail could not be loaded.";
 
   return (
-    <Panel className="[&>header]:flex-wrap">
-      <PanelHeader title="Audit trail" icon={ShieldAlert} actions={
-        <div className="flex flex-wrap gap-2">
+    <Panel>
+      <PanelHeader title="Audit trail" icon={ShieldAlert} />
+      <PanelSection>
+        <FilterBar>
           <Input
-            className="w-[200px]"
+            className="sm:w-[220px]"
             placeholder="Filter by organization slug"
             aria-label="Filter by organization slug"
             value={organizationSlug}
@@ -264,7 +255,7 @@ function AuditFeedSection() {
               setAction(value === "__all__" || !value ? "" : value)
             }
           >
-            <SelectTrigger className="w-[220px]" aria-label="Filter by action">
+            <SelectTrigger className="w-full sm:w-[240px]" aria-label="Filter by action">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -278,8 +269,8 @@ function AuditFeedSection() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      } />
+        </FilterBar>
+      </PanelSection>
 
       {isPending ? (
         <p className="p-6 text-sm text-muted-foreground">
@@ -298,7 +289,31 @@ function AuditFeedSection() {
           }
         />
       ) : entries.length ? (
-        <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-sm"><thead className="bg-muted text-left text-xs text-subtle-foreground"><tr><th className="px-5 py-3 font-medium">Kind / Action</th><th className="px-5 py-3 font-medium">Actor</th><th className="px-5 py-3 font-medium">Organization / Target</th><th className="px-5 py-3 text-right font-medium">Recorded</th></tr></thead><tbody>{entries.map((entry) => <AuditRow key={entry.id} entry={entry} />)}</tbody></table></div>
+        <ResponsiveTable
+          label="Audit trail"
+          rows={entries}
+          getRowKey={(entry) => entry.id}
+          switchAt="4xl"
+          columns={[
+            { header: "Kind / Action", width: "minmax(0,1.2fr)", className: "flex flex-wrap items-center gap-2", cell: (entry) => <><KindBadge kind={entry.kind} /><span className="font-medium">{actionLabel(entry.action)}</span></> },
+            { header: "Actor", width: "minmax(0,1.2fr)", className: "flex items-center gap-3", cell: (entry) => <><InitialsAvatar name={entry.actorEmail} /><span className="truncate text-muted-foreground">{entry.actorEmail}</span></> },
+            { header: "Organization / Target", className: "text-xs text-muted-foreground wrap-anywhere", cell: (entry) => auditTarget(entry) },
+            { header: "Recorded", width: "150px", align: "end", className: "text-xs whitespace-nowrap text-subtle-foreground tabular-nums", cell: (entry) => formatDateTime(entry.at) },
+          ]}
+          mobileRow={(entry) => (
+            <ListRow
+              title={actionLabel(entry.action)}
+              badge={<KindBadge kind={entry.kind} />}
+              meta={
+                <>
+                  <span className="block">{entry.actorEmail}</span>
+                  <span className="block">{auditTarget(entry)}</span>
+                  <span className="block">{formatDateTime(entry.at)}</span>
+                </>
+              }
+            />
+          )}
+        />
       ) : (
         <EmptyState
           icon={ClipboardList}
@@ -310,8 +325,8 @@ function AuditFeedSection() {
   );
 }
 
-function AuditRow({ entry }: { entry: PlatformOversightAuditEntry }) {
-  return <tr className="h-11 border-t border-border-soft"><td className="px-5 py-2"><div className="flex flex-wrap items-center gap-2"><KindBadge kind={entry.kind} /><span className="font-medium">{actionLabel(entry.action)}</span></div></td><td className="px-5 py-2"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials(entry.actorEmail)}</span><span className="text-muted-foreground">{entry.actorEmail}</span></div></td><td className="px-5 py-2 text-xs text-muted-foreground">{entry.organizationSlug} · {entry.kind === "IDENTITY_ACCESS" ? entry.propertyName : entry.target}</td><td className="px-5 py-2 text-right text-xs whitespace-nowrap text-subtle-foreground tabular-nums">{formatDateTime(entry.at)}</td></tr>;
+function auditTarget(entry: PlatformOversightAuditEntry) {
+  return `${entry.organizationSlug} · ${entry.kind === "IDENTITY_ACCESS" ? entry.propertyName : entry.target}`;
 }
 
 function KindBadge({ kind }: { kind: PlatformOversightAuditEntry["kind"] }) {
