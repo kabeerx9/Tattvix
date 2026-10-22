@@ -4,6 +4,11 @@ import type { HotelRoom, HotelStayListItem } from "@tattvix/contracts";
 
 import {
   countArrivalsToday,
+  getDefaultReservationTab,
+  getReadyRooms,
+  getReservationGroups,
+  getStayCardAction,
+  getStayStatus,
   countDeparturesToday,
   getLeavingToday,
   getOccupancyTrend,
@@ -147,5 +152,67 @@ describe("occupancy trend", () => {
   });
   it("zero active rooms gives zero percent", () => {
     assert.ok(getOccupancyTrend({ ...summary, activeRooms: 0 }).every((entry) => entry.percent === 0));
+  });
+});
+
+describe("reservation groups", () => {
+  const stays = [
+    stay("wait-late", "PENDING_CHECK_IN", { submittedAt: at("2026-10-03", "11:00") }),
+    stay("wait-early", "PENDING_CHECK_IN", { submittedAt: at("2026-10-03", "09:00") }),
+    stay("leaving", "CHECKED_IN", { checkedInAt: at("2026-10-01"), expectedCheckOutDate: "2026-10-03" }),
+    stay("staying", "CHECKED_IN", { checkedInAt: at("2026-10-02"), expectedCheckOutDate: "2026-10-05" }),
+    stay("out-early", "CHECKED_OUT", { checkedOutAt: at("2026-10-03", "08:00") }),
+    stay("out-late", "CHECKED_OUT", { checkedOutAt: at("2026-10-03", "10:00") }),
+    stay("out-yesterday", "CHECKED_OUT", { checkedOutAt: at("2026-10-02") }),
+  ];
+  const groups = getReservationGroups(stays, today);
+  it("groups stays into the four tabs with the right counts", () => {
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(groups).map(([tab, list]) => [tab, list.map((entry) => entry.id)])),
+      {
+        checkingOut: ["leaving"],
+        inHouse: ["staying", "leaving"],
+        arriving: ["wait-early", "wait-late"],
+        checkedOut: ["out-late", "out-early"],
+      },
+    );
+  });
+  it("opens the most urgent non-empty tab", () => {
+    assert.equal(getDefaultReservationTab(groups), "arriving");
+    assert.equal(getDefaultReservationTab({ ...groups, arriving: [] }), "checkingOut");
+    assert.equal(getDefaultReservationTab({ checkingOut: [], inHouse: [], arriving: [], checkedOut: [] }), "arriving");
+  });
+});
+
+describe("guest card action and status", () => {
+  const all = { canAssign: true, canCheckout: true };
+  const waiting = stay("w", "PENDING_CHECK_IN");
+  const due = stay("d", "CHECKED_IN", { expectedCheckOutDate: "2026-10-03" });
+  const overdue = stay("o", "CHECKED_IN", { expectedCheckOutDate: "2026-10-02" });
+  const later = stay("l", "CHECKED_IN", { expectedCheckOutDate: "2026-10-06" });
+  it("offers assign, check out or view depending on stay and permission", () => {
+    assert.equal(getStayCardAction(waiting, "2026-10-03", all), "assignRoom");
+    assert.equal(getStayCardAction(due, "2026-10-03", all), "checkOut");
+    assert.equal(getStayCardAction(overdue, "2026-10-03", all), "checkOut");
+    assert.equal(getStayCardAction(later, "2026-10-03", all), "view");
+  });
+  it("falls back to view without permission", () => {
+    assert.equal(getStayCardAction(waiting, "2026-10-03", { canAssign: false, canCheckout: true }), "view");
+    assert.equal(getStayCardAction(due, "2026-10-03", { canAssign: true, canCheckout: false }), "view");
+  });
+  it("describes the stay in plain language", () => {
+    assert.deepEqual(getStayStatus(waiting, "2026-10-03"), { label: "Waiting for a room", tone: "warning" });
+    assert.equal(getStayStatus(overdue, "2026-10-03").label, "Overdue checkout");
+    assert.equal(getStayStatus(due, "2026-10-03").label, "Checking out today");
+    assert.equal(getStayStatus(later, "2026-10-03").label, "Currently hosting");
+  });
+});
+
+describe("ready rooms", () => {
+  it("keeps active vacant rooms in natural number order", () => {
+    const rooms = [room(10, "VACANT"), room(2, "VACANT"), room(3, "CLEANING"), room(4, "VACANT", false)];
+    rooms[0]!.number = "110";
+    rooms[1]!.number = "12";
+    assert.deepEqual(getReadyRooms(rooms).map((entry) => entry.number), ["12", "110"]);
   });
 });

@@ -114,3 +114,70 @@ export function getOccupancyTrend(summary: HotelOverviewSummaryResponse): Occupa
     percent: summary.activeRooms ? Math.round(entry.occupiedRooms / summary.activeRooms * 100) : 0,
   }));
 }
+
+export type ReservationTab = "checkingOut" | "inHouse" | "arriving" | "checkedOut";
+export type ReservationGroups = Record<ReservationTab, HotelStayListItem[]>;
+
+/**
+ * The Today page's reservation tabs. "Arriving" means guests who submitted
+ * check-in on their phone and are waiting for a room; the product has no
+ * future reservations, so there is no "upcoming" group.
+ */
+export function getReservationGroups(stays: HotelStayListItem[], today: Date): ReservationGroups {
+  const key = localDayKey(today);
+  return {
+    checkingOut: getLeavingToday(stays, today),
+    inHouse: getInHouse(stays),
+    arriving: getNeedsAction(stays, []).waiting,
+    checkedOut: stays
+      .filter((stay) => stay.checkedOutAt && localDayKey(new Date(stay.checkedOutAt)) === key)
+      .sort((a, b) => time(b.checkedOutAt) - time(a.checkedOutAt)),
+  };
+}
+
+const tabUrgency: ReservationTab[] = ["arriving", "checkingOut", "inHouse", "checkedOut"];
+
+/** Open on the most urgent group that has anyone in it. */
+export function getDefaultReservationTab(groups: ReservationGroups): ReservationTab {
+  return tabUrgency.find((tab) => groups[tab].length > 0) ?? "arriving";
+}
+
+export type StayCardAction = "assignRoom" | "checkOut" | "view";
+
+/** The one action a guest card offers, given what the staff member may do. */
+export function getStayCardAction(
+  stay: HotelStayListItem,
+  todayKey: string,
+  permissions: { canAssign: boolean; canCheckout: boolean },
+): StayCardAction {
+  if (stay.operationalStatus === "PENDING_CHECK_IN" && permissions.canAssign) return "assignRoom";
+  if (
+    stay.operationalStatus === "CHECKED_IN" &&
+    permissions.canCheckout &&
+    stay.expectedCheckOutDate !== null &&
+    stay.expectedCheckOutDate <= todayKey
+  )
+    return "checkOut";
+  return "view";
+}
+
+export type StayStatusTone = "warning" | "danger" | "primary" | "muted";
+
+/** Plain-language status line for a guest card. */
+export function getStayStatus(stay: HotelStayListItem, todayKey: string): { label: string; tone: StayStatusTone } {
+  if (stay.operationalStatus === "PENDING_CHECK_IN") return { label: "Waiting for a room", tone: "warning" };
+  if (stay.operationalStatus === "CHECKED_OUT") return { label: "Checked out", tone: "muted" };
+  if (stay.expectedCheckOutDate !== null && stay.expectedCheckOutDate < todayKey)
+    return { label: "Overdue checkout", tone: "danger" };
+  if (stay.expectedCheckOutDate === todayKey) return { label: "Checking out today", tone: "warning" };
+  return { label: "Currently hosting", tone: "primary" };
+}
+
+const roomNumberOrder = new Intl.Collator("en", { numeric: true });
+
+/** Rooms that can take a guest tonight: active, vacant, in room-number order. */
+export function getReadyRooms(rooms: HotelRoom[]): HotelRoom[] {
+  return rooms
+    .filter((room) => room.isActive && room.status === "VACANT")
+    .sort((a, b) => roomNumberOrder.compare(a.number, b.number));
+}
