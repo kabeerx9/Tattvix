@@ -77,7 +77,7 @@ GUESTS = [
         "state": "Rajasthan",
         "postal": "302001",
         "doc_type": "AADHAAR",
-        "doc_number": "XXXX-SEED-0001",
+        "doc_number": "XXXX XXXX 0001",
         "companion": {
             "first_name": "Rahul",
             "last_name": "Sharma",
@@ -143,7 +143,7 @@ GUESTS = [
         "state": "Delhi",
         "postal": "110001",
         "doc_type": "AADHAAR",
-        "doc_number": "XXXX-SEED-0005",
+        "doc_number": "XXXX XXXX 0005",
         "companion": {
             "first_name": "Suresh",
             "last_name": "Gupta",
@@ -556,7 +556,7 @@ class Command(BaseCommand):
                 "state": "Rajasthan",
                 "postal": "302001",
                 "doc_type": "AADHAAR",
-                "doc_number": f"XXXX-BUSY-{index:04d}",
+                "doc_number": f"XXXX XXXX {index:04d}",
                 "companion": None,
             }
             guest = self._create_guest(guest_data, storage=storage, storage_ok=True)

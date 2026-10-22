@@ -322,6 +322,88 @@ class IdentityDocumentApiTests(APITestCase):
         self.assertTrue(response.data["readiness"]["isReady"])
         self.assertEqual(response.data["readiness"]["missingFields"], [])
 
+    def test_aadhaar_number_is_masked_before_it_is_stored(self):
+        response = self.client.post(
+            self.collection_url,
+            self._aadhaar_payload("1234 5678 9012"),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["documentNumber"], "XXXX XXXX 9012")
+        self.assertEqual(
+            IdentityDocument.objects.get().document_number, "XXXX XXXX 9012"
+        )
+        self.assertNotIn("123456789012", str(response.data).replace(" ", ""))
+
+    def test_aadhaar_number_accepts_dashes_and_no_separators(self):
+        for raw in ("1234-5678-9012", "123456789012"):
+            response = self.client.post(
+                self.collection_url, self._aadhaar_payload(raw), format="json"
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED, raw)
+            self.assertEqual(response.data["documentNumber"], "XXXX XXXX 9012")
+
+    def test_aadhaar_number_must_be_twelve_digits(self):
+        for raw in ("12345678901", "1234567890123", "ABCD56789012"):
+            response = self.client.post(
+                self.collection_url, self._aadhaar_payload(raw), format="json"
+            )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, raw)
+            self.assertIn("documentNumber", response.data)
+        self.assertFalse(IdentityDocument.objects.exists())
+
+    def test_resaving_masked_aadhaar_number_keeps_it(self):
+        document = IdentityDocument.objects.create(
+            user=self.user,
+            document_type=IdentityDocumentType.AADHAAR,
+            document_number="123456789012",
+        )
+        detail_url = reverse("guest-identity-document-detail", args=[document.id])
+
+        payload = self._aadhaar_payload("XXXX XXXX 9012")
+        payload["nameOnDocument"] = "Kabeer J"
+        response = self.client.put(detail_url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        document.refresh_from_db()
+        self.assertEqual(document.document_number, "XXXX XXXX 9012")
+        self.assertEqual(document.name_on_document, "Kabeer J")
+
+    def test_switching_to_aadhaar_masks_existing_number(self):
+        document = IdentityDocument.objects.create(
+            user=self.user,
+            document_type=IdentityDocumentType.PASSPORT,
+            document_number="123456789012",
+        )
+        detail_url = reverse("guest-identity-document-detail", args=[document.id])
+
+        response = self.client.put(
+            detail_url, {"documentType": "AADHAAR"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        document.refresh_from_db()
+        self.assertEqual(document.document_number, "XXXX XXXX 9012")
+
+    def test_model_save_masks_aadhaar_written_outside_the_api(self):
+        document = IdentityDocument.objects.create(
+            user=self.user,
+            document_type=IdentityDocumentType.AADHAAR,
+            document_number="1234 5678 9012",
+        )
+
+        document.refresh_from_db()
+        self.assertEqual(document.document_number, "XXXX XXXX 9012")
+
+    def test_other_document_numbers_are_stored_as_entered(self):
+        response = self.client.post(
+            self.collection_url, self._passport_payload(), format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["documentNumber"], "P1234567")
+
     @staticmethod
     def _signed_upload(**kwargs):
         return PresignedUpload(
@@ -335,6 +417,16 @@ class IdentityDocumentApiTests(APITestCase):
             },
             expires_in_seconds=120,
         )
+
+    @staticmethod
+    def _aadhaar_payload(number):
+        return {
+            "documentType": "AADHAAR",
+            "documentNumber": number,
+            "nameOnDocument": "Kabeer Joshi",
+            "issuingCountry": "in",
+            "expiryDate": None,
+        }
 
     @staticmethod
     def _passport_payload():

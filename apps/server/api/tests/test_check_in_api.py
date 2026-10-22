@@ -338,7 +338,7 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(snapshot.guest_data["city"], "Kotdwar")
         self.assertEqual(
             snapshot.document_data["documentNumber"],
-            "1234-5678-9012",
+            "XXXX XXXX 9012",
         )
         self.assertEqual(snapshot.document_images.count(), 2)
         self.assertEqual(storage_class.return_value.copy_object.call_count, 2)
@@ -358,7 +358,7 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(snapshot.guest_data["city"], "Kotdwar")
         self.assertEqual(
             snapshot.document_data["documentNumber"],
-            "1234-5678-9012",
+            "XXXX XXXX 9012",
         )
 
     def test_submission_is_idempotent_for_an_active_qr_and_guest(self):
@@ -397,7 +397,7 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             detail_response.data["snapshot"]["document"]["documentNumber"],
-            "1234-5678-9012",
+            "XXXX XXXX 9012",
         )
         self.assertTrue(
             IdentityAccessAudit.objects.filter(

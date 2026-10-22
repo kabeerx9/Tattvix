@@ -241,6 +241,11 @@ export function DocumentEditor({
         id={`${formId}-number`}
         label="Document number"
         error={fieldErrors.documentNumber}
+        hint={
+          documentType === "AADHAAR" && isEditingNumber
+            ? "Enter all 12 digits. We keep only the last 4."
+            : undefined
+        }
       >
         {isEditingNumber ? (
           <Input

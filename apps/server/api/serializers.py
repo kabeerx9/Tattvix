@@ -8,7 +8,9 @@ from .models import (
     GuestProfile,
     IdentityDocument,
     IdentityDocumentImageSide,
+    IdentityDocumentType,
     OperationalStayStatus,
+    mask_aadhaar_number,
 )
 
 
@@ -235,6 +237,22 @@ class IdentityDocumentSerializer(serializers.ModelSerializer):
 
     def validate_issuingCountry(self, value):
         return GuestProfileSerializer._validate_country_code(value)
+
+    def validate(self, attrs):
+        document_type = attrs.get(
+            "document_type", getattr(self.instance, "document_type", "")
+        )
+        number = attrs.get(
+            "document_number", getattr(self.instance, "document_number", "")
+        )
+        if document_type == IdentityDocumentType.AADHAAR and number:
+            masked = mask_aadhaar_number(number)
+            if masked is None:
+                raise serializers.ValidationError(
+                    {"documentNumber": "Enter the 12-digit Aadhaar number."}
+                )
+            attrs["document_number"] = masked
+        return attrs
 
 
 class IdentityDocumentImageUploadSerializer(serializers.Serializer):
