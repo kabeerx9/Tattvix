@@ -1,43 +1,57 @@
 import { Button } from "@tattvix/ui/components/button";
-import { Label } from "@tattvix/ui/components/label";
-import { Camera, CheckCircle2, Eye, ImageUp, LoaderCircle, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Skeleton } from "@tattvix/ui/components/skeleton";
+import { Camera, Check, ImageUp, LoaderCircle, RotateCcw } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import {
   compressImage,
   ImageDecodeError,
-  UPLOADABLE_IMAGE_TYPES,
 } from "@/features/identity-documents/compress-image";
-
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+import { validateUploadFile } from "@/features/identity-documents/document-model";
 
 export type ImageSelection =
   | { status: "processing" }
   | { status: "ready"; file: File; originalSize: number };
 
-export function DocumentImageField({
-  name,
+/** A saved photo: whether one exists, and its short-lived URL once loaded. */
+export type SavedPhoto = {
+  isUploaded: boolean;
+  url: string | null;
+  isLoading: boolean;
+};
+
+const prefersCamera = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(pointer: coarse)").matches;
+
+/**
+ * One photo slot (front or back) in the document editor. Empty, it is one
+ * large target that opens the camera on a phone and the file picker on a
+ * computer; the gallery stays one tap away. With a photo it shows the image
+ * at ID-card proportions with Retake / Replace below.
+ */
+export function DocumentPhotoSlot({
   label,
   required,
-  uploaded,
+  saved,
   selection,
   error,
-  isAccessPending,
+  disabled,
   onSelectionChange,
   onError,
-  onView,
+  onOpen,
 }: {
-  name: string;
   label: string;
   required: boolean;
-  uploaded: boolean;
+  saved: SavedPhoto;
   selection: ImageSelection | null;
   error?: string;
-  isAccessPending: boolean;
+  disabled?: boolean;
   onSelectionChange: (selection: ImageSelection | null) => void;
   onError: (message: string | undefined) => void;
-  onView?: () => void;
+  onOpen: (photo: { url: string; title: string }) => void;
 }) {
+  const id = useId();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Ignores a slow compression that finishes after the user picked again.
@@ -61,7 +75,7 @@ export function DocumentImageField({
       const file = await compressImage(picked);
       if (pick !== latestPick.current) return;
 
-      const message = validateUpload(file);
+      const message = validateUploadFile(file);
       if (message) {
         onSelectionChange(null);
         onError(message);
@@ -79,112 +93,143 @@ export function DocumentImageField({
     }
   }
 
-  function clearSelection() {
+  function undoSelection() {
     latestPick.current += 1;
     onSelectionChange(null);
     onError(undefined);
   }
 
+  const openPrimaryPicker = () =>
+    (prefersCamera() ? cameraInputRef : fileInputRef).current?.click();
+
   const isProcessing = selection?.status === "processing";
-  const hasImage = uploaded || selection?.status === "ready";
+  const imageUrl =
+    selection?.status === "ready" ? previewUrl : saved.isUploaded ? saved.url : null;
+  const hasImage = selection?.status === "ready" || saved.isUploaded;
+  const title = `${label} photo`;
 
   return (
-    <div className="grid gap-3 rounded-lg border border-dashed p-3">
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={`${name}-file`}>
+    <div className="grid gap-2" role="group" aria-labelledby={`${id}-label`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p id={`${id}-label`} className="text-sm font-medium">
           {label}
-          {required ? <span className="text-destructive">*</span> : null}
-        </Label>
-        {selection?.status === "ready" ? (
-          <span className="text-xs text-primary">Ready to upload</span>
-        ) : uploaded ? (
-          <span className="inline-flex items-center gap-1 text-xs text-primary">
-            <CheckCircle2 className="size-3.5" />
-            Uploaded
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">Not uploaded</span>
-        )}
+          {required ? null : (
+            <span className="ml-1.5 font-normal text-subtle-foreground">optional</span>
+          )}
+        </p>
+        <SlotStatus
+          required={required}
+          state={
+            isProcessing
+              ? "processing"
+              : selection?.status === "ready"
+                ? "new"
+                : saved.isUploaded
+                  ? "saved"
+                  : "empty"
+          }
+        />
       </div>
 
       {isProcessing ? (
-        <div className="flex items-center gap-3 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-          <LoaderCircle className="size-4 animate-spin" />
-          Preparing photo...
+        <div className="grid aspect-[1.586] w-full place-items-center rounded-lg bg-muted text-muted-foreground">
+          <span className="inline-flex items-center gap-2 text-sm">
+            <LoaderCircle className="size-4 animate-spin" />
+            Preparing photo…
+          </span>
         </div>
-      ) : selection?.status === "ready" && previewUrl ? (
-        <div className="flex items-center gap-3 rounded-lg bg-muted p-2">
+      ) : imageUrl ? (
+        <button
+          type="button"
+          className="group relative block aspect-[1.586] w-full overflow-hidden rounded-lg bg-muted ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`View ${title.toLowerCase()}`}
+          onClick={() => onOpen({ url: imageUrl, title })}
+        >
           <img
-            src={previewUrl}
-            alt={`Selected ${label.toLowerCase()}`}
-            className="size-16 shrink-0 rounded-lg bg-background object-cover ring-1 ring-border"
+            src={imageUrl}
+            alt=""
+            className="size-full object-contain"
+            draggable={false}
           />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium">{selection.file.name}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {formatBytes(selection.file.size)}
-              {selection.file.size < selection.originalSize
-                ? ` · reduced from ${formatBytes(selection.originalSize)}`
-                : null}
-            </p>
+        </button>
+      ) : saved.isUploaded ? (
+        // Saved, but the private URL is still loading (or failed to load).
+        saved.isLoading ? (
+          <Skeleton className="aspect-[1.586] w-full rounded-lg" />
+        ) : (
+          <div className="grid aspect-[1.586] w-full place-items-center rounded-lg bg-muted text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2">
+              <Check className="size-4 text-success" />
+              Photo saved
+            </span>
           </div>
+        )
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          aria-invalid={Boolean(error)}
+          onClick={openPrimaryPicker}
+          className="grid aspect-[1.586] w-full touch-manipulation place-items-center rounded-lg border-2 border-dashed border-border bg-background text-muted-foreground transition-[background-color,scale] duration-150 outline-none select-none focus-visible:border-ring active:bg-muted motion-safe:active:scale-[0.99] disabled:opacity-50 aria-invalid:border-destructive/60"
+        >
+          <span className="grid justify-items-center gap-2 px-4 text-center">
+            <span className="grid size-12 place-items-center rounded-full bg-muted text-foreground">
+              <Camera className="size-5 pointer-fine:hidden" />
+              <ImageUp className="size-5 pointer-coarse:hidden" />
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              <span className="pointer-fine:hidden">Take photo of {label.toLowerCase()}</span>
+              <span className="pointer-coarse:hidden">Choose {label.toLowerCase()} photo</span>
+            </span>
+            <span className="text-xs">Whole card in frame, no glare</span>
+          </span>
+        </button>
+      )}
+
+      <div className="flex gap-2">
+        {hasImage ? (
           <Button
             type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Remove selected ${label.toLowerCase()}`}
-            onClick={clearSelection}
+            variant="outline"
+            className="h-11 flex-1 text-sm pointer-fine:hidden"
+            disabled={disabled || isProcessing}
+            onClick={() => cameraInputRef.current?.click()}
           >
-            <X />
+            <Camera />
+            Retake
           </Button>
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        {/* `capture` is ignored on desktop, where this would just duplicate
-            "Choose file", so the camera button only appears on touch screens. */}
-        <Button
-          type="button"
-          size="lg"
-          className="flex-1 pointer-coarse:h-11 pointer-fine:hidden"
-          disabled={isProcessing}
-          onClick={() => cameraInputRef.current?.click()}
-        >
-          <Camera />
-          {hasImage ? "Retake" : "Take photo"}
-        </Button>
+        ) : null}
         <Button
           type="button"
           variant="outline"
-          size="lg"
-          className="flex-1 pointer-coarse:h-11 pointer-fine:flex-none"
-          disabled={isProcessing}
+          className="h-11 flex-1 text-sm pointer-fine:h-9 pointer-fine:flex-none"
+          disabled={disabled || isProcessing}
           onClick={() => fileInputRef.current?.click()}
         >
           <ImageUp />
-          {hasImage ? "Replace" : "Choose file"}
+          {hasImage ? "Replace" : (
+            <>
+              <span className="pointer-fine:hidden">Choose from gallery</span>
+              <span className="pointer-coarse:hidden">Choose file</span>
+            </>
+          )}
         </Button>
-        {onView ? (
+        {selection?.status === "ready" && saved.isUploaded ? (
           <Button
             type="button"
             variant="ghost"
-            size="lg"
-            className="basis-full pointer-coarse:h-11 pointer-fine:ml-auto pointer-fine:basis-auto"
-            disabled={isAccessPending}
-            onClick={onView}
+            className="h-11 text-sm pointer-fine:h-9"
+            disabled={disabled}
+            onClick={undoSelection}
           >
-            <Eye />
-            {isAccessPending ? "Opening..." : "View uploaded"}
+            <RotateCcw />
+            Keep saved
           </Button>
         ) : null}
       </div>
 
       {error ? (
-        <p className="text-xs text-destructive">{error}</p>
-      ) : uploaded && selection?.status !== "ready" ? (
-        <p className="text-xs text-muted-foreground">
-          The current image stays until a replacement is verified.
-        </p>
+        <p role="alert" className="text-xs text-destructive">{error}</p>
       ) : null}
 
       <input
@@ -201,23 +246,38 @@ export function DocumentImageField({
           gallery; an exact MIME list limits it to the photo picker. */}
       <input
         ref={fileInputRef}
-        id={`${name}-file`}
         type="file"
         accept="image/*"
         className="sr-only"
-        aria-invalid={Boolean(error)}
+        tabIndex={-1}
+        aria-hidden
+        aria-label={`Choose ${title.toLowerCase()}`}
         onChange={handlePick}
       />
     </div>
   );
 }
 
-function validateUpload(file: File): string | null {
-  if (!UPLOADABLE_IMAGE_TYPES.has(file.type)) {
-    return "Use a JPEG, PNG, or WebP image.";
+function SlotStatus({
+  state,
+  required,
+}: {
+  state: "processing" | "new" | "saved" | "empty";
+  required: boolean;
+}) {
+  if (state === "new") {
+    return <span className="text-xs font-medium text-primary">New photo · saves with the document</span>;
   }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return "Image must be 8 MB or smaller.";
+  if (state === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-success">
+        <Check className="size-3.5" />
+        Saved
+      </span>
+    );
+  }
+  if (state === "empty" && required) {
+    return <span className="text-xs text-subtle-foreground">Needed</span>;
   }
   return null;
 }
@@ -234,9 +294,4 @@ function useObjectUrl(file: File | null): string | null {
     return () => URL.revokeObjectURL(next);
   }, [file]);
   return url;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
