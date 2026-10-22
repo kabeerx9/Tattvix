@@ -6,6 +6,8 @@ import {
   getHotelNavItems,
   getActiveWorkspace,
   getHotelDestination,
+  getHotelSwitchOptions,
+  splitHotelNavForTabBar,
 } from "./workspace-navigation";
 
 const user: MeResponse = {
@@ -153,5 +155,68 @@ describe("hotel navigation items", () => {
   it("returns no nav items without a property", () => {
     const orgOnly = getActiveHotelContext(user, "/hotel/first")!;
     assert.deepEqual(getHotelNavItems(orgOnly, "/hotel/first"), []);
+  });
+});
+
+describe("mobile tab bar", () => {
+  const context = getActiveHotelContext(user, "/hotel/first/main")!;
+  const withReports = {
+    ...context,
+    membership: {
+      ...context.membership,
+      permissions: [...context.membership.permissions, "reports:view" as const],
+    },
+  };
+  it("gives the four everyday pages a tab and the rest to Menu", () => {
+    const { tabs, overflow } = splitHotelNavForTabBar(
+      getHotelNavItems(withReports, "/hotel/first/main/dashboard"),
+    );
+    assert.deepEqual(tabs.map((item) => item.key), ["overview", "stays", "rooms", "guests"]);
+    assert.deepEqual(overflow.map((item) => item.key), ["reports", "settings"]);
+  });
+  it("keeps reports out of the Menu without permission", () => {
+    const { overflow } = splitHotelNavForTabBar(
+      getHotelNavItems(context, "/hotel/first/main/dashboard"),
+    );
+    assert.deepEqual(overflow.map((item) => item.key), ["settings"]);
+  });
+  it("lights Menu only when a menu page is open", () => {
+    const onDetails = splitHotelNavForTabBar(getHotelNavItems(context, "/hotel/first/main/details"));
+    assert.equal(onDetails.menuActive, true);
+    assert.equal(onDetails.tabs.some((item) => item.isActive), false);
+    const onRooms = splitHotelNavForTabBar(getHotelNavItems(context, "/hotel/first/main/rooms"));
+    assert.equal(onRooms.menuActive, false);
+  });
+  it("uses short labels where space is tight", () => {
+    const settings = getHotelNavItems(context, "/hotel/first/main").find((item) => item.key === "settings");
+    assert.equal(settings?.label, "Property settings");
+    assert.equal(settings?.shortLabel, "Settings");
+  });
+});
+
+describe("hotel switcher options", () => {
+  it("lists every viewable property and marks the open one", () => {
+    const context = getActiveHotelContext(user, "/hotel/second/branch/rooms");
+    const options = getHotelSwitchOptions(user, context);
+    assert.deepEqual(
+      options.map((option) => [option.label, option.isActive]),
+      [
+        ["First · Main", false],
+        ["Second · Branch", true],
+      ],
+    );
+    assert.deepEqual(options[1]!.params, { organizationSlug: "second", propertySlug: "branch" });
+  });
+  it("links organizations without properties to their setup page", () => {
+    const empty: MeResponse = { ...user, memberships: [{ ...user.memberships[0]!, properties: [] }] };
+    const [option] = getHotelSwitchOptions(empty, null);
+    assert.equal(option?.to, "/hotel/$organizationSlug");
+  });
+  it("skips memberships without hotel:view", () => {
+    const denied: MeResponse = {
+      ...user,
+      memberships: [{ ...user.memberships[0]!, permissions: [] }, user.memberships[1]!],
+    };
+    assert.deepEqual(getHotelSwitchOptions(denied, null).map((option) => option.label), ["Second · Branch"]);
   });
 });
