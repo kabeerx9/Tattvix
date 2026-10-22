@@ -345,6 +345,31 @@ export function StatusPill({
 }
 
 /**
+ * A hotel photo (property cover or room type) that keeps its slot when the
+ * hotel hasn't uploaded one: a quiet muted tile with a line icon, so photo-led
+ * grids stay even. Photos are real hotel data only, never stock imagery.
+ */
+export function PhotoTile({
+  url,
+  icon: Icon,
+  className,
+  iconClassName,
+}: {
+  url?: string | null;
+  icon: LucideIcon;
+  className?: string;
+  iconClassName?: string;
+}) {
+  return url ? (
+    <img src={url} alt="" loading="lazy" decoding="async" className={cn("bg-muted object-cover", className)} />
+  ) : (
+    <div aria-hidden className={cn("grid place-items-center bg-muted text-subtle-foreground", className)}>
+      <Icon className={cn("size-7", iconClassName)} strokeWidth={1.5} />
+    </div>
+  );
+}
+
+/**
  * Decorative photo strip under a guest-facing page header. Purely visual
  * (empty alt): it sets the mood, it never carries information.
  */
@@ -477,6 +502,7 @@ const tableSwitch = {
   "2xl": { table: "hidden @2xl:block", list: "@2xl:hidden" },
   "3xl": { table: "hidden @3xl:block", list: "@3xl:hidden" },
   "4xl": { table: "hidden @4xl:block", list: "@4xl:hidden" },
+  "5xl": { table: "hidden @5xl:block", list: "@5xl:hidden" },
 } as const;
 
 /**

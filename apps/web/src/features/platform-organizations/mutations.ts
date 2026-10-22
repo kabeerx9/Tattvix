@@ -5,6 +5,8 @@ import type {
 } from "@tattvix/contracts";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { platformPortfolioKeys } from "@/features/platform-portfolio/queries";
+
 import { platformOrganizationsApi } from "./api";
 import { platformOrganizationKeys } from "./keys";
 
@@ -19,15 +21,17 @@ function invalidateOrganization(
     queryClient.invalidateQueries({
       queryKey: platformOrganizationKeys.list(),
     }),
+    queryClient.invalidateQueries({ queryKey: platformPortfolioKeys.all }),
   ]);
 }
 
 export const platformOrganizationMutations = {
   onboard: (queryClient: QueryClient) => ({
     mutationFn: platformOrganizationsApi.onboard,
-    onSuccess: () => queryClient.invalidateQueries({
-      queryKey: platformOrganizationKeys.all,
-    }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: platformOrganizationKeys.all }),
+      queryClient.invalidateQueries({ queryKey: platformPortfolioKeys.all }),
+    ]),
   }),
   createProperty: (queryClient: QueryClient) => ({
     mutationFn: ({

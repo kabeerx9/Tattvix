@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { OrganizationListPage } from "@/features/platform-organizations/components/organization-list-page";
 import { platformOrganizationQueries } from "@/features/platform-organizations/queries";
+import { PortfolioOverviewPage } from "@/features/platform-portfolio/components/portfolio-overview-page";
+import { platformPortfolioQueries } from "@/features/platform-portfolio/queries";
 
 export const Route = createFileRoute("/_auth/_admin/admin/")({
   loader: ({ context }) =>
-    context.queryClient.ensureQueryData(platformOrganizationQueries.list()),
-  component: OrganizationListPage,
+    Promise.all([
+      context.queryClient.ensureQueryData(platformPortfolioQueries.list()),
+      context.queryClient.ensureQueryData(platformOrganizationQueries.list()),
+    ]),
+  component: PortfolioOverviewPage,
 });

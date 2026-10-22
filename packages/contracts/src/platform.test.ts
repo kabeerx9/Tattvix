@@ -8,6 +8,8 @@ import {
   platformOversightStaysResponseSchema,
   platformOversightWeeklyCheckInsQuerySchema,
   platformOversightWeeklyCheckInsResponseSchema,
+  platformPortfolioPropertySchema,
+  platformPortfolioResponseSchema,
   platformUserSearchParamsSchema,
   platformUserSearchResponseSchema,
 } from "./platform.ts";
@@ -198,6 +200,45 @@ describe("platform oversight weekly check-ins contracts", () => {
     };
     assert.throws(() =>
       platformOversightWeeklyCheckInsResponseSchema.parse(withGuestName),
+    );
+  });
+});
+
+describe("platform portfolio contracts", () => {
+  const counts = { total: 4, occupied: 1, ready: 1, cleaning: 1, maintenance: 1 };
+  const property = {
+    id: 1,
+    name: "Jaipur",
+    slug: "jaipur",
+    isActive: true,
+    address: "MI Road, Jaipur",
+    coverPhotoUrl: null,
+    organization: { name: "Tattwix Hotels", slug: "tattwix-hotels", isActive: true, activeMemberCount: 2 },
+    onboarding: { source: "REQUEST", onboardedAt: "2026-10-01T10:00:00.123456+00:00" },
+    setup: { hasAddress: true, hasCoverPhoto: false, hasRooms: true, hasRates: true },
+    rooms: counts,
+    rates: { minMinor: 400000, avgMinor: 733333, maxMinor: 1200000 },
+    roomTypes: [{ name: "", rooms: counts, rates: { minMinor: null, avgMinor: null, maxMinor: null }, photoUrl: null }],
+    occupancy: { recentNights: 7, recentOccupiedRoomNights: 3, recentAvailableRoomNights: 28 },
+    stays: { inHouse: 1, arrivalsPending: 1, checkInsLast7Days: 1 },
+    revenueLast30DaysMinor: 815000,
+    lastActivityAt: null,
+  };
+
+  it("accepts an aggregate-only portfolio", () => {
+    const response = { generatedAt: "2026-10-22T10:00:00+05:30", properties: [property] };
+    assert.deepEqual(platformPortfolioResponseSchema.parse(response), response);
+  });
+
+  it("rejects guest identity fields leaking into a property", () => {
+    assert.throws(() =>
+      platformPortfolioPropertySchema.parse({ ...property, guests: [{ name: "Guest" }] }),
+    );
+    assert.throws(() =>
+      platformPortfolioPropertySchema.parse({
+        ...property,
+        stays: { ...property.stays, guestNames: ["Guest"] },
+      }),
     );
   });
 });

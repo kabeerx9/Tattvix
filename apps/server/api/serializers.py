@@ -86,6 +86,10 @@ class PlatformOversightWeeklyCheckInsQuerySerializer(serializers.Serializer):
     weeks = serializers.IntegerField(required=False, min_value=1, max_value=26)
 
 
+class PlatformPortfolioQuerySerializer(serializers.Serializer):
+    organization = serializers.RegexField(regex=SLUG_PATTERN, required=False)
+
+
 class GuestProfileSerializer(serializers.ModelSerializer):
     legalFirstName = serializers.CharField(
         source="legal_first_name", allow_blank=True, max_length=150
