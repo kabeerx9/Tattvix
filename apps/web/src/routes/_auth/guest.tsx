@@ -28,7 +28,11 @@ function GuestHomePage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-6">
-          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-white">
+          {/* Email-only accounts greet with an unbreakable address: break anywhere, cap at two lines. */}
+          <h1
+            title={displayName}
+            className="line-clamp-2 text-[26px] font-semibold tracking-[-0.02em] text-white [overflow-wrap:anywhere]"
+          >
             Welcome, {displayName}
           </h1>
           <p className="mt-1 text-sm text-white/85">

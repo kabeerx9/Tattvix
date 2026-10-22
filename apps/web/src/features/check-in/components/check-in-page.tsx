@@ -70,7 +70,7 @@ export function CheckInPage({ token }: { token: string }) {
       <main className="mx-auto grid max-w-5xl gap-7 px-5 py-8 sm:py-12">
         <div className="grid gap-3">
 
-          <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+          <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] [overflow-wrap:anywhere] sm:text-4xl">
             Check in to {context.property.name}
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -341,8 +341,9 @@ function AuthenticatedCheckIn({
                     key={companion.id}
                     className="grid gap-3 rounded-lg border bg-muted/40 p-3"
                   >
-                    <label className="flex items-center gap-3">
+                    <label className="flex items-start gap-3">
                       <Checkbox
+                        className="mt-0.5"
                         checked={checked}
                         disabled={
                           !companion.readiness.isReady ||
@@ -353,12 +354,12 @@ function AuthenticatedCheckIn({
                         }
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">
+                        <span className="block text-sm font-medium [overflow-wrap:anywhere]">
                           {[companion.legalFirstName, companion.legalLastName]
                             .filter(Boolean)
                             .join(" ") || "Unnamed companion"}
                         </span>
-                        <span className="block text-xs text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">
                           {companion.readiness.isReady
                             ? companion.relationship || "Ready to share"
                             : "Complete this companion before selecting"}
@@ -509,19 +510,20 @@ function ExistingStay({
             ? `Room ${stay.room.number}`
             : "Reception will assign your room and confirm the rate."}
         </p>
-        <Button
-          nativeButton={false}
-          className="mt-5"
-          render={<Link to="/stays/$stayId" params={{ stayId: stay.id }} />}
-        >
-          View stay and bill
-          <ArrowRight />
-        </Button>
-        {stay.operationalStatus === "CHECKED_OUT" ? (
-          <Button className="mt-5 ml-3" variant="outline" onClick={onNewVisit}>
-            Start a new visit
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button
+            nativeButton={false}
+            render={<Link to="/stays/$stayId" params={{ stayId: stay.id }} />}
+          >
+            View stay and bill
+            <ArrowRight />
           </Button>
-        ) : null}
+          {stay.operationalStatus === "CHECKED_OUT" ? (
+            <Button variant="outline" onClick={onNewVisit}>
+              Start a new visit
+            </Button>
+          ) : null}
+        </div>
         {revokeMutation.isError ? (
           <p role="alert" className="mt-3 text-sm text-destructive">
             {revokeMutation.error instanceof ApiError

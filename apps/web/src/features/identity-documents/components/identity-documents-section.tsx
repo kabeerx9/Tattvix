@@ -181,7 +181,7 @@ export function IdentityDocumentsSection({
         }}
       >
         <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-          <SheetHeader>
+          <SheetHeader className="pr-12">
             <SheetTitle>
               {editor === "new" ? "Add identity document" : "Edit identity document"}
             </SheetTitle>
@@ -256,7 +256,7 @@ function DocumentCard({
           </div>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={onEdit}>
+      <Button variant="ghost" size="sm" className="justify-self-start max-sm:ml-10" onClick={onEdit}>
         <Pencil />
         Manage
       </Button>

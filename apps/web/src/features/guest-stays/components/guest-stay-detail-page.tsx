@@ -90,15 +90,16 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
         ) : bill ? (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px] text-sm">
-                <thead className="bg-muted text-left text-xs text-subtle-foreground"><tr><th className="px-5 py-3 font-medium">Item</th><th className="px-5 py-3 text-right font-medium tabular-nums">Qty</th><th className="px-5 py-3 text-right font-medium tabular-nums">Unit</th><th className="px-5 py-3 text-right font-medium tabular-nums">Amount</th></tr></thead>
+              {/* Phones get Item + Amount only (qty × unit moves under the item) so amounts never sit off-screen. */}
+              <table className="w-full text-sm sm:min-w-[480px]">
+                <thead className="bg-muted text-left text-xs text-subtle-foreground"><tr><th className="px-5 py-3 font-medium">Item</th><th className="hidden px-5 py-3 text-right font-medium tabular-nums sm:table-cell">Qty</th><th className="hidden px-5 py-3 text-right font-medium tabular-nums sm:table-cell">Unit</th><th className="px-5 py-3 text-right font-medium tabular-nums">Amount</th></tr></thead>
                 <tbody>
                   {bill.items.length ? bill.items.map((item) => (
                     <tr key={item.id} className={`h-[52px] border-t border-border-soft ${item.voidedAt ? "text-subtle-foreground" : ""}`}>
-                      <td className="px-5 py-2"><p className={item.voidedAt ? "line-through" : "font-medium"}>{item.description}</p>{item.voidedAt ? <p className="mt-1 text-xs">Voided: {item.voidReason}</p> : null}</td>
-                      <td className="px-5 py-2 text-right tabular-nums">{item.quantity}</td>
-                      <td className={`px-5 py-2 text-right tabular-nums ${item.voidedAt ? "line-through" : ""}`}>{formatMoneyMinor(item.unitPriceMinor)}</td>
-                      <td className={`px-5 py-2 text-right font-medium tabular-nums ${item.voidedAt ? "line-through" : ""}`}>{formatMoneyMinor(item.lineTotalMinor)}</td>
+                      <td className="px-5 py-2 [overflow-wrap:anywhere]"><p className={item.voidedAt ? "line-through" : "font-medium"}>{item.description}</p><p className="mt-1 text-xs text-subtle-foreground tabular-nums sm:hidden">{item.quantity} × {formatMoneyMinor(item.unitPriceMinor)}</p>{item.voidedAt ? <p className="mt-1 text-xs">Voided: {item.voidReason}</p> : null}</td>
+                      <td className="hidden px-5 py-2 text-right tabular-nums sm:table-cell">{item.quantity}</td>
+                      <td className={`hidden px-5 py-2 text-right tabular-nums sm:table-cell ${item.voidedAt ? "line-through" : ""}`}>{formatMoneyMinor(item.unitPriceMinor)}</td>
+                      <td className={`px-5 py-2 text-right font-medium whitespace-nowrap tabular-nums ${item.voidedAt ? "line-through" : ""}`}>{formatMoneyMinor(item.lineTotalMinor)}</td>
                     </tr>
                   )) : <tr><td colSpan={4} className="px-5 py-5 text-muted-foreground">No charges recorded yet.</td></tr>}
                 </tbody>
@@ -119,7 +120,7 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
           </>
         ) : null}
       </Panel>
-      <Panel><PanelHeader title="Identity sharing" /><PanelSection className="grid gap-3">
+      <Panel><PanelHeader title="Identity sharing" /><PanelSection className="grid justify-items-start gap-3">
         <StatusPill tone={stay.status === "REVOKED" ? "danger" : stay.status === "CLOSED" ? "neutral" : "success"}>{stay.status === "REVOKED" ? "Consent revoked" : stay.status === "CLOSED" ? "Identity review complete" : "Consent approved"}</StatusPill>
         {stay.hotelAccessExpiresAt ? <p className="text-xs text-subtle-foreground">Access ends no later than {new Date(stay.hotelAccessExpiresAt).toLocaleString()}</p> : null}
       </PanelSection><PanelSection className="grid gap-4">

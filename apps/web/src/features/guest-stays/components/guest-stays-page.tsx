@@ -1,3 +1,4 @@
+import type { OperationalStayStatus } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@tattvix/ui/components/button";
@@ -51,16 +52,29 @@ export function GuestStaysPage() {
           <Panel>
             <PanelHeader title="Stays" icon={Hotel} meta={query.data.stays.length} />
             {query.data.stays.map((stay) => (
-              <Link key={stay.id} to="/stays/$stayId" params={{ stayId: stay.id }} className="flex min-h-11 flex-wrap items-center gap-3 border-t border-border-soft px-5 py-3 first:border-t-0 hover:bg-muted/50">
+              <Link key={stay.id} to="/stays/$stayId" params={{ stayId: stay.id }} className="flex min-h-11 items-center gap-3 border-t border-border-soft px-5 py-3 first:border-t-0 hover:bg-muted/50">
                 <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><Hotel className="size-[18px]" /></span>
-                <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">{stay.property.name}</h2><p className="mt-1 text-xs text-subtle-foreground">{stay.room ? `Room ${stay.room.number} · ` : ""}{stay.submittedAt ? new Date(stay.submittedAt).toLocaleDateString() : "Check-in request submitted"}</p></div>
-                <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{guestStayStatusLabel(stay.operationalStatus)}</StatusPill>
-                <ChevronRight className="size-4 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-semibold [overflow-wrap:anywhere]">{stay.property.name}</h2>
+                  <p className="mt-1 text-xs text-subtle-foreground [overflow-wrap:anywhere]">{stay.room ? `Room ${stay.room.number} · ` : ""}{stay.submittedAt ? new Date(stay.submittedAt).toLocaleDateString() : "Check-in request submitted"}</p>
+                  {/* On phones the pill sits under the name so the name keeps the row's width. */}
+                  <span className="mt-2 flex sm:hidden"><StayStatusPill status={stay.operationalStatus} /></span>
+                </div>
+                <span className="hidden shrink-0 sm:flex"><StayStatusPill status={stay.operationalStatus} /></span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
               </Link>
             ))}
           </Panel>
         </>
       )}
     </div>
+  );
+}
+
+function StayStatusPill({ status }: { status: OperationalStayStatus }) {
+  return (
+    <StatusPill tone={status === "PENDING_CHECK_IN" ? "warning" : status === "CHECKED_IN" ? "success" : "neutral"}>
+      {guestStayStatusLabel(status)}
+    </StatusPill>
   );
 }

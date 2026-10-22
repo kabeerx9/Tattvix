@@ -12,4 +12,13 @@ describe("initials", () => {
     assert.equal(getInitials("  Riya   Mehta "), "RM");
     assert.equal(getInitials(""), "?");
   });
+  it("skips words that do not start with a letter, such as emoji", () => {
+    assert.equal(getInitials("🦋 Anaya Iyer"), "AI");
+    assert.equal(getInitials("👩🏽‍💻 Priya"), "P");
+    assert.equal(getInitials("🦋"), "?");
+  });
+  it("keeps non-Latin scripts whole", () => {
+    assert.equal(getInitials("प्रियंका शर्मा"), "पश");
+    assert.equal(getInitials("Ólafur Darri"), "ÓD");
+  });
 });

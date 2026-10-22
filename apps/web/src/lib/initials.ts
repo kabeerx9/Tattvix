@@ -1,8 +1,14 @@
 export function getInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  return words
+  // Only words that start with a letter count, so emoji and symbols never
+  // become half a surrogate pair. Takes the first code point, not code unit.
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .map((word) => Array.from(word)[0] ?? "")
+    .filter((first) => /\p{L}/u.test(first));
+  if (letters.length === 0) return "?";
+  return letters
     .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
+    .map((letter) => letter.toUpperCase())
     .join("");
 }
