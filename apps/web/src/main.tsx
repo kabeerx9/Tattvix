@@ -12,20 +12,11 @@ import { RouterAuthProvider } from "./components/router-auth-provider";
 import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
 import { queryClient } from "./core/query/query-client";
+import { clerkAppearance, clerkLocalization } from "./lib/clerk-config";
 import { reactErrorHandler, initTelemetry, trackPageView } from "./lib/telemetry";
 import { routeTree } from "./routeTree.gen";
 
 initTelemetry();
-
-// Clerk renders its own inputs at ~13px, which makes iOS zoom on focus.
-// Raise them to 16px on touch only; desktop keeps Clerk's density.
-const touchFieldFont = { "@media (pointer: coarse)": { fontSize: "16px" } };
-const clerkAppearance: React.ComponentProps<typeof ClerkProvider>["appearance"] = {
-  elements: {
-    formFieldInput: touchFieldFont,
-    otpCodeFieldInput: touchFieldFont,
-  },
-};
 
 const router = createRouter({
   routeTree,
@@ -79,6 +70,7 @@ if (!rootElement.innerHTML) {
     <ThemeProvider
       attribute="class"
       forcedTheme="light"
+      enableSystem={false}
       defaultTheme="light"
       disableTransitionOnChange
       storageKey="vite-ui-theme"
@@ -90,6 +82,7 @@ if (!rootElement.innerHTML) {
         signInFallbackRedirectUrl="/guest"
         signUpFallbackRedirectUrl="/guest"
         appearance={clerkAppearance}
+        localization={clerkLocalization}
       >
         <AppProviders client={queryClient}>
           <RouterAuthProvider>
