@@ -11,11 +11,15 @@ import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  // Web is light-only (docs/adr/0001-web-visual-language.md). next-themes'
+  // `theme` is the stored preference, not the forced one, so honour
+  // `forcedTheme` and never fall back to the OS scheme.
+  const { forcedTheme, theme } = useTheme();
+  const toasterTheme = (forcedTheme ?? theme ?? "light") === "dark" ? "dark" : "light";
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={toasterTheme}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
