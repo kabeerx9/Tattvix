@@ -51,6 +51,7 @@ from .platform_views import (
     platform_oversight_audit,
     platform_oversight_stays,
     platform_oversight_weekly_check_ins,
+    platform_portfolio,
     platform_user_list,
 )
 from .views import clerk_webhook, cron_purge_identity_images, health, me
@@ -330,6 +331,7 @@ urlpatterns = [
         platform_oversight_weekly_check_ins,
         name="platform-oversight-weekly-check-ins",
     ),
+    path("api/platform/portfolio/", platform_portfolio, name="platform-portfolio"),
     path("api/webhooks/clerk/", clerk_webhook, name="clerk-webhook"),
     path(
         "api/cron/purge-identity-images/",

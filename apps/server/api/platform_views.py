@@ -17,6 +17,7 @@ from .platform_admin import (
     list_platform_weekly_check_ins,
     update_organization_member,
 )
+from .platform_portfolio import build_platform_portfolio
 from .platform_onboarding import PlatformOnboardingError, onboard_organization
 from .models import ClerkUser, Membership, Organization
 from .serializers import (
@@ -25,6 +26,7 @@ from .serializers import (
     PlatformOrganizationOnboardingSerializer,
     PlatformOversightAuditQuerySerializer,
     PlatformOversightWeeklyCheckInsQuerySerializer,
+    PlatformPortfolioQuerySerializer,
     PlatformPropertyCreateSerializer,
     PlatformUserSearchQuerySerializer,
     PlatformUserSearchResultSerializer,
@@ -181,3 +183,15 @@ def platform_oversight_weekly_check_ins(request):
         weeks=query_serializer.validated_data.get("weeks", 8)
     )
     return Response({"rows": rows})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsPlatformAdmin])
+def platform_portfolio(request):
+    query_serializer = PlatformPortfolioQuerySerializer(data=request.query_params)
+    query_serializer.is_valid(raise_exception=True)
+    return Response(
+        build_platform_portfolio(
+            organization_slug=query_serializer.validated_data.get("organization")
+        )
+    )

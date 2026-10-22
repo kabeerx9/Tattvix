@@ -276,3 +276,89 @@ export type PlatformMemberAddInput = z.infer<typeof platformMemberAddInputSchema
 export type PlatformMemberUpdateInput = z.infer<
   typeof platformMemberUpdateInputSchema
 >;
+
+// --- Platform portfolio ---
+//
+// Every property with room inventory, nightly rates and activity counts.
+// Aggregates only: no guest names, emails, stay ids or identity data.
+// Occupancy is sent as raw room-night counts so the client can weight
+// portfolio totals correctly instead of averaging percentages.
+
+const nullableMinorSchema = z.number().int().nonnegative().nullable();
+
+export const platformPortfolioRoomCountsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  occupied: z.number().int().nonnegative(),
+  ready: z.number().int().nonnegative(),
+  cleaning: z.number().int().nonnegative(),
+  maintenance: z.number().int().nonnegative(),
+}).strict();
+
+export const platformPortfolioRatesSchema = z.object({
+  minMinor: nullableMinorSchema,
+  avgMinor: nullableMinorSchema,
+  maxMinor: nullableMinorSchema,
+}).strict();
+
+export const platformPortfolioRoomTypeSchema = z.object({
+  name: z.string(),
+  rooms: platformPortfolioRoomCountsSchema,
+  rates: platformPortfolioRatesSchema,
+  photoUrl: z.string().nullable(),
+}).strict();
+
+export const platformPortfolioPropertySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  isActive: z.boolean(),
+  address: z.string(),
+  coverPhotoUrl: z.string().nullable(),
+  organization: z.object({
+    name: z.string(),
+    slug: z.string(),
+    isActive: z.boolean(),
+    activeMemberCount: z.number().int().nonnegative(),
+  }).strict(),
+  onboarding: z.object({
+    source: z.enum(["REQUEST", "ADMIN"]),
+    onboardedAt: dateTimeSchema,
+  }).strict(),
+  setup: z.object({
+    hasAddress: z.boolean(),
+    hasCoverPhoto: z.boolean(),
+    hasRooms: z.boolean(),
+    hasRates: z.boolean(),
+  }).strict(),
+  rooms: platformPortfolioRoomCountsSchema,
+  rates: platformPortfolioRatesSchema,
+  roomTypes: z.array(platformPortfolioRoomTypeSchema),
+  occupancy: z.object({
+    recentNights: z.number().int().positive(),
+    recentOccupiedRoomNights: z.number().int().nonnegative(),
+    recentAvailableRoomNights: z.number().int().nonnegative(),
+  }).strict(),
+  stays: z.object({
+    inHouse: z.number().int().nonnegative(),
+    arrivalsPending: z.number().int().nonnegative(),
+    checkInsLast7Days: z.number().int().nonnegative(),
+  }).strict(),
+  revenueLast30DaysMinor: z.number().int().nonnegative(),
+  lastActivityAt: dateTimeSchema.nullable(),
+}).strict();
+
+export const platformPortfolioResponseSchema = z.object({
+  generatedAt: dateTimeSchema,
+  properties: z.array(platformPortfolioPropertySchema),
+}).strict();
+
+export const platformPortfolioQuerySchema = z.object({
+  organization: z.string().trim().min(1).max(255).optional(),
+}).strict();
+
+export type PlatformPortfolioRoomCounts = z.infer<typeof platformPortfolioRoomCountsSchema>;
+export type PlatformPortfolioRates = z.infer<typeof platformPortfolioRatesSchema>;
+export type PlatformPortfolioRoomType = z.infer<typeof platformPortfolioRoomTypeSchema>;
+export type PlatformPortfolioProperty = z.infer<typeof platformPortfolioPropertySchema>;
+export type PlatformPortfolioResponse = z.infer<typeof platformPortfolioResponseSchema>;
+export type PlatformPortfolioQuery = z.infer<typeof platformPortfolioQuerySchema>;
