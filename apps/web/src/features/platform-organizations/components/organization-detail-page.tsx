@@ -1,5 +1,6 @@
 import type {
   PlatformMember,
+  PlatformPortfolioProperty,
   PlatformMembershipRole,
   PlatformUserSearchResult,
 } from "@tattvix/contracts";
@@ -17,9 +18,13 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { Hotel, Plus, UserRoundPlus, Users } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, Fact, FactsRow, InitialsAvatar, ListRow, PageHeader, Panel, PanelHeader, ResponsiveTable, StatusPill } from "@/components/design-system";
+import { EmptyState, Fact, FactsRow, InitialsAvatar, ListRow, PageHeader, Panel, PanelHeader, ResponsiveTable, SectionTitle, StatusPill } from "@/components/design-system";
+import { PortfolioPropertyCard } from "@/features/platform-portfolio/components/portfolio-parts";
+import { formatPercent, getPortfolioTotals } from "@/features/platform-portfolio/metrics";
+import { platformPortfolioQueries } from "@/features/platform-portfolio/queries";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
 import { ApiError } from "@/lib/api";
+import { formatMoneyWholeRupees } from "@/lib/money";
 
 import { platformOrganizationMutations } from "../mutations";
 import { platformOrganizationQueries } from "../queries";
@@ -34,6 +39,10 @@ export function OrganizationDetailPage({
   const { data } = useSuspenseQuery(
     platformOrganizationQueries.detail(organizationSlug),
   );
+  const { data: portfolio } = useSuspenseQuery(
+    platformPortfolioQueries.list(organizationSlug),
+  );
+  const totals = getPortfolioTotals(portfolio.properties);
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
@@ -43,11 +52,18 @@ export function OrganizationDetailPage({
           data.organization.isActive ? "Active" : "Inactive"
         }`}
       />
-      <FactsRow><Fact label="Properties" value={data.properties.length} /><Fact label="Members" value={data.members.length} /></FactsRow>
+      <FactsRow>
+        <Fact label="Properties" value={data.properties.length} />
+        <Fact label="Rooms" value={totals.rooms} detail={`${totals.readyRooms} ready`} />
+        <Fact label="Occupancy tonight" value={formatPercent(totals.occupancyTonight)} detail={`${formatPercent(totals.occupancyRecent)} last 7 nights`} />
+        <Fact label="In house" value={totals.inHouse} detail={`${totals.checkInsLast7Days} check-ins in 7 days`} />
+        <Fact label="Revenue" value={formatMoneyWholeRupees(totals.revenueLast30DaysMinor)} detail="last 30 days" />
+        <Fact label="Members" value={data.members.length} />
+      </FactsRow>
 
       <PropertiesSection
         organizationSlug={organizationSlug}
-        properties={data.properties}
+        properties={portfolio.properties}
       />
 
       <MembersSection
@@ -63,7 +79,7 @@ function PropertiesSection({
   properties,
 }: {
   organizationSlug: string;
-  properties: { id: number; name: string; slug: string; isActive: boolean }[];
+  properties: PlatformPortfolioProperty[];
 }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -95,85 +111,79 @@ function PropertiesSection({
         : null;
 
   return (
-    <Panel>
-      <PanelHeader title="Properties" icon={Hotel} meta={properties.length} actions={
-        <Button variant="outline" onClick={() => setShowForm((value) => !value)}>
-          <Plus />
-          Add property
-        </Button>
-      } />
+    <section className="grid gap-4">
+      <SectionTitle
+        title="Properties"
+        meta={`${properties.length} ${properties.length === 1 ? "property" : "properties"}`}
+        action={
+          <Button variant="outline" onClick={() => setShowForm((value) => !value)}>
+            <Plus />
+            Add property
+          </Button>
+        }
+      />
 
       {showForm ? (
-        <form
-          className="grid gap-4 border-b border-border-soft px-5 py-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-          onSubmit={createProperty}
-        >
-          <div className="grid gap-2">
-            <Label>Property name</Label>
-            <Input
-              required
-              autoFocus
-              maxLength={255}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Example Jaipur"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Property slug</Label>
-            <Input
-              required
-              maxLength={255}
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              autoCapitalize="none"
-              autoComplete="off"
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              placeholder="jaipur"
-            />
-          </div>
-          <Button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending ? "Adding..." : "Save property"}
-          </Button>
-          {errorMessage ? (
-            <p
-              role="alert"
-              className="sm:col-span-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-            >
-              {errorMessage}
-            </p>
-          ) : null}
-        </form>
+        <Panel>
+          <form
+            className="grid gap-4 px-5 py-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            onSubmit={createProperty}
+          >
+            <div className="grid gap-2">
+              <Label>Property name</Label>
+              <Input
+                required
+                autoFocus
+                maxLength={255}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Example Jaipur"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Property slug</Label>
+              <Input
+                required
+                maxLength={255}
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                autoCapitalize="none"
+                autoComplete="off"
+                value={slug}
+                onChange={(event) => setSlug(event.target.value)}
+                placeholder="jaipur"
+              />
+            </div>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Adding..." : "Save property"}
+            </Button>
+            {errorMessage ? (
+              <p
+                role="alert"
+                className="sm:col-span-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                {errorMessage}
+              </p>
+            ) : null}
+          </form>
+        </Panel>
       ) : null}
 
       {properties.length ? (
-        <ResponsiveTable
-          label="Properties"
-          rows={properties}
-          getRowKey={(property) => property.id}
-          switchAt="lg"
-          columns={[
-            { header: "Property", className: "font-medium", cell: (property) => property.name },
-            { header: "Slug", width: "160px", className: "text-xs text-subtle-foreground", cell: (property) => property.slug },
-            { header: "Status", width: "120px", cell: (property) => <StatusBadge isActive={property.isActive} /> },
-          ]}
-          mobileRow={(property) => (
-            <ListRow
-              leading={<InitialsAvatar name={property.name} shape="square" />}
-              title={property.name}
-              badge={<StatusBadge isActive={property.isActive} />}
-              meta={property.slug}
-            />
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {properties.map((property) => (
+            <PortfolioPropertyCard key={property.id} property={property} />
+          ))}
+        </div>
       ) : (
-        <EmptyState
-          icon={Hotel}
-          title="No properties yet"
-          description="Add the first property for this organization."
-        />
+        <Panel>
+          <EmptyState
+            icon={Hotel}
+            title="No properties yet"
+            description="Add the first property for this organization."
+          />
+        </Panel>
       )}
-    </Panel>
+    </section>
   );
 }
 
@@ -286,6 +296,7 @@ function MembersSection({
           <div className="grid gap-2">
             <Label>Role</Label>
             <Select
+              items={ROLES.map((roleOption) => ({ value: roleOption, label: roleLabel(roleOption) }))}
               value={role}
               onValueChange={(value) => setRole(value as PlatformMembershipRole)}
             >
@@ -373,7 +384,7 @@ function MemberControls({
 }) {
   return (
     <div className="flex w-full flex-wrap items-center gap-2">
-      <Select value={member.role} onValueChange={(value) => onRoleChange(value as PlatformMembershipRole)}>
+      <Select items={ROLES.map((roleOption) => ({ value: roleOption, label: roleLabel(roleOption) }))} value={member.role} onValueChange={(value) => onRoleChange(value as PlatformMembershipRole)}>
         <SelectTrigger
           className="min-w-0 flex-1 sm:w-[150px] sm:flex-none"
           aria-label={`Role for ${member.user.email}`}

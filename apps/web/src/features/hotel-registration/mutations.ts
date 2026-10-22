@@ -1,6 +1,8 @@
 import type { HotelRegistrationInput, HotelRegistrationReviewInput } from "@tattvix/contracts";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { platformOrganizationKeys } from "@/features/platform-organizations/keys";
+import { platformPortfolioKeys } from "@/features/platform-portfolio/queries";
 import { ApiError } from "@/lib/api";
 
 import { hotelRegistrationApi } from "./api";
@@ -19,6 +21,11 @@ export const hotelRegistrationMutations = {
   review: (queryClient: QueryClient) => ({
     mutationFn: ({ id, input }: { id: number; input: HotelRegistrationReviewInput }) =>
       hotelRegistrationApi.reviewRequest(id, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: hotelRegistrationKeys.all }),
+    // Approval creates an organization and property, so admin lists go stale too.
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: hotelRegistrationKeys.all }),
+      queryClient.invalidateQueries({ queryKey: platformOrganizationKeys.all }),
+      queryClient.invalidateQueries({ queryKey: platformPortfolioKeys.all }),
+    ]),
   }),
 };

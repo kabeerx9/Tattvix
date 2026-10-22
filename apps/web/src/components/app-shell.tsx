@@ -77,7 +77,7 @@ const personalNav: FlatNavItem[] = [
 ];
 
 const platformNav: FlatNavItem[] = [
-  { label: "Super admin", to: "/admin", icon: ShieldCheck },
+  { label: "Hotels", to: "/admin", icon: Building2 },
   { label: "Hotel requests", to: "/admin/requests", icon: ClipboardCheck },
 ];
 

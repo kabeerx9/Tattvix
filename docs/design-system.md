@@ -19,7 +19,7 @@ Build with shadcn components from `@tattvix/ui`, then the composed patterns in
 `apps/web/src/components/design-system.tsx`:
 
 1. Existing `@tattvix/ui` component.
-2. A pattern from `design-system.tsx` (`PageHeader`, `LargeTitle`, `SectionTitle`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`, `BottomTabBar`).
+2. A pattern from `design-system.tsx` (`PageHeader`, `LargeTitle`, `SectionTitle`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`, `PhotoTile`, `BottomTabBar`).
 3. A feature component composed from those.
 4. A new shared primitive only when none of the above can express the interaction.
 
