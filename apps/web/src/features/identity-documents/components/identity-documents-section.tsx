@@ -1,94 +1,81 @@
-import {
-  identityDocumentInputSchema,
-  type IdentityDocument,
-  type IdentityDocumentImageSide,
-  type IdentityDocumentMissingField,
-  type IdentityDocumentType,
-} from "@tattvix/contracts";
+import type { IdentityDocument, IdentityDocumentType } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
-import { Input } from "@tattvix/ui/components/input";
-import { Label } from "@tattvix/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@tattvix/ui/components/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@tattvix/ui/components/sheet";
+import { cn } from "@tattvix/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CheckCircle2,
-  FileImage,
+  BookUser,
+  Car,
+  ChevronRight,
   FileKey2,
-  Pencil,
+  FileQuestion,
+  IdCard,
   Plus,
-  ShieldCheck,
   UploadCloud,
+  Vote,
+  type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import {
-  DocumentImageField,
-  type ImageSelection,
-} from "@/features/identity-documents/components/document-image-field";
-import { createIdentityDocumentsApi } from "@/features/identity-documents/api";
+  ConfirmDialog,
+  EmptyState,
+  Panel,
+  PanelHeader,
+  StatusPill,
+} from "@/components/design-system";
+import { DocumentEditor } from "@/features/identity-documents/components/document-editor";
+import { DocumentSheet } from "@/features/identity-documents/components/document-sheet";
+import { DocumentViewer } from "@/features/identity-documents/components/document-viewer";
+import { PhotoViewer } from "@/features/identity-documents/components/photo-viewer";
+import {
+  documentTypeLabels,
+  getExpiryStatus,
+  maskDocumentNumber,
+  summarizeDocument,
+} from "@/features/identity-documents/document-model";
 import {
   IdentityDocumentSaveError,
   identityDocumentMutations,
   type IdentityDocumentSaveInput,
+  type IdentityDocumentSaveProgress,
 } from "@/features/identity-documents/mutations";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
 import { ApiError } from "@/lib/api";
 
-const documentTypeLabels: Record<IdentityDocumentType, string> = {
-  AADHAAR: "Aadhaar",
-  PASSPORT: "Passport",
-  DRIVING_LICENCE: "Driving licence",
-  VOTER_ID: "Voter ID",
+const typeIcons: Record<IdentityDocumentType, LucideIcon> = {
+  AADHAAR: IdCard,
+  PASSPORT: BookUser,
+  DRIVING_LICENCE: Car,
+  VOTER_ID: Vote,
 };
 
-const missingFieldLabels: Record<IdentityDocumentMissingField, string> = {
-  documentType: "Document type",
-  documentNumber: "Document number",
-  nameOnDocument: "Name on document",
-  issuingCountry: "Issuing country",
-  expiryDate: "Valid expiry date",
-  frontImage: "Front image",
-  backImage: "Back image",
-};
-
-const documentRequirements: Record<
-  IdentityDocumentType,
-  { expiryDateRequired: boolean; backImageRequired: boolean }
-> = {
-  AADHAAR: { expiryDateRequired: false, backImageRequired: true },
-  PASSPORT: { expiryDateRequired: true, backImageRequired: false },
-  DRIVING_LICENCE: { expiryDateRequired: true, backImageRequired: true },
-  VOTER_ID: { expiryDateRequired: false, backImageRequired: true },
-};
-
-type EditorState = IdentityDocument | "new" | null;
+/**
+ * One sheet drives every document task. `session` keys the editor so a
+ * partial failure (details saved, a photo upload failed) keeps the guest's
+ * picked photos and step while the editor switches to updating the draft.
+ */
+type SheetState =
+  | { screen: "view"; id: number }
+  | { screen: "edit"; id: number | null; focus?: "photos"; session: number };
 
 export function IdentityDocumentsSection({
   companionId,
   participantName,
+  embedded = false,
 }: {
   companionId?: number;
   participantName?: string;
+  /** Inside another sheet: render the list without its own panel chrome. */
+  embedded?: boolean;
 } = {}) {
   const queryClient = useQueryClient();
   const documentsQuery = useQuery(identityDocumentQueries.list(companionId));
-  const [editor, setEditor] = useState<EditorState>(null);
+  const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [progress, setProgress] = useState<IdentityDocumentSaveProgress | null>(null);
+  const [photo, setPhoto] = useState<{ url: string; title: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<IdentityDocument | null>(null);
+  const sessionRef = useRef(0);
   const saveMutation = useMutation(
     identityDocumentMutations.save(queryClient, companionId),
   );
@@ -96,566 +83,255 @@ export function IdentityDocumentsSection({
     identityDocumentMutations.remove(queryClient, companionId),
   );
 
+  const documents = documentsQuery.data?.documents ?? [];
+  const current =
+    sheet?.id != null ? (documents.find((item) => item.id === sheet.id) ?? null) : null;
+
+  function openEditor(id: number | null, focus?: "photos") {
+    saveMutation.reset();
+    sessionRef.current += 1;
+    setSheet({ screen: "edit", id, focus, session: sessionRef.current });
+  }
+
   function saveDocument(input: IdentityDocumentSaveInput) {
-    saveMutation.mutate(input, {
+    setProgress(null);
+    saveMutation.mutate(
+      { ...input, onProgress: setProgress },
+      {
+        onSuccess: (document) => {
+          toast.success(input.documentId ? "Document updated" : "Document added");
+          setSheet({ screen: "view", id: document.id });
+        },
+        onError: (error) => {
+          if (error instanceof IdentityDocumentSaveError) {
+            // Details were saved; retrying updates that draft instead of
+            // creating a duplicate.
+            setSheet((state) =>
+              state?.screen === "edit" ? { ...state, id: error.document.id } : state,
+            );
+          }
+        },
+        onSettled: () => setProgress(null),
+      },
+    );
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return;
+    removeMutation.mutate(pendingDelete.id, {
       onSuccess: () => {
-        toast.success(
-          input.documentId ? "Identity document updated" : "Identity document added",
-        );
-        setEditor(null);
+        toast.success("Document deleted");
+        setPendingDelete(null);
+        setSheet(null);
       },
       onError: (error) => {
-        if (error instanceof IdentityDocumentSaveError) {
-          setEditor(error.document);
-        }
+        toast.error(
+          error instanceof ApiError ? error.message : "The document could not be deleted.",
+        );
       },
     });
   }
 
-  function removeDocument(document: IdentityDocument) {
-    removeMutation.mutate(document.id, {
-      onSuccess: () => {
-        toast.success("Identity document removed");
-        setEditor(null);
-      },
-    });
-  }
-
-  const mutationError = saveMutation.error ?? removeMutation.error;
-  const errorMessage =
-    mutationError instanceof IdentityDocumentSaveError
-      ? mutationError.message
-      : mutationError instanceof ApiError
-      ? mutationError.message
-      : mutationError
-        ? "The identity document could not be saved."
+  const saveError = saveMutation.error;
+  const submitError =
+    saveError instanceof IdentityDocumentSaveError || saveError instanceof ApiError
+      ? saveError.message
+      : saveError
+        ? "The document could not be saved."
         : null;
 
-  return (
-    <Panel>
-      <PanelHeader title="Government identity documents" icon={FileKey2} actions={<Button variant="outline" disabled={!documentsQuery.data} onClick={() => setEditor("new")}><Plus />Add document</Button>} />
-      <PanelSection>
-            <p className="max-w-xl text-xs leading-5 text-subtle-foreground">
-              {participantName
-                ? `${participantName}'s documents stay private and are shared with a hotel only when you select them for a check-in.`
-                : "Choose which document to share when you check in."}
-            </p>
-      </PanelSection>
+  const addButton = (
+    <Button
+      variant="outline"
+      className="pointer-coarse:h-10"
+      disabled={!documentsQuery.data}
+      onClick={() => openEditor(null)}
+    >
+      <Plus />
+      Add document
+    </Button>
+  );
 
-      {documentsQuery.isPending ? (
-        <PanelSection className="text-sm text-muted-foreground">
-          Loading identity documents...
-        </PanelSection>
-      ) : documentsQuery.isError ? (
-        <PanelSection className="grid gap-3 text-destructive">
-          <p className="text-sm text-destructive">
-            The identity documents could not be loaded.
-          </p>
-          <Button
-            className="w-fit"
-            variant="outline"
-            size="sm"
-            onClick={() => void documentsQuery.refetch()}
-          >
-            Try again
-          </Button>
-        </PanelSection>
-      ) : documentsQuery.data.documents.length ? (
-        <div>
-          {documentsQuery.data.documents.map((document) => (
-            <DocumentCard
-              key={document.id}
-              document={document}
-              onEdit={() => setEditor(document)}
-            />
-          ))}
-        </div>
+  const body = documentsQuery.isPending ? (
+    <p className="px-5 py-5 text-sm text-muted-foreground">Loading documents…</p>
+  ) : documentsQuery.isError ? (
+    <div className="grid gap-3 px-5 py-5">
+      <p className="text-sm text-destructive">Documents couldn't be loaded.</p>
+      <Button
+        className="w-fit"
+        variant="outline"
+        size="sm"
+        onClick={() => void documentsQuery.refetch()}
+      >
+        Try again
+      </Button>
+    </div>
+  ) : documents.length ? (
+    <ul className="divide-y divide-border-soft">
+      {documents.map((document) => (
+        <li key={document.id}>
+          <DocumentRow
+            document={document}
+            onOpen={() => setSheet({ screen: "view", id: document.id })}
+          />
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <EmptyState
+      icon={UploadCloud}
+      title="No ID saved yet"
+      description="Add Aadhaar, a passport, driving licence or voter ID once, and pick it at check-in. You can save a draft and finish it later."
+      action={
+        <Button onClick={() => openEditor(null)}>
+          <Plus />
+          Add your first document
+        </Button>
+      }
+    />
+  );
+
+  const intro = participantName
+    ? `Shared with a hotel only when you choose one of ${participantName}'s documents at check-in.`
+    : "Shared with a hotel only when you choose it at check-in.";
+
+  return (
+    <>
+      {embedded ? (
+        <section className="grid gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">
+              Documents
+              {documents.length ? (
+                <span className="ml-1.5 font-normal text-subtle-foreground tabular-nums">
+                  {documents.length}
+                </span>
+              ) : null}
+            </h3>
+            {documents.length ? addButton : null}
+          </div>
+          <div className="overflow-hidden rounded-lg border border-border">{body}</div>
+        </section>
       ) : (
-        <EmptyState icon={UploadCloud} title="No identity document yet" description="Add Aadhaar, a passport, driving licence, or voter ID. You may save an incomplete draft and finish it later." action={<Button onClick={() => setEditor("new")}><Plus />Add your first document</Button>} />
+        <Panel>
+          <PanelHeader
+            title="Identity documents"
+            icon={FileKey2}
+            meta={documents.length || undefined}
+            actions={documents.length ? addButton : undefined}
+          />
+          <p className="border-b border-border-soft px-5 py-3 text-xs text-subtle-foreground">
+            {intro}
+          </p>
+          {body}
+        </Panel>
       )}
 
-      <Sheet
-        open={editor !== null}
+      <DocumentSheet
+        open={sheet !== null}
         onOpenChange={(open) => {
-          if (!open) setEditor(null);
+          if (!open && !saveMutation.isPending) setSheet(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-          <SheetHeader className="pr-12">
-            <SheetTitle>
-              {editor === "new" ? "Add identity document" : "Edit identity document"}
-            </SheetTitle>
-            <SheetDescription>
-              Add document details and clear photos. You can finish a draft later.
-            </SheetDescription>
-          </SheetHeader>
-          {editor ? (
-            <DocumentEditor
-              key={editor === "new" ? "new" : editor.id}
-              document={editor === "new" ? null : editor}
-              isSaving={saveMutation.isPending}
-              isRemoving={removeMutation.isPending}
-              submitError={errorMessage}
-              companionId={companionId}
-              onSubmit={saveDocument}
-              onRemove={
-                editor === "new" ? undefined : () => removeDocument(editor)
-              }
-            />
-          ) : null}
-        </SheetContent>
-      </Sheet>
-    </Panel>
+        {sheet?.screen === "edit" ? (
+          <DocumentEditor
+            key={sheet.session}
+            document={current}
+            focus={sheet.focus}
+            companionId={companionId}
+            isSaving={saveMutation.isPending}
+            progress={progress}
+            submitError={submitError}
+            onSubmit={saveDocument}
+            onCancel={() =>
+              setSheet(current ? { screen: "view", id: current.id } : null)
+            }
+            onOpenPhoto={setPhoto}
+          />
+        ) : sheet?.screen === "view" && current ? (
+          <DocumentViewer
+            document={current}
+            companionId={companionId}
+            onEdit={() => openEditor(current.id)}
+            onReplacePhotos={() => openEditor(current.id, "photos")}
+            onDelete={() => setPendingDelete(current)}
+            onOpenPhoto={setPhoto}
+          />
+        ) : null}
+      </DocumentSheet>
+
+      <PhotoViewer photo={photo} onClose={() => setPhoto(null)} />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !removeMutation.isPending) setPendingDelete(null);
+        }}
+        title={`Delete ${
+          pendingDelete?.documentType
+            ? documentTypeLabels[pendingDelete.documentType]
+            : "this document"
+        }?`}
+        description="Its details and private photos are removed from your profile. This can't be undone."
+        confirmLabel={removeMutation.isPending ? "Deleting…" : "Delete document"}
+        cancelLabel="Keep it"
+        tone="destructive"
+        pending={removeMutation.isPending}
+        onConfirm={confirmDelete}
+      />
+    </>
   );
 }
 
-function DocumentCard({
+/** A whole-row button: mini card tile, type, masked number, name, status. */
+function DocumentRow({
   document,
-  onEdit,
+  onOpen,
 }: {
   document: IdentityDocument;
-  onEdit: () => void;
+  onOpen: () => void;
 }) {
-  const typeLabel = document.documentType
-    ? documentTypeLabels[document.documentType]
-    : "Document type pending";
+  const Icon = document.documentType ? typeIcons[document.documentType] : FileQuestion;
+  const summary = summarizeDocument(document);
+  const expiry = getExpiryStatus(document.expiryDate);
+  const photoCount =
+    Number(document.images.front.isUploaded) + Number(document.images.back.isUploaded);
 
   return (
-    <PanelSection className="grid gap-4 border-t border-border-soft sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="flex min-w-0 items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-          <ShieldCheck className="size-[18px]" />
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full touch-manipulation items-center gap-3 px-4 py-3.5 text-left transition-colors outline-none select-none hover:bg-muted/50 focus-visible:bg-muted/60 active:bg-muted sm:px-5"
+    >
+      {/* An ID-card-shaped tile: reads as "a card in a wallet" at a glance. */}
+      <span className="grid h-10 w-[3.75rem] shrink-0 place-items-center rounded-md border border-border bg-muted text-muted-foreground">
+        <Icon className="size-5" strokeWidth={1.75} />
+      </span>
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-sm font-semibold">
+            {document.documentType
+              ? documentTypeLabels[document.documentType]
+              : "Untitled document"}
+          </span>
+          <StatusPill tone={summary.tone}>{summary.label}</StatusPill>
         </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold">{typeLabel}</h3>
-            {document.readiness.isReady ? (
-              <StatusPill tone="success">Profile ready</StatusPill>
-            ) : (
-              <StatusPill tone="neutral">
-                {document.readiness.missingFields.length} item
-                {document.readiness.missingFields.length === 1 ? "" : "s"} needed
-              </StatusPill>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {maskDocumentNumber(document.documentNumber)}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <ImageStatus
-              label="Front"
-              uploaded={document.images.front.isUploaded}
-            />
-            {document.requirements.backImageRequired ||
-            document.images.back.isUploaded ? (
-              <ImageStatus
-                label="Back"
-                uploaded={document.images.back.isUploaded}
-              />
-            ) : null}
-          </div>
-        </div>
-      </div>
-      <Button variant="ghost" size="sm" className="justify-self-start max-sm:ml-10" onClick={onEdit}>
-        <Pencil />
-        Manage
-      </Button>
-    </PanelSection>
-  );
-}
-
-function ImageStatus({
-  label,
-  uploaded,
-}: {
-  label: string;
-  uploaded: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <FileImage className="size-3.5" />
-      {label}: {uploaded ? "uploaded" : "needed"}
-    </span>
-  );
-}
-
-function DocumentEditor({
-  document,
-  isSaving,
-  isRemoving,
-  submitError,
-  companionId,
-  onSubmit,
-  onRemove,
-}: {
-  document: IdentityDocument | null;
-  isSaving: boolean;
-  isRemoving: boolean;
-  submitError: string | null;
-  companionId?: number;
-  onSubmit: (input: IdentityDocumentSaveInput) => void;
-  onRemove?: () => void;
-}) {
-  const [documentType, setDocumentType] = useState(document?.documentType ?? "");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [images, setImages] = useState<
-    Partial<Record<IdentityDocumentImageSide, ImageSelection>>
-  >({});
-  const [imageErrors, setImageErrors] = useState<
-    Partial<Record<IdentityDocumentImageSide, string>>
-  >({});
-  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
-  const [preview, setPreview] = useState<{
-    side: IdentityDocumentImageSide;
-    url: string;
-  } | null>(null);
-  const api = createIdentityDocumentsApi(companionId);
-  const accessMutation = useMutation({
-    mutationFn: ({
-      documentId,
-      side,
-    }: {
-      documentId: number;
-      side: IdentityDocumentImageSide;
-    }) => api.getImageAccess(documentId, side),
-    onSuccess: (access, variables) => {
-      setPreview({ side: variables.side, url: access.url });
-    },
-  });
-
-  const requirements = documentType
-    ? documentRequirements[documentType as IdentityDocumentType]
-    : { expiryDateRequired: false, backImageRequired: false };
-  const showBackImage =
-    requirements.backImageRequired || Boolean(document?.images.back.isUploaded);
-  const isPreparingImage = Object.values(images).some(
-    (selection) => selection.status === "processing",
-  );
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextErrors: Record<string, string> = {};
-    const formData = new FormData(event.currentTarget);
-    const parsed = identityDocumentInputSchema.safeParse({
-      documentType,
-      documentNumber: formData.get("documentNumber"),
-      nameOnDocument: formData.get("nameOnDocument"),
-      issuingCountry: formData.get("issuingCountry"),
-      expiryDate: formData.get("expiryDate") || null,
-    });
-
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        nextErrors[issue.path.join(".")] ??= issue.message;
-      }
-    }
-
-    setFieldErrors(nextErrors);
-    if (!parsed.success || isPreparingImage) return;
-
-    const files: Partial<Record<IdentityDocumentImageSide, File>> = {};
-    for (const [side, selection] of Object.entries(images) as [
-      IdentityDocumentImageSide,
-      ImageSelection,
-    ][]) {
-      // A back photo picked before switching to a front-only type is dropped.
-      if (side === "BACK" && !showBackImage) continue;
-      if (selection.status === "ready") files[side] = selection.file;
-    }
-
-    onSubmit({
-      ...(document ? { documentId: document.id } : {}),
-      input: parsed.data,
-      files,
-    });
-  }
-
-  function imageFieldHandlers(side: IdentityDocumentImageSide) {
-    return {
-      selection: images[side] ?? null,
-      error: imageErrors[side],
-      onSelectionChange: (selection: ImageSelection | null) =>
-        setImages((current) => {
-          const next = { ...current };
-          if (selection) next[side] = selection;
-          else delete next[side];
-          return next;
-        }),
-      onError: (message: string | undefined) =>
-        setImageErrors((current) => ({ ...current, [side]: message })),
-    };
-  }
-
-  const accessError =
-    accessMutation.error instanceof ApiError
-      ? accessMutation.error.message
-      : accessMutation.isError
-        ? "The private image could not be opened."
-        : null;
-
-  return (
-    <form className="grid min-h-0 flex-1 gap-5 px-4 pb-4" onSubmit={handleSubmit}>
-      <div className="grid gap-4">
-        <EditorField
-          label="Document type"
-          required
-          error={fieldErrors.documentType}
-        >
-          <Select
-            value={documentType || null}
-            onValueChange={(value) => setDocumentType(value ?? "")}
-          >
-            <SelectTrigger aria-invalid={Boolean(fieldErrors.documentType)}>
-              <SelectValue placeholder="Select a document type" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(documentTypeLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </EditorField>
-
-        <EditorField
-          label="Document number"
-          required
-          error={fieldErrors.documentNumber}
-        >
-          <Input
-            name="documentNumber"
-            defaultValue={document?.documentNumber ?? ""}
-            maxLength={64}
-            autoComplete="off"
-            aria-invalid={Boolean(fieldErrors.documentNumber)}
-          />
-        </EditorField>
-
-        <EditorField
-          label="Name on document"
-          required
-          error={fieldErrors.nameOnDocument}
-        >
-          <Input
-            name="nameOnDocument"
-            defaultValue={document?.nameOnDocument ?? ""}
-            maxLength={300}
-            autoComplete="name"
-            aria-invalid={Boolean(fieldErrors.nameOnDocument)}
-          />
-        </EditorField>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <EditorField
-            label="Issuing country"
-            required
-            error={fieldErrors.issuingCountry}
-            hint="Two-letter code, such as IN."
-          >
-            <Input
-              name="issuingCountry"
-              defaultValue={document?.issuingCountry ?? ""}
-              maxLength={2}
-              autoCapitalize="characters"
-              placeholder="IN"
-              aria-invalid={Boolean(fieldErrors.issuingCountry)}
-            />
-          </EditorField>
-          {requirements.expiryDateRequired || document?.expiryDate ? (
-            <EditorField
-              label="Expiry date"
-              required={requirements.expiryDateRequired}
-              error={fieldErrors.expiryDate}
-              hint="An expired document will not count as ready."
-            >
-              <Input
-                name="expiryDate"
-                type="date"
-                defaultValue={document?.expiryDate ?? ""}
-                aria-invalid={Boolean(fieldErrors.expiryDate)}
-              />
-            </EditorField>
-          ) : (
-            <input name="expiryDate" type="hidden" value="" />
+        <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="tracking-wide">{maskDocumentNumber(document.documentNumber)}</span>
+          {expiry.kind === "valid" ? ` · ${expiry.label}` : null}
+        </span>
+        <span
+          className={cn(
+            "truncate text-xs",
+            document.nameOnDocument ? "text-subtle-foreground" : "text-subtle-foreground italic",
           )}
-        </div>
-      </div>
-
-      <div className="grid gap-3 border-t pt-5">
-        <div>
-          <h3 className="text-sm font-semibold">Private document images</h3>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Take a clear photo of the whole card, or choose one from your
-            files. Photos are resized on this device before upload.
-          </p>
-        </div>
-        <DocumentImageField
-          name="frontImage"
-          label="Front image"
-          required
-          uploaded={document?.images.front.isUploaded ?? false}
-          {...imageFieldHandlers("FRONT")}
-          isAccessPending={
-            accessMutation.isPending &&
-            accessMutation.variables?.side === "FRONT"
-          }
-          onView={
-            document?.images.front.isUploaded
-              ? () =>
-                  accessMutation.mutate({
-                    documentId: document.id,
-                    side: "FRONT",
-                  })
-              : undefined
-          }
-        />
-        {showBackImage ? (
-          <DocumentImageField
-            name="backImage"
-            label="Back image"
-            required={requirements.backImageRequired}
-            uploaded={document?.images.back.isUploaded ?? false}
-            {...imageFieldHandlers("BACK")}
-            isAccessPending={
-              accessMutation.isPending &&
-              accessMutation.variables?.side === "BACK"
-            }
-            onView={
-              document?.images.back.isUploaded
-                ? () =>
-                    accessMutation.mutate({
-                      documentId: document.id,
-                      side: "BACK",
-                    })
-                : undefined
-            }
-          />
-        ) : null}
-      </div>
-
-      {preview ? (
-        <div className="grid gap-2 rounded-lg bg-muted p-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-medium">
-              {preview.side === "FRONT" ? "Front" : "Back"} preview
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={() => setPreview(null)}
-            >
-              Close preview
-            </Button>
-          </div>
-          <img
-            src={preview.url}
-            alt={`Private ${preview.side.toLowerCase()} document preview`}
-            className="max-h-72 w-full rounded-lg object-contain"
-          />
-          <p className="text-xs text-muted-foreground">
-            This access link expires automatically.
-          </p>
-        </div>
-      ) : null}
-
-      {submitError || accessError ? (
-        <p
-          role="alert"
-          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
-          {submitError ?? accessError}
-        </p>
-      ) : null}
-
-      <SheetFooter className="sticky bottom-0 z-10 mt-0 border-t bg-popover px-0 pt-4">
-        {onRemove ? (
-          confirmingRemoval ? (
-            <div className="flex w-full items-center justify-between gap-2">
-              <p className="text-xs text-destructive">
-                Delete this document and its private images?
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={isRemoving}
-                  onClick={() => setConfirmingRemoval(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={isRemoving}
-                  onClick={onRemove}
-                >
-                  {isRemoving ? "Deleting..." : "Confirm delete"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              className="mr-auto text-destructive hover:text-destructive"
-              disabled={isRemoving}
-              onClick={() => setConfirmingRemoval(true)}
-            >
-              Delete document
-            </Button>
-          )
-        ) : null}
-        {!confirmingRemoval ? (
-          <Button type="submit" disabled={isSaving || isPreparingImage}>
-            {isSaving
-              ? "Saving and uploading..."
-              : isPreparingImage
-                ? "Preparing photo..."
-                : document
-                ? "Save changes"
-                : "Add document"}
-          </Button>
-        ) : null}
-      </SheetFooter>
-    </form>
+          {document.nameOnDocument || "Name not added"}
+          {" · "}
+          {photoCount === 0 ? "No photos" : photoCount === 1 ? "1 photo" : "2 photos"}
+        </span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-subtle-foreground" />
+    </button>
   );
-}
-
-function EditorField({
-  label,
-  required,
-  error,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label>
-        {label}
-        {required ? <span className="text-destructive">*</span> : null}
-      </Label>
-      {children}
-      {error ? (
-        <p className="text-xs text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
-
-function maskDocumentNumber(value: string): string {
-  if (!value) return "Document number not added";
-  if (value.length <= 4) return `•••• ${value}`;
-  return `•••• ${value.slice(-4)}`;
 }

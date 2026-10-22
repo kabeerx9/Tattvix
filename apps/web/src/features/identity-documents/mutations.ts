@@ -16,7 +16,13 @@ export type IdentityDocumentSaveInput = {
   documentId?: number;
   input: IdentityDocumentInput;
   files: Partial<Record<IdentityDocumentImageSide, File>>;
+  /** Reports which step of the save is running, for an upload progress UI. */
+  onProgress?: (progress: IdentityDocumentSaveProgress) => void;
 };
+
+export type IdentityDocumentSaveProgress =
+  | { stage: "details" }
+  | { stage: "photos"; uploaded: number; total: number };
 
 export class IdentityDocumentSaveError extends Error {
   document: IdentityDocument;
@@ -55,15 +61,27 @@ export const identityDocumentMutations = {
         documentId,
         input,
         files,
+        onProgress,
       }: IdentityDocumentSaveInput) => {
+        onProgress?.({ stage: "details" });
         const document = documentId
           ? await api.update(documentId, input)
           : await api.create(input);
 
-        const uploads = (
-          Object.entries(files) as [IdentityDocumentImageSide, File][]
-        ).map(([side, file]) =>
-          api.uploadImage(document.id, side, file),
+        const entries = Object.entries(files) as [
+          IdentityDocumentImageSide,
+          File,
+        ][];
+        let uploaded = 0;
+        if (entries.length) {
+          onProgress?.({ stage: "photos", uploaded, total: entries.length });
+        }
+        const uploads = entries.map(([side, file]) =>
+          api.uploadImage(document.id, side, file).then((result) => {
+            uploaded += 1;
+            onProgress?.({ stage: "photos", uploaded, total: entries.length });
+            return result;
+          }),
         );
         try {
           await Promise.all(uploads);

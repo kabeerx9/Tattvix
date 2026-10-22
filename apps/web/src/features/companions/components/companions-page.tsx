@@ -149,7 +149,7 @@ export function CompanionsPage() {
           if (!open) setDocumentOwner(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           {/* pr-12 keeps a long companion name clear of the sheet's close button. */}
           <SheetHeader className="pr-12">
             <SheetTitle className="[overflow-wrap:anywhere]">
@@ -166,6 +166,7 @@ export function CompanionsPage() {
             <div className="px-4 pb-4">
               <IdentityDocumentsSection
                 key={documentOwner.id}
+                embedded
                 companionId={documentOwner.id}
                 participantName={formatCompanionName(documentOwner)}
               />
