@@ -93,16 +93,21 @@ Sentence case everywhere. No uppercase eyebrows.
 Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell`
 (`apps/web/src/components/app-shell.tsx`). There is no sidebar.
 
-- **`md` and up:** sticky top nav. The left side always shows the `BrandMark` and the **place
-  pill**, for every signed-in user. The workspace's section links sit in the centre (on their
-  own row below `lg`). The active
-  link is foreground text plus a 3px rose underline, one element that slides between links. The
-  avatar menu on the right holds only account settings and sign out.
-- **Place switcher** (`components/place-switcher.tsx`, ADR 0003 addendum): the one way to move
-  between Personal, each hotel property and Platform admin.
-  - **Desktop:** the pill opens one list: Personal and Platform, then Recent (7+ hotels), then
-    hotels grouped by organization, with search at 7+ hotels. ↑↓/↵ move and open, and ⌘K /
-    Ctrl+K opens it except inside text inputs.
+- **`md` and up:** sticky top nav. `BrandLogo` on the left, the workspace's section links in the
+  centre (on their own row below `lg`), and **one account pill** on the right. The active link is
+  foreground text plus a 3px rose underline, one element that slides between links.
+- **Account pill and panel** (`components/place-switcher.tsx`, ADR 0003 addendum): the one
+  control for where you are and who you are, shown to every signed-in user.
+  - **Pill:** the current place's picture and short name, then the person's avatar. Personal
+    shows the avatar once.
+  - **Panel:** it opens from the pill (growing from its top-right corner) or with ⌘K / Ctrl+K
+    (not inside text inputs). It holds:
+    - the person (name, email);
+    - **Switch to**: Personal and Platform, then Recent (7+ hotels), then hotels grouped by
+      organization, with search at 7+ hotels;
+    - Manage properties (inside a hotel), Account settings and Sign out.
+
+    ↑↓/↵ move and open. There is no separate avatar menu.
   - **Rows:** each row is a real link to the place's home: Today, the org setup, My stays or
     Hotels.
   - **Pictures:** covers are real property photos with an initials fallback. Platform is a bare
@@ -112,11 +117,13 @@ Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell
     "List your hotel" row ("Run a hotel? Set it up on Tattwix", to `/register-hotel`). The same
     row ends the list for anyone with no hotel and no platform access. A pending hotel request
     (when already in the query cache) shows as "Hotel request pending" instead.
-- **Phones:** a `BottomTabBar`. The first tab is the current place (its picture) and opens the
-  same list in a `BottomSheet`. Up to three everyday pages follow, then **Menu**, which holds the
-  remaining pages and account links. A slim top bar (not sticky, so `LargeTitle` keeps the top
-  edge) also shows the current place. Without any tab (a hotel with no property yet), the top
-  bar carries the account menu.
+- **Phones:** a `BottomTabBar`.
+  - The first tab is the current place (its picture). It opens the same account panel as a
+    `BottomSheet`, and it lights up on account pages.
+  - Up to three everyday pages follow, then **Menu**, which holds only the pages without a tab
+    (no account controls). Menu is omitted when there are none.
+  - There is no phone top bar, except without any tab (a hotel with no property yet), when a top
+    bar carries the logo and the same account pill.
 - **Model, not markup:** these are pure, tested functions, and the shell only renders them.
   - `lib/workspace-navigation.ts` (`getHotelNavItems`, `getPersonalNavItems`,
     `getPlatformNavItems`, `split*NavForTabBar`) sets the pages per workspace and the tab split.
