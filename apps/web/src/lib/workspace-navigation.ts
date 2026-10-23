@@ -1,17 +1,6 @@
 import type { MeResponse } from "@tattvix/contracts";
 
 export type Workspace = "personal" | "hotel" | "platform";
-export type HotelDestination =
-  | { to: "/hotel"; params?: undefined }
-  | {
-      to: "/hotel/$organizationSlug";
-      params: { organizationSlug: string; propertySlug?: undefined };
-    }
-  | {
-      to: "/hotel/$organizationSlug/$propertySlug/dashboard";
-      params: { organizationSlug: string; propertySlug: string };
-    };
-
 export function getActiveWorkspace(pathname: string): Workspace {
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "platform";
@@ -22,42 +11,6 @@ export function getActiveWorkspace(pathname: string): Workspace {
   )
     return "hotel";
   return "personal";
-}
-
-// URL context can select only scopes present in the authenticated /me response.
-export function getHotelDestination(
-  user: MeResponse | null,
-  pathname: string,
-): HotelDestination {
-  const [prefix, organizationSlug, propertySlug] = pathname
-    .split("/")
-    .filter(Boolean);
-  const accessible =
-    user?.memberships.filter((item) =>
-      item.permissions.includes("hotel:view"),
-    ) ?? [];
-  const membership =
-    accessible.find(
-      (item) =>
-        prefix === "hotel" && item.organization.slug === organizationSlug,
-    ) ?? accessible[0];
-  if (!membership) return { to: "/hotel" };
-  const property =
-    membership.properties.find(
-      (item) => prefix === "hotel" && item.slug === propertySlug,
-    ) ?? membership.properties[0];
-  if (!property)
-    return {
-      to: "/hotel/$organizationSlug",
-      params: { organizationSlug: membership.organization.slug },
-    };
-  return {
-    to: "/hotel/$organizationSlug/$propertySlug/dashboard",
-    params: {
-      organizationSlug: membership.organization.slug,
-      propertySlug: property.slug,
-    },
-  };
 }
 
 export type HotelMembership = MeResponse["memberships"][number];
@@ -246,105 +199,4 @@ export function splitPlatformNavForTabBar(items: PlatformNavItem[]) {
 /** Account pages live in the account menu (and the phone Menu sheet) in every workspace. */
 export function isAccountPath(pathname: string) {
   return pathname === "/settings" || pathname === "/account";
-}
-
-export type WorkspaceOption =
-  | { key: "personal"; label: string; detail: string; isActive: boolean; to: "/guest" }
-  | { key: "hotel"; label: string; detail: string; isActive: boolean; destination: HotelDestination }
-  | { key: "platform"; label: string; detail: string; isActive: boolean; to: "/admin" };
-
-/**
- * Workspaces the user may switch to, in a fixed order. Hotel needs
- * hotel:view on some membership and platform needs platform:admin, the
- * same checks the route guards apply, so the switcher never offers a
- * workspace that would redirect to /unauthorized.
- */
-export function getWorkspaceOptions(
-  user: MeResponse | null,
-  pathname: string,
-): WorkspaceOption[] {
-  const active = getActiveWorkspace(pathname);
-  const options: WorkspaceOption[] = [
-    {
-      key: "personal",
-      label: "Personal",
-      detail: "Stays, documents and privacy",
-      isActive: active === "personal",
-      to: "/guest",
-    },
-  ];
-  if (user?.memberships.some((item) => item.permissions.includes("hotel:view"))) {
-    options.push({
-      key: "hotel",
-      label: "Hotel",
-      detail: "Front desk and property",
-      isActive: active === "hotel",
-      destination: getHotelDestination(user, pathname),
-    });
-  }
-  if (user?.platformPermissions.includes("platform:admin")) {
-    options.push({
-      key: "platform",
-      label: "Platform admin",
-      detail: "Every hotel on Tattwix",
-      isActive: active === "platform",
-      to: "/admin",
-    });
-  }
-  return options;
-}
-
-export type HotelSwitchOption =
-  | {
-      key: string;
-      label: string;
-      isActive: boolean;
-      to: "/hotel/$organizationSlug/$propertySlug/dashboard";
-      params: { organizationSlug: string; propertySlug: string };
-    }
-  | {
-      key: string;
-      label: string;
-      isActive: boolean;
-      to: "/hotel/$organizationSlug";
-      params: { organizationSlug: string };
-    };
-
-/**
- * Every property the user can open, for the hotel switcher. Organizations
- * without properties link to their setup page. Only memberships with
- * hotel:view are listed.
- */
-export function getHotelSwitchOptions(
-  user: MeResponse | null,
-  context: ActiveHotelContext | null,
-): HotelSwitchOption[] {
-  const memberships =
-    user?.memberships.filter((item) => item.permissions.includes("hotel:view")) ?? [];
-  return memberships.flatMap((membership): HotelSwitchOption[] =>
-    membership.properties.length === 0
-      ? [
-          {
-            key: `org-${membership.id}`,
-            label: membership.organization.name,
-            isActive: context?.membership.id === membership.id && !context.property,
-            to: "/hotel/$organizationSlug",
-            params: { organizationSlug: membership.organization.slug },
-          },
-        ]
-      : membership.properties.map((property) => ({
-          key: `prop-${property.id}`,
-          label:
-            property.name === membership.organization.name
-              ? property.name
-              : `${membership.organization.name} · ${property.name}`,
-          isActive:
-            context?.membership.id === membership.id && context.property?.id === property.id,
-          to: "/hotel/$organizationSlug/$propertySlug/dashboard",
-          params: {
-            organizationSlug: membership.organization.slug,
-            propertySlug: property.slug,
-          },
-        })),
-  );
 }

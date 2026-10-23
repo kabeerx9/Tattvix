@@ -5,11 +5,8 @@ import {
   getActiveHotelContext,
   getHotelNavItems,
   getActiveWorkspace,
-  getHotelDestination,
-  getHotelSwitchOptions,
   getPersonalNavItems,
   getPlatformNavItems,
-  getWorkspaceOptions,
   isAccountPath,
   splitHotelNavForTabBar,
   splitNavForTabBar,
@@ -58,46 +55,6 @@ describe("workspace navigation", () => {
     assert.equal(getActiveWorkspace("/dashboard"), "hotel");
     assert.equal(getActiveWorkspace("/admin/requests"), "platform");
     assert.equal(getActiveWorkspace("/hotel-other"), "personal");
-  });
-  it("opens a single hotel directly and preserves the active authorized property", () => {
-    assert.deepEqual(getHotelDestination(user, "/profile"), {
-      to: "/hotel/$organizationSlug/$propertySlug/dashboard",
-      params: { organizationSlug: "first", propertySlug: "main" },
-    });
-    assert.deepEqual(getHotelDestination(user, "/hotel/second/branch/rooms"), {
-      to: "/hotel/$organizationSlug/$propertySlug/dashboard",
-      params: { organizationSlug: "second", propertySlug: "branch" },
-    });
-  });
-  it("does not use an inaccessible hotel or property from the URL", () => {
-    assert.equal(
-      getHotelDestination(user, "/hotel/secret/private/rooms").params
-        ?.organizationSlug,
-      "first",
-    );
-    assert.equal(
-      getHotelDestination(user, "/hotel/second/secret/rooms").params
-        ?.propertySlug,
-      "branch",
-    );
-    const denied: MeResponse = {
-      ...user,
-      memberships: [{ ...user.memberships[0]!, permissions: [] }],
-    };
-    assert.deepEqual(getHotelDestination(denied, "/hotel/first/main"), {
-      to: "/hotel",
-    });
-    assert.deepEqual(getHotelDestination(null, "/profile"), { to: "/hotel" });
-  });
-  it("allows owners with no properties to open their hotel setup", () => {
-    const empty: MeResponse = {
-      ...user,
-      memberships: [{ ...user.memberships[0]!, properties: [] }],
-    };
-    assert.deepEqual(getHotelDestination(empty, "/profile"), {
-      to: "/hotel/$organizationSlug",
-      params: { organizationSlug: "first" },
-    });
   });
 });
 
@@ -201,33 +158,6 @@ describe("mobile tab bar", () => {
   });
 });
 
-describe("hotel switcher options", () => {
-  it("lists every viewable property and marks the open one", () => {
-    const context = getActiveHotelContext(user, "/hotel/second/branch/rooms");
-    const options = getHotelSwitchOptions(user, context);
-    assert.deepEqual(
-      options.map((option) => [option.label, option.isActive]),
-      [
-        ["First · Main", false],
-        ["Second · Branch", true],
-      ],
-    );
-    assert.deepEqual(options[1]!.params, { organizationSlug: "second", propertySlug: "branch" });
-  });
-  it("links organizations without properties to their setup page", () => {
-    const empty: MeResponse = { ...user, memberships: [{ ...user.memberships[0]!, properties: [] }] };
-    const [option] = getHotelSwitchOptions(empty, null);
-    assert.equal(option?.to, "/hotel/$organizationSlug");
-  });
-  it("skips memberships without hotel:view", () => {
-    const denied: MeResponse = {
-      ...user,
-      memberships: [{ ...user.memberships[0]!, permissions: [] }, user.memberships[1]!],
-    };
-    assert.deepEqual(getHotelSwitchOptions(denied, null).map((option) => option.label), ["Second · Branch"]);
-  });
-});
-
 describe("personal navigation", () => {
   it("lists the guest pages and marks nested stay pages under My stays", () => {
     const items = getPersonalNavItems("/stays/abc-123");
@@ -287,45 +217,5 @@ describe("tab bar split", () => {
     assert.deepEqual(tabs.map((item) => item.key), ["a", "c"]);
     assert.deepEqual(overflow.map((item) => item.key), ["b"]);
     assert.equal(menuActive, true);
-  });
-});
-
-describe("workspace switcher", () => {
-  it("offers only Personal to a guest", () => {
-    const guest: MeResponse = { ...user, memberships: [] };
-    assert.deepEqual(getWorkspaceOptions(guest, "/guest").map((option) => [option.key, option.isActive]), [
-      ["personal", true],
-    ]);
-  });
-  it("offers Hotel when a membership can view the hotel, keeping the open property", () => {
-    const options = getWorkspaceOptions(user, "/hotel/second/branch/rooms");
-    assert.deepEqual(options.map((option) => [option.key, option.isActive]), [
-      ["personal", false],
-      ["hotel", true],
-    ]);
-    const hotel = options[1];
-    assert.equal(hotel?.key, "hotel");
-    if (hotel?.key === "hotel") {
-      assert.deepEqual(hotel.destination.params, { organizationSlug: "second", propertySlug: "branch" });
-    }
-  });
-  it("hides Hotel when no membership has hotel:view", () => {
-    const denied: MeResponse = {
-      ...user,
-      memberships: user.memberships.map((membership) => ({ ...membership, permissions: [] })),
-    };
-    assert.deepEqual(getWorkspaceOptions(denied, "/guest").map((option) => option.key), ["personal"]);
-  });
-  it("offers Platform admin only with platform:admin", () => {
-    const admin: MeResponse = { ...user, platformPermissions: ["platform:admin"] };
-    assert.deepEqual(getWorkspaceOptions(admin, "/admin/requests").map((option) => [option.key, option.isActive]), [
-      ["personal", false],
-      ["hotel", false],
-      ["platform", true],
-    ]);
-    assert.equal(getWorkspaceOptions(user, "/admin").some((option) => option.key === "platform"), false);
-  });
-  it("offers nothing beyond Personal while signed-out data is missing", () => {
-    assert.deepEqual(getWorkspaceOptions(null, "/guest").map((option) => option.key), ["personal"]);
   });
 });

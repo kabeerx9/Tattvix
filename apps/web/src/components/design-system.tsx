@@ -705,6 +705,10 @@ export type BottomTabBarItem = {
   key: string;
   label: string;
   icon: LucideIcon;
+  /** A picture shown instead of the icon (the place switcher's current place). */
+  media?: React.ReactNode;
+  /** Accessible name when the visible label is not enough. */
+  ariaLabel?: string;
   isActive: boolean;
   /** Render the tab as a link (e.g. a router `Link`); otherwise it is a button. */
   render?: (props: { className: string; children: React.ReactNode; "aria-current"?: "page" }) => React.ReactElement;
@@ -756,7 +760,7 @@ export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; labe
             );
             const children = (
               <>
-                <Icon aria-hidden className="size-6" strokeWidth={item.isActive ? 2.1 : 1.6} />
+                {item.media ?? <Icon aria-hidden className="size-6" strokeWidth={item.isActive ? 2.1 : 1.6} />}
                 <span className="max-w-full truncate px-1">{item.label}</span>
               </>
             );
@@ -769,6 +773,7 @@ export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; labe
                     type="button"
                     className={className}
                     onClick={item.onClick}
+                    aria-label={item.ariaLabel}
                     aria-current={item.isActive ? "page" : undefined}
                   >
                     {children}

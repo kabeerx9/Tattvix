@@ -1,9 +1,11 @@
 // The one app shell for every signed-in workspace (personal, hotel staff,
 // platform admin), per docs/adr/0003-host-shell-and-accent-restraint.md:
 // a sticky top nav from `md` up and a bottom tab bar with a Menu sheet on
-// phones. Which pages a workspace has, which become tabs and who may switch
-// where is decided by the pure functions in lib/workspace-navigation.ts;
-// this file only renders that model.
+// phones. Switching between places (Personal, each hotel, Platform admin)
+// is one control: the place pill at the far left on desktop, the first tab
+// on phones, ⌘K anywhere. Which pages a workspace has and who may switch
+// where is decided by the pure functions in lib/workspace-navigation.ts and
+// lib/workspace-switcher.ts; this file only renders that model.
 import { useClerk, useUser } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
@@ -11,9 +13,7 @@ import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@tattvix/ui/components/dropdown-menu";
@@ -26,6 +26,7 @@ import {
   CalendarCheck,
   Check,
   ChevronRight,
+  ChevronsUpDown,
   ClipboardCheck,
   ClipboardList,
   Contact,
@@ -34,34 +35,41 @@ import {
   Menu,
   Settings,
   ShieldCheck,
-  UserRound,
   Users,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { BrandLogo } from "@/components/brand";
+import { BrandLogo, BrandMark } from "@/components/brand";
 import { BottomTabBar } from "@/components/design-system";
+import { PlaceCue, PlaceList, PlacePill, PlacePopover, PlaceThumb, placeIdentity, type PlacePerson } from "@/components/place-switcher";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { getInitials } from "@/lib/initials";
 import {
   getActiveHotelContext,
   getActiveWorkspace,
   getHotelNavItems,
-  getHotelSwitchOptions,
   getPersonalNavItems,
   getPlatformNavItems,
-  getWorkspaceOptions,
   isAccountPath,
   splitHotelNavForTabBar,
   splitPersonalNavForTabBar,
   splitPlatformNavForTabBar,
   type ActiveHotelContext,
-  type HotelSwitchOption,
   type Workspace,
-  type WorkspaceOption,
 } from "@/lib/workspace-navigation";
+import {
+  getCurrentPlace,
+  getSwitchPlaces,
+  hasPlaceSwitcher,
+  isHotelPlace,
+  makeRoomForPlaceTab,
+  pushRecentPlace,
+  readRecentPlaceKeys,
+  writeRecentPlaceKeys,
+  type Place,
+} from "@/lib/workspace-switcher";
 
 type LinkProps = { className: string; children: React.ReactNode; "aria-current"?: "page" };
 
@@ -159,22 +167,46 @@ function resolveNav(workspace: Workspace, context: ActiveHotelContext | null, pa
   };
 }
 
+
+/**
+ * Recently opened hotel places for this user, newest first. Stored per user
+ * id in localStorage as place keys only; the list is re-filtered against
+ * the current memberships every time it is shown.
+ */
+function useRecentPlaces(userId: number | undefined, current: Place | null) {
+  const [keys, setKeys] = useState<string[]>(() => (userId ? readRecentPlaceKeys(userId) : []));
+  const currentKey = current && isHotelPlace(current) ? current.key : null;
+  useEffect(() => {
+    if (!userId || !currentKey) return;
+    setKeys((previous) => {
+      const next = pushRecentPlace(previous, currentKey);
+      writeRecentPlaceKeys(userId, next);
+      return next;
+    });
+  }, [userId, currentKey]);
+  return keys;
+}
+
 function useAppShell() {
   const { pathname } = useLocation();
   const { auth } = useRouteContext({ from: "__root__" });
   const { user } = useUser();
   const { signOut } = useClerk();
+  const me = auth.currentUser;
   const workspace = getActiveWorkspace(pathname);
-  const context = workspace === "hotel" ? getActiveHotelContext(auth.currentUser, pathname) : null;
+  const context = workspace === "hotel" ? getActiveHotelContext(me, pathname) : null;
   const { data: photos } = useQuery({
     ...propertyPhotoQueries.list(context?.membership.organization.slug ?? "", context?.property?.slug ?? ""),
     enabled: Boolean(context?.property),
   });
+  const places = useMemo(() => getSwitchPlaces(me), [me]);
+  const currentPlace = getCurrentPlace(places, me, pathname);
+  const recentKeys = useRecentPlaces(me?.id, currentPlace);
   const name =
     user?.fullName ||
-    [auth.currentUser?.firstName, auth.currentUser?.lastName].filter(Boolean).join(" ") ||
+    [me?.firstName, me?.lastName].filter(Boolean).join(" ") ||
     user?.primaryEmailAddress?.emailAddress ||
-    auth.currentUser?.email ||
+    me?.email ||
     "Signed in";
   return {
     pathname,
@@ -183,8 +215,9 @@ function useAppShell() {
     nav: resolveNav(workspace, context, pathname),
     accountActive: isAccountPath(pathname),
     coverUrl: photos?.cover?.url,
-    switchOptions: workspace === "hotel" ? getHotelSwitchOptions(auth.currentUser, context) : [],
-    workspaces: getWorkspaceOptions(auth.currentUser, pathname),
+    places,
+    currentPlace,
+    recentKeys,
     name,
     imageUrl: user?.imageUrl,
     signOut: () => signOut({ redirectUrl: "/login" }),
@@ -198,55 +231,111 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return <AppShellView shell={useAppShell()}>{children}</AppShellView>;
 }
 
-/** What the workspace pill and Menu sheet call the current workspace. */
-function workspaceIdentity(shell: Shell) {
-  if (shell.workspace === "hotel") {
-    const property = shell.context?.property;
-    const organization = shell.context?.membership.organization;
-    const role = shell.context?.membership.role;
-    return {
-      title: property?.name ?? organization?.name ?? "Hotel",
-      detail: [
-        organization && property && organization.name !== property.name ? organization.name : null,
-        role ? role.charAt(0) + role.slice(1).toLowerCase() : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      showInPill: Boolean(property ?? organization),
-    };
-  }
-  if (shell.workspace === "platform") {
-    return { title: "Platform admin", detail: "Every hotel on Tattwix", showInPill: true };
-  }
-  return { title: shell.name, detail: "Personal", showInPill: false };
-}
+const isEditable = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
 
 /** The shell's markup, driven by a plain model (also usable from UI fixtures). */
 export function AppShellView({ shell, children }: { shell: AppShellModel; children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const hasTabBar = shell.nav.tabs.length > 0;
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [cue, setCue] = useState<{ id: number; label: string } | null>(null);
+  const switcher = hasPlaceSwitcher(shell.places);
+  const person: PlacePerson = { name: shell.name, imageUrl: shell.imageUrl };
+  const currentKey = shell.currentPlace?.key ?? null;
 
-  // Close the menu sheet on any navigation (links, back/forward, redirects).
-  useEffect(() => setMenuOpen(false), [shell.pathname]);
+  // Close every sheet and popover on any navigation (links, back/forward, redirects).
+  useEffect(() => {
+    setMenuOpen(false);
+    setPopoverOpen(false);
+    setSheetOpen(false);
+  }, [shell.pathname]);
+
+  // The content fades and rises once when the place changes, not on first paint.
+  const [swap, setSwap] = useState({ key: currentKey, count: 0 });
+  if (swap.key !== currentKey) setSwap({ key: currentKey, count: swap.count + 1 });
+
+  // ⌘K / Ctrl+K opens the switcher from anywhere except while typing.
+  useEffect(() => {
+    if (!switcher) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k" || isEditable(event.target)) return;
+      event.preventDefault();
+      if (window.matchMedia("(min-width: 768px)").matches) setPopoverOpen((value) => !value);
+      else setSheetOpen(true);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [switcher]);
+
+  const onPick = useCallback((place: Place) => {
+    setPopoverOpen(false);
+    setSheetOpen(false);
+    if (place.key !== currentKey) setCue({ id: Date.now(), label: `${placeLabel(place)} · ${place.homeLabel}` });
+  }, [currentKey]);
+
+  const nav = switcher ? { ...shell.nav, ...makeRoomForPlaceTab(shell.nav) } : shell.nav;
+  const hasTabBar = nav.tabs.length > 0;
+  const identity = placeIdentity(shell.currentPlace, person);
+
+  const list = (autoFocus: boolean) => (
+    <PlaceList
+      places={shell.places}
+      currentKey={currentKey}
+      recentKeys={shell.recentKeys}
+      person={person}
+      autoFocus={autoFocus}
+      onPick={onPick}
+    />
+  );
 
   return (
     <div className="min-h-dvh bg-background pr-[env(safe-area-inset-right,0px)] pl-[env(safe-area-inset-left,0px)]">
-      <TopNav shell={shell} compactOnMobile={!hasTabBar} />
+      <TopNav
+        shell={shell}
+        person={person}
+        switcher={switcher}
+        popoverOpen={popoverOpen}
+        setPopoverOpen={setPopoverOpen}
+        list={list(true)}
+      />
+      <PhoneTopBar shell={shell} person={person} switcher={switcher} showAccount={!hasTabBar} onOpen={() => setSheetOpen(true)} />
       <main
         className={cn(
-          "mx-auto w-full max-w-[1400px] px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sm:px-8 md:pt-8",
-          hasTabBar
-            ? "pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)] md:pb-12"
-            : "pb-12 max-md:pt-4",
+          "mx-auto w-full max-w-[1400px] px-4 pt-4 sm:px-8 md:pt-8",
+          hasTabBar ? "pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)] md:pb-12" : "pb-12",
         )}
       >
-        {children}
+        <div key={swap.count} className={swap.count ? "place-swap" : undefined}>
+          {children}
+        </div>
       </main>
       {hasTabBar ? (
         <BottomTabBar
-          label={workspaceIdentity(shell).title}
+          label={identity.title}
           items={[
-            ...shell.nav.tabs.map((item) => ({
+            ...(switcher
+              ? [
+                  {
+                    key: "place",
+                    label: shortPlaceLabel(shell.currentPlace),
+                    ariaLabel: `${identity.title}. Switch place`,
+                    icon: Building2,
+                    media: (
+                      <PlaceThumb
+                        place={shell.currentPlace}
+                        person={person}
+                        coverUrl={shell.coverUrl}
+                        className="size-6 rounded-md text-[9px]"
+                      />
+                    ),
+                    isActive: false,
+                    onClick: () => setSheetOpen(true),
+                  },
+                ]
+              : []),
+            ...nav.tabs.map((item) => ({
               key: item.key,
               label: item.shortLabel,
               icon: item.icon,
@@ -257,44 +346,150 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
               key: "menu",
               label: "Menu",
               icon: Menu,
-              isActive: shell.nav.menuActive || shell.accountActive || menuOpen,
+              isActive: nav.menuActive || shell.accountActive || menuOpen,
               onClick: () => setMenuOpen(true),
             },
           ]}
         />
       ) : null}
-      <MenuSheet shell={shell} open={menuOpen} onOpenChange={setMenuOpen} />
+      <MenuSheet shell={shell} overflow={nav.overflow} open={menuOpen} onOpenChange={setMenuOpen} />
+      {switcher ? (
+        <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Switch to" className="min-h-[70dvh]">
+          {list(true)}
+          <ManageProperties shell={shell} onNavigate={() => setSheetOpen(false)} />
+        </BottomSheet>
+      ) : null}
+      <PlaceCue cue={cue} />
     </div>
   );
 }
 
-function TopNav({ shell, compactOnMobile }: { shell: Shell; compactOnMobile: boolean }) {
-  const navRef = useRef<HTMLElement>(null);
-  const activeKey = shell.nav.items.find((item) => item.isActive)?.key;
-  const indicator = useActiveIndicator(navRef, '[aria-current="page"] [data-nav-label]', `${shell.workspace}:${activeKey}`);
+function placeLabel(place: Place) {
+  return place.kind === "personal" ? "Personal" : place.label;
+}
+
+/** The phone tab's label: short enough for a fifth of a phone. */
+function shortPlaceLabel(place: Place | null) {
+  if (!place) return "Hotels";
+  if (place.kind === "personal") return "Personal";
+  if (place.kind === "platform") return "Admin";
+  return place.label;
+}
+
+/** The organization's property list, reached from inside a hotel. Routes still check access. */
+function ManageProperties({ shell, onNavigate }: { shell: Shell; onNavigate?: () => void }) {
+  const organization = shell.context?.membership.organization;
+  if (!organization) return null;
   return (
-    <header
+    <div className="mt-2 border-t border-border-soft pt-2">
+      <Link
+        to="/hotel/$organizationSlug"
+        params={{ organizationSlug: organization.slug }}
+        onClick={onNavigate}
+        className="press flex min-h-11 items-center gap-3 rounded-xl px-2 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Building2 className="size-4 shrink-0" aria-hidden />
+        <span className="truncate">Manage {organization.name} properties</span>
+      </Link>
+    </div>
+  );
+}
+
+/** Guest-only accounts get no switcher, just this quiet way in. */
+function ListYourHotel({ className }: { className?: string }) {
+  return (
+    <Link
+      to="/register-hotel"
       className={cn(
-        "sticky top-0 z-30 border-b border-border bg-background/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur",
-        compactOnMobile ? "block" : "hidden md:block",
+        "press flex h-10 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+        className,
       )}
     >
-      <div className="mx-auto grid h-16 max-w-[1400px] grid-cols-[1fr_auto] items-center gap-4 px-4 sm:px-8 md:h-20 md:grid-cols-[auto_1fr_auto] lg:grid-cols-[1fr_auto_1fr]">
-        {shell.nav.home({
-          className: "flex w-fit items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          children: <BrandLogo />,
-        })}
+      List your hotel
+    </Link>
+  );
+}
+
+function TopNav({
+  shell,
+  person,
+  switcher,
+  popoverOpen,
+  setPopoverOpen,
+  list,
+}: {
+  shell: Shell;
+  person: PlacePerson;
+  switcher: boolean;
+  popoverOpen: boolean;
+  setPopoverOpen: (open: boolean | ((open: boolean) => boolean)) => void;
+  list: React.ReactNode;
+}) {
+  const navRef = useRef<HTMLElement>(null);
+  const activeKey = shell.nav.items.find((item) => item.isActive)?.key;
+  const indicator = useActiveIndicator(
+    navRef,
+    '[aria-current="page"] [data-nav-label]',
+    `${shell.currentPlace?.key ?? shell.workspace}:${activeKey}`,
+  );
+  const close = useCallback(() => setPopoverOpen(false), [setPopoverOpen]);
+  return (
+    <header className="sticky top-0 z-30 hidden border-b border-border bg-background/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur md:block">
+      {/* With a place pill, the section links take their own row below lg so neither gets squeezed. */}
+      <div className={cn("mx-auto flex max-w-[1400px] items-center gap-x-3 px-8", switcher ? "flex-wrap lg:h-20 lg:flex-nowrap" : "h-20")}>
+        {switcher ? (
+          <div className="flex h-16 min-w-0 flex-1 items-center gap-3 lg:h-auto">
+            {shell.nav.home({
+              className: "shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              children: (
+                <>
+                  <BrandMark className="size-7" />
+                  <span className="sr-only">Tattwix home</span>
+                </>
+              ),
+            })}
+            <PlacePopover
+              open={popoverOpen}
+              onClose={close}
+              trigger={
+                <PlacePill
+                  place={shell.currentPlace}
+                  person={person}
+                  coverUrl={shell.coverUrl}
+                  open={popoverOpen}
+                  onToggle={() => setPopoverOpen((value) => !value)}
+                />
+              }
+            >
+              {popoverOpen ? list : null}
+              <ManageProperties shell={shell} onNavigate={close} />
+              <p className="mt-2 border-t border-border-soft px-2 pt-2.5 text-xs text-subtle-foreground">
+                ↑↓ to move · ↵ to open · ⌘K from anywhere
+              </p>
+            </PlacePopover>
+          </div>
+        ) : (
+          <div className="flex shrink-0 lg:flex-1">
+            {shell.nav.home({
+              className: "flex w-fit items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              children: <BrandLogo />,
+            })}
+          </div>
+        )}
         <nav
           ref={navRef}
-          aria-label={workspaceIdentity(shell).title}
-          className="relative hidden h-full items-center justify-center gap-0.5 md:flex lg:gap-1"
+          aria-label="Sections"
+          className={cn(
+            "relative flex min-w-0 items-center gap-0.5 lg:gap-1",
+            switcher ? "order-last h-12 basis-full max-lg:-ml-2.5 lg:order-none lg:mx-auto lg:h-full lg:basis-auto lg:justify-center" : "mx-auto h-full justify-center",
+          )}
         >
           {shell.nav.items.map((item) => (
             <span key={item.key} className="contents">
               {item.render({
                 "aria-current": item.isActive ? "page" : undefined,
                 className: cn(
-                  "press flex h-11 items-center rounded-full px-3 text-sm whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring lg:px-4 lg:text-[15px]",
+                  "press flex h-11 items-center rounded-full px-2.5 text-sm whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring lg:px-4 lg:text-[15px]",
                   item.isActive
                     ? "font-semibold text-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -312,9 +507,61 @@ function TopNav({ shell, compactOnMobile }: { shell: Shell; compactOnMobile: boo
             />
           ) : null}
         </nav>
-        <div className="flex items-center justify-end">
+        <div className="flex shrink-0 items-center justify-end gap-2 lg:flex-1">
+          {!switcher ? <ListYourHotel /> : null}
           <AccountMenu shell={shell} />
         </div>
+      </div>
+    </header>
+  );
+}
+
+/** Phones: the current place (or the logo for guests), scrolling with the page. */
+function PhoneTopBar({
+  shell,
+  person,
+  switcher,
+  showAccount,
+  onOpen,
+}: {
+  shell: Shell;
+  person: PlacePerson;
+  switcher: boolean;
+  /** Without a tab bar (a hotel with no property yet) there is no Menu tab, so account lives here. */
+  showAccount: boolean;
+  onOpen: () => void;
+}) {
+  const identity = placeIdentity(shell.currentPlace, person);
+  return (
+    <header className="border-b border-border-soft pt-[env(safe-area-inset-top,0px)] md:hidden">
+      <div className="flex h-14 items-center gap-2 px-3">
+        {switcher ? (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-haspopup="dialog"
+            aria-label={`${identity.title}. Switch place`}
+            className="press flex min-w-0 items-center gap-2 rounded-full py-1 pr-3 pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <PlaceThumb place={shell.currentPlace} person={person} coverUrl={shell.coverUrl} className="size-8 rounded-full" />
+            <span className="truncate text-[15px] font-semibold">{identity.title}</span>
+            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
+        ) : (
+          <>
+            {shell.nav.home({
+              className: "flex items-center rounded-lg pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              children: <BrandLogo size="sm" />,
+            })}
+            <span className="flex-1" />
+            <ListYourHotel />
+          </>
+        )}
+        {showAccount ? (
+          <div className="ml-auto shrink-0">
+            <AccountMenu shell={shell} />
+          </div>
+        ) : null}
       </div>
     </header>
   );
@@ -336,73 +583,21 @@ function Avatar({ shell, className }: { shell: Shell; className?: string }) {
   );
 }
 
-function workspaceLink(option: WorkspaceOption, props: { className?: string; children?: React.ReactNode }) {
-  if (option.key === "hotel") return <Link {...option.destination} {...props} />;
-  return <Link to={option.to} {...props} />;
-}
-
-function switchLink(option: HotelSwitchOption, props: { className?: string; children?: React.ReactNode }) {
-  return <Link to={option.to} params={option.params} {...props} />;
-}
-
-/** Desktop workspace pill: switch hotel or workspace, account, sign out. */
+/** Account only: settings and sign out. Switching lives in the place pill. */
 function AccountMenu({ shell }: { shell: Shell }) {
-  const identity = workspaceIdentity(shell);
-  const organization = shell.context?.membership.organization;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="press flex h-11 max-w-[min(22rem,60vw)] items-center gap-2.5 rounded-full border border-border pr-1.5 pl-3 outline-none hover:shadow-raised focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Account and workspaces"
+        className="press flex h-11 items-center gap-2 rounded-full border border-border pr-1.5 pl-3 outline-none hover:shadow-raised focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Account"
       >
-        {identity.showInPill ? (
-          <span className="hidden min-w-0 items-center gap-2 lg:flex">
-            {shell.workspace === "hotel" && shell.coverUrl ? (
-              <img src={shell.coverUrl} alt="" className="-ml-1.5 size-8 shrink-0 rounded-full object-cover" />
-            ) : null}
-            <span className="truncate text-sm font-medium">{identity.title}</span>
-          </span>
-        ) : null}
         <Menu className="size-4 shrink-0" aria-hidden />
         <Avatar shell={shell} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        {shell.workspace === "hotel" ? (
-          <>
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{organization ? `Signed in to ${organization.name}` : "Hotels"}</DropdownMenuLabel>
-              {shell.switchOptions.map((option) => (
-                <DropdownMenuItem key={option.key} render={switchLink(option, {})}>
-                  <span className="flex-1 truncate">{option.label}</span>
-                  {option.isActive ? <Check className="size-4 text-foreground" aria-label="Current" /> : null}
-                </DropdownMenuItem>
-              ))}
-              {organization ? (
-                <DropdownMenuItem
-                  render={<Link to="/hotel/$organizationSlug" params={{ organizationSlug: organization.slug }} />}
-                >
-                  <Building2 className="size-4" />
-                  Manage properties
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem render={<Link to="/hotel" />}>
-                <Building2 className="size-4" />
-                All hotels
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-          </>
-        ) : null}
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-          {shell.workspaces.map((option) => (
-            <DropdownMenuItem key={option.key} render={workspaceLink(option, {})}>
-              <WorkspaceIcon option={option} />
-              <span className="flex-1">{option.label}</span>
-              {option.isActive ? <Check className="size-4 text-foreground" aria-label="Current" /> : null}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
+      <DropdownMenuContent align="end" className="w-60">
+        <div className="px-2 py-1.5">
+          <p className="truncate text-sm font-medium">{shell.name}</p>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link to="/settings" />}>
           <Settings className="size-4" />
@@ -415,11 +610,6 @@ function AccountMenu({ shell }: { shell: Shell }) {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-function WorkspaceIcon({ option, className }: { option: WorkspaceOption; className?: string }) {
-  const Icon = option.key === "hotel" ? Building2 : option.key === "platform" ? ShieldCheck : UserRound;
-  return <Icon aria-hidden className={cn("size-4", className)} />;
 }
 
 function MenuRow({
@@ -468,36 +658,24 @@ function MenuRow({
 
 const rowIcon = (Icon: LucideIcon) => <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />;
 
-/** Phone "Menu" tab: pages without a tab, the hotel switcher, workspaces and account. */
+/** Phone "Menu" tab: pages without a tab, then account. Switching is the first tab, not here. */
 function MenuSheet({
   shell,
+  overflow,
   open,
   onOpenChange,
 }: {
   shell: Shell;
+  overflow: ShellNavEntry[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const identity = workspaceIdentity(shell);
-  const organization = shell.context?.membership.organization;
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Menu">
       <div className="grid gap-6">
-        <div className="flex items-center gap-3">
-          {shell.workspace === "hotel" && shell.coverUrl ? (
-            <img src={shell.coverUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />
-          ) : shell.workspace === "personal" ? (
-            <Avatar shell={shell} className="size-14 text-base" />
-          ) : null}
-          <div className="min-w-0">
-            <p className="truncate text-lg font-semibold tracking-tight">{identity.title}</p>
-            {identity.detail ? <p className="truncate text-sm text-muted-foreground">{identity.detail}</p> : null}
-          </div>
-        </div>
-
-        {shell.nav.overflow.length ? (
+        {overflow.length ? (
           <ul className="divide-y divide-border-soft border-y border-border-soft">
-            {shell.nav.overflow.map((item) => (
+            {overflow.map((item) => (
               <MenuRow
                 key={item.key}
                 icon={rowIcon(item.icon)}
@@ -508,53 +686,6 @@ function MenuSheet({
             ))}
           </ul>
         ) : null}
-
-        {shell.workspace === "hotel" ? (
-          <section>
-            <h3 className="mb-1 text-xs text-subtle-foreground">Hotels</h3>
-            <ul className="divide-y divide-border-soft">
-              {shell.switchOptions.length > 1
-                ? shell.switchOptions.map((option) => (
-                    <MenuRow
-                      key={option.key}
-                      label={option.label}
-                      active={option.isActive}
-                      render={(props) => switchLink(option, props)}
-                    />
-                  ))
-                : null}
-              {organization ? (
-                <MenuRow
-                  icon={rowIcon(Building2)}
-                  label="Manage properties"
-                  render={(props) => (
-                    <Link to="/hotel/$organizationSlug" params={{ organizationSlug: organization.slug }} {...props} />
-                  )}
-                />
-              ) : null}
-              <MenuRow icon={rowIcon(Building2)} label="All hotels" render={(props) => <Link to="/hotel" {...props} />} />
-            </ul>
-          </section>
-        ) : null}
-
-        {shell.workspaces.length > 1 ? (
-          <section>
-            <h3 className="mb-1 text-xs text-subtle-foreground">Workspaces</h3>
-            <ul className="divide-y divide-border-soft">
-              {shell.workspaces.map((option) => (
-                <MenuRow
-                  key={option.key}
-                  icon={<WorkspaceIcon option={option} className="size-5 shrink-0 text-muted-foreground" />}
-                  label={option.label}
-                  detail={option.detail}
-                  active={option.isActive}
-                  render={(props) => workspaceLink(option, props)}
-                />
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
         <section>
           <h3 className="mb-1 text-xs text-subtle-foreground">Account</h3>
           <ul className="divide-y divide-border-soft">
