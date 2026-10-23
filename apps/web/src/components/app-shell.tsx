@@ -1,22 +1,16 @@
 // The one app shell for every signed-in workspace (personal, hotel staff,
 // platform admin), per docs/adr/0003-host-shell-and-accent-restraint.md:
 // a sticky top nav from `md` up and a bottom tab bar with a Menu sheet on
-// phones. Switching between places (Personal, each hotel, Platform admin)
-// is one control: the place pill at the far left on desktop, the first tab
-// on phones, ⌘K anywhere. Which pages a workspace has and who may switch
+// phones. Where you are and who you are is one control: the pill at the
+// top-right on desktop (current place + avatar), the first tab on phones,
+// ⌘K anywhere. It opens one panel: the account, the places to switch to
+// (Personal, each hotel, Platform admin), then account actions. Which pages a workspace has and who may switch
 // where is decided by the pure functions in lib/workspace-navigation.ts and
 // lib/workspace-switcher.ts; this file only renders that model.
 import { useClerk, useUser } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@tattvix/ui/components/dropdown-menu";
 import { useActiveIndicator } from "@tattvix/ui/hooks/use-active-indicator";
 import { cn } from "@tattvix/ui/lib/utils";
 import {
@@ -26,7 +20,6 @@ import {
   CalendarCheck,
   Check,
   ChevronRight,
-  ChevronsUpDown,
   ClipboardCheck,
   ClipboardList,
   Contact,
@@ -41,13 +34,22 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { BrandLogo, BrandMark } from "@/components/brand";
+import { BrandLogo } from "@/components/brand";
 import { BottomTabBar } from "@/components/design-system";
-import { PlaceCue, PlaceList, PlacePill, PlacePopover, PlaceThumb, placeIdentity, type PlacePerson } from "@/components/place-switcher";
+import {
+  AccountPill,
+  PersonAvatar,
+  PlaceCue,
+  PlaceList,
+  PlacePopover,
+  PlaceThumb,
+  placeIdentity,
+  shortPlaceLabel,
+  type PlacePerson,
+} from "@/components/place-switcher";
 import { hotelRegistrationQueries } from "@/features/hotel-registration/queries";
 import { hasPendingHotelRequest } from "@/features/hotel-registration/status";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
-import { getInitials } from "@/lib/initials";
 import {
   getActiveHotelContext,
   getActiveWorkspace,
@@ -225,6 +227,7 @@ function useAppShell() {
     currentPlace,
     recentKeys,
     name,
+    email: user?.primaryEmailAddress?.emailAddress || me?.email || "",
     imageUrl: user?.imageUrl,
     signOut: () => signOut({ redirectUrl: "/login" }),
   };
@@ -262,7 +265,7 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
   const [swap, setSwap] = useState({ key: currentKey, count: 0 });
   if (swap.key !== currentKey) setSwap({ key: currentKey, count: swap.count + 1 });
 
-  // ⌘K / Ctrl+K opens the switcher from anywhere except while typing.
+  // ⌘K / Ctrl+K opens the account and switch panel from anywhere except while typing.
   useEffect(() => {
     if (!switcher) return;
     const onKey = (event: KeyboardEvent) => {
@@ -285,15 +288,17 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
   const hasTabBar = nav.tabs.length > 0;
   const identity = placeIdentity(shell.currentPlace, person);
 
-  const list = (autoFocus: boolean) => (
-    <PlaceList
-      places={shell.places}
-      currentKey={currentKey}
-      recentKeys={shell.recentKeys}
-      person={person}
-      autoFocus={autoFocus}
-      onPick={onPick}
-    />
+  const panel = (onNavigate: () => void) => (
+    <AccountPanel shell={shell} person={person} onNavigate={onNavigate}>
+      <PlaceList
+        places={shell.places}
+        currentKey={currentKey}
+        recentKeys={shell.recentKeys}
+        person={person}
+        autoFocus
+        onPick={onPick}
+      />
+    </AccountPanel>
   );
 
   return (
@@ -304,13 +309,14 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
         switcher={switcher}
         popoverOpen={popoverOpen}
         setPopoverOpen={setPopoverOpen}
-        list={list(true)}
+        panel={popoverOpen ? panel(() => setPopoverOpen(false)) : null}
       />
-      <PhoneTopBar shell={shell} person={person} switcher={switcher} showAccount={!hasTabBar} onOpen={() => setSheetOpen(true)} />
+      {/* Phones get a top bar only when there is no tab bar (a hotel with no property yet). */}
+      {!hasTabBar ? <PhoneTopBar shell={shell} person={person} onOpen={() => setSheetOpen(true)} /> : null}
       <main
         className={cn(
-          "mx-auto w-full max-w-[1400px] px-4 pt-4 sm:px-8 md:pt-8",
-          hasTabBar ? "pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)] md:pb-12" : "pb-12",
+          "mx-auto w-full max-w-[1400px] px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sm:px-8 md:pt-8",
+          hasTabBar ? "pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)] md:pb-12" : "pb-12 max-md:pt-4",
         )}
       >
         <div key={swap.count} className={swap.count ? "place-swap" : undefined}>
@@ -326,7 +332,7 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
                   {
                     key: "place",
                     label: shortPlaceLabel(shell.currentPlace),
-                    ariaLabel: `${identity.title}. Switch place`,
+                    ariaLabel: `${identity.title}, signed in as ${shell.name}. Switch place or manage account`,
                     icon: Building2,
                     media: (
                       <PlaceThumb
@@ -336,7 +342,8 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
                         className="size-6 rounded-md text-[9px]"
                       />
                     ),
-                    isActive: false,
+                    // Account pages live in this panel, so the tab lights up on them.
+                    isActive: shell.accountActive,
                     onClick: () => setSheetOpen(true),
                   },
                 ]
@@ -348,21 +355,24 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
               isActive: item.isActive,
               render: item.render,
             })),
-            {
-              key: "menu",
-              label: "Menu",
-              icon: Menu,
-              isActive: nav.menuActive || shell.accountActive || menuOpen,
-              onClick: () => setMenuOpen(true),
-            },
+            ...(nav.overflow.length
+              ? [
+                  {
+                    key: "menu",
+                    label: "Menu",
+                    icon: Menu,
+                    isActive: nav.menuActive || menuOpen,
+                    onClick: () => setMenuOpen(true),
+                  },
+                ]
+              : []),
           ]}
         />
       ) : null}
-      <MenuSheet shell={shell} overflow={nav.overflow} open={menuOpen} onOpenChange={setMenuOpen} />
+      <MenuSheet overflow={nav.overflow} open={menuOpen} onOpenChange={setMenuOpen} />
       {switcher ? (
-        <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Switch to" className="min-h-[70dvh]">
-          {list(true)}
-          <ManageProperties shell={shell} onNavigate={() => setSheetOpen(false)} />
+        <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Account and places" className="min-h-[70dvh]">
+          {sheetOpen ? panel(() => setSheetOpen(false)) : null}
         </BottomSheet>
       ) : null}
       <PlaceCue cue={cue} />
@@ -374,29 +384,70 @@ function placeLabel(place: Place) {
   return place.kind === "personal" ? "Personal" : place.label;
 }
 
-/** The phone tab's label: short enough for a fifth of a phone. */
-function shortPlaceLabel(place: Place | null) {
-  if (!place) return "Hotels";
-  if (place.kind === "personal") return "Personal";
-  if (place.kind === "platform") return "Admin";
-  return place.label;
-}
+const panelRowClass =
+  "press flex min-h-11 w-full items-center gap-3 rounded-xl px-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring";
 
-/** The organization's property list, reached from inside a hotel. Routes still check access. */
-function ManageProperties({ shell, onNavigate }: { shell: Shell; onNavigate?: () => void }) {
+/**
+ * The one panel behind the top-right pill (and the phone's place tab):
+ * who you are, where you can go, and account actions.
+ */
+function AccountPanel({
+  shell,
+  person,
+  onNavigate,
+  children,
+}: {
+  shell: Shell;
+  person: PlacePerson;
+  onNavigate: () => void;
+  children: React.ReactNode;
+}) {
   const organization = shell.context?.membership.organization;
-  if (!organization) return null;
   return (
-    <div className="mt-2 border-t border-border-soft pt-2">
-      <Link
-        to="/hotel/$organizationSlug"
-        params={{ organizationSlug: organization.slug }}
-        onClick={onNavigate}
-        className="press flex min-h-11 items-center gap-3 rounded-xl px-2 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Building2 className="size-4 shrink-0" aria-hidden />
-        <span className="truncate">Manage {organization.name} properties</span>
-      </Link>
+    <div className="grid grid-cols-1 gap-3">
+      <div className="flex min-w-0 items-center gap-3 px-2 pt-1">
+        <PersonAvatar person={person} className="size-10" />
+        <div className="min-w-0">
+          <p className="truncate text-[15px] font-semibold">{shell.name}</p>
+          {shell.email && shell.email !== shell.name ? (
+            <p className="truncate text-sm text-muted-foreground">{shell.email}</p>
+          ) : null}
+        </div>
+      </div>
+      <section aria-label="Switch to" className="grid grid-cols-1 gap-1 border-t border-border-soft pt-3">
+        <p className="px-2 text-xs text-subtle-foreground">Switch to</p>
+        {children}
+      </section>
+      <ul className="grid grid-cols-1 border-t border-border-soft pt-2">
+        {organization ? (
+          <li>
+            <Link
+              to="/hotel/$organizationSlug"
+              params={{ organizationSlug: organization.slug }}
+              onClick={onNavigate}
+              className={panelRowClass}
+            >
+              <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="truncate">Manage {organization.name} properties</span>
+            </Link>
+          </li>
+        ) : null}
+        <li>
+          <Link to="/settings" onClick={onNavigate} className={cn(panelRowClass, shell.accountActive && "font-semibold")}>
+            <Settings className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="truncate">Account settings</span>
+          </Link>
+        </li>
+        <li>
+          <button type="button" onClick={shell.signOut} className={panelRowClass}>
+            <LogOut className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="truncate">Sign out</span>
+          </button>
+        </li>
+      </ul>
+      <p className="hidden border-t border-border-soft px-2 pt-2.5 text-xs text-subtle-foreground md:block">
+        ↑↓ to move · ↵ to open · ⌘K from anywhere
+      </p>
     </div>
   );
 }
@@ -407,14 +458,14 @@ function TopNav({
   switcher,
   popoverOpen,
   setPopoverOpen,
-  list,
+  panel,
 }: {
   shell: Shell;
   person: PlacePerson;
   switcher: boolean;
   popoverOpen: boolean;
   setPopoverOpen: (open: boolean | ((open: boolean) => boolean)) => void;
-  list: React.ReactNode;
+  panel: React.ReactNode;
 }) {
   const navRef = useRef<HTMLElement>(null);
   const activeKey = shell.nav.items.find((item) => item.isActive)?.key;
@@ -426,54 +477,18 @@ function TopNav({
   const close = useCallback(() => setPopoverOpen(false), [setPopoverOpen]);
   return (
     <header className="sticky top-0 z-30 hidden border-b border-border bg-background/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur md:block">
-      {/* With a place pill, the section links take their own row below lg so neither gets squeezed. */}
-      <div className={cn("mx-auto flex max-w-[1400px] items-center gap-x-3 px-8", switcher ? "flex-wrap lg:h-20 lg:flex-nowrap" : "h-20")}>
-        {switcher ? (
-          <div className="flex h-16 min-w-0 flex-1 items-center gap-3 lg:h-auto">
-            {shell.nav.home({
-              className: "shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              children: (
-                <>
-                  <BrandMark className="size-7" />
-                  <span className="sr-only">Tattwix home</span>
-                </>
-              ),
-            })}
-            <PlacePopover
-              open={popoverOpen}
-              onClose={close}
-              trigger={
-                <PlacePill
-                  place={shell.currentPlace}
-                  person={person}
-                  coverUrl={shell.coverUrl}
-                  open={popoverOpen}
-                  onToggle={() => setPopoverOpen((value) => !value)}
-                />
-              }
-            >
-              {popoverOpen ? list : null}
-              <ManageProperties shell={shell} onNavigate={close} />
-              <p className="mt-2 border-t border-border-soft px-2 pt-2.5 text-xs text-subtle-foreground">
-                ↑↓ to move · ↵ to open · ⌘K from anywhere
-              </p>
-            </PlacePopover>
-          </div>
-        ) : (
-          <div className="flex shrink-0 lg:flex-1">
-            {shell.nav.home({
-              className: "flex w-fit items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              children: <BrandLogo />,
-            })}
-          </div>
-        )}
+      {/* Below lg the section links take their own row so the pill never squeezes them. */}
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-3 px-8 lg:h-20 lg:flex-nowrap">
+        <div className="flex h-16 min-w-0 flex-1 items-center lg:h-auto">
+          {shell.nav.home({
+            className: "flex w-fit items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            children: <BrandLogo />,
+          })}
+        </div>
         <nav
           ref={navRef}
           aria-label="Sections"
-          className={cn(
-            "relative flex min-w-0 items-center gap-0.5 lg:gap-1",
-            switcher ? "order-last h-12 basis-full max-lg:-ml-2.5 lg:order-none lg:mx-auto lg:h-full lg:basis-auto lg:justify-center" : "mx-auto h-full justify-center",
-          )}
+          className="relative order-last flex h-12 min-w-0 basis-full items-center gap-0.5 max-lg:-ml-2.5 lg:order-none lg:mx-auto lg:h-full lg:basis-auto lg:justify-center lg:gap-1"
         >
           {shell.nav.items.map((item) => (
             <span key={item.key} className="contents">
@@ -498,132 +513,62 @@ function TopNav({
             />
           ) : null}
         </nav>
-        <div className="flex shrink-0 items-center justify-end gap-2 lg:flex-1">
-          <AccountMenu shell={shell} />
+        <div className="flex h-16 min-w-0 flex-1 items-center justify-end lg:h-auto">
+          {switcher ? (
+            <PlacePopover
+              open={popoverOpen}
+              onClose={close}
+              trigger={
+                <AccountPill
+                  place={shell.currentPlace}
+                  person={person}
+                  coverUrl={shell.coverUrl}
+                  open={popoverOpen}
+                  onToggle={() => setPopoverOpen((value) => !value)}
+                />
+              }
+            >
+              {panel}
+            </PlacePopover>
+          ) : null}
         </div>
       </div>
     </header>
   );
 }
 
-/** Phones: the current place, scrolling with the page. */
-function PhoneTopBar({
-  shell,
-  person,
-  switcher,
-  showAccount,
-  onOpen,
-}: {
-  shell: Shell;
-  person: PlacePerson;
-  switcher: boolean;
-  /** Without a tab bar (a hotel with no property yet) there is no Menu tab, so account lives here. */
-  showAccount: boolean;
-  onOpen: () => void;
-}) {
-  const identity = placeIdentity(shell.currentPlace, person);
+/** Phones without a tab bar: the logo and the same combined control. */
+function PhoneTopBar({ shell, person, onOpen }: { shell: Shell; person: PlacePerson; onOpen: () => void }) {
   return (
     <header className="border-b border-border-soft pt-[env(safe-area-inset-top,0px)] md:hidden">
-      <div className="flex h-14 items-center gap-2 px-3">
-        {switcher ? (
-          <button
-            type="button"
-            onClick={onOpen}
-            aria-haspopup="dialog"
-            aria-label={`${identity.title}. Switch place`}
-            className="press flex min-w-0 items-center gap-2 rounded-full py-1 pr-3 pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <PlaceThumb place={shell.currentPlace} person={person} coverUrl={shell.coverUrl} className="size-8 rounded-full" />
-            <span className="truncate text-[15px] font-semibold">{identity.title}</span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          </button>
-        ) : (
-          <>
-            {shell.nav.home({
-              className: "flex items-center rounded-lg pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              children: <BrandLogo size="sm" />,
-            })}
-          </>
-        )}
-        {showAccount ? (
-          <div className="ml-auto shrink-0">
-            <AccountMenu shell={shell} />
-          </div>
-        ) : null}
+      <div className="flex h-14 items-center justify-between gap-2 px-3">
+        {shell.nav.home({
+          className: "flex items-center rounded-lg pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          children: <BrandLogo size="sm" />,
+        })}
+        <AccountPill place={shell.currentPlace} person={person} coverUrl={shell.coverUrl} open={false} onToggle={onOpen} />
       </div>
     </header>
-  );
-}
-
-function Avatar({ shell, className }: { shell: Shell; className?: string }) {
-  return shell.imageUrl ? (
-    <img src={shell.imageUrl} alt="" className={cn("size-8 shrink-0 rounded-full object-cover", className)} />
-  ) : (
-    <span
-      aria-hidden
-      className={cn(
-        "grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background",
-        className,
-      )}
-    >
-      {getInitials(shell.name)}
-    </span>
-  );
-}
-
-/** Account only: settings and sign out. Switching lives in the place pill. */
-function AccountMenu({ shell }: { shell: Shell }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="press flex h-11 items-center gap-2 rounded-full border border-border pr-1.5 pl-3 outline-none hover:shadow-raised focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Account"
-      >
-        <Menu className="size-4 shrink-0" aria-hidden />
-        <Avatar shell={shell} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        <div className="px-2 py-1.5">
-          <p className="truncate text-sm font-medium">{shell.name}</p>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link to="/settings" />}>
-          <Settings className="size-4" />
-          Account settings
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={shell.signOut}>
-          <LogOut className="size-4" />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
 function MenuRow({
   icon,
   label,
-  detail,
   active,
   render,
-  onClick,
 }: {
   icon?: React.ReactNode;
   label: string;
-  detail?: string;
   active?: boolean;
-  render?: (props: { className: string; children: React.ReactNode }) => React.ReactElement;
-  onClick?: () => void;
+  render: (props: { className: string; children: React.ReactNode }) => React.ReactElement;
 }) {
   const className =
     "press flex min-h-14 w-full items-center gap-3 py-2 text-left outline-none focus-visible:bg-muted";
   const children = (
     <>
       {icon}
-      <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-[15px]", active && "font-semibold")}>{label}</span>
-        {detail ? <span className="block truncate text-sm text-muted-foreground">{detail}</span> : null}
-      </span>
+      <span className={cn("min-w-0 flex-1 truncate text-[15px]", active && "font-semibold")}>{label}</span>
       {active ? (
         <Check className="size-4 shrink-0 text-foreground" aria-label="Current" />
       ) : (
@@ -631,63 +576,34 @@ function MenuRow({
       )}
     </>
   );
-  return (
-    <li>
-      {render ? (
-        render({ className, children })
-      ) : (
-        <button type="button" className={className} onClick={onClick}>
-          {children}
-        </button>
-      )}
-    </li>
-  );
+  return <li>{render({ className, children })}</li>;
 }
 
 const rowIcon = (Icon: LucideIcon) => <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />;
 
-/** Phone "Menu" tab: pages without a tab, then account. Switching is the first tab, not here. */
+/** Phone "Menu" tab: only the pages without a tab. Account and switching live in the place tab. */
 function MenuSheet({
-  shell,
   overflow,
   open,
   onOpenChange,
 }: {
-  shell: Shell;
   overflow: ShellNavEntry[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Menu">
-      <div className="grid gap-6">
-        {overflow.length ? (
-          <ul className="divide-y divide-border-soft border-y border-border-soft">
-            {overflow.map((item) => (
-              <MenuRow
-                key={item.key}
-                icon={rowIcon(item.icon)}
-                label={item.label}
-                active={item.isActive}
-                render={(props) => item.render(props)}
-              />
-            ))}
-          </ul>
-        ) : null}
-        <section>
-          <h3 className="mb-1 text-xs text-subtle-foreground">Account</h3>
-          <ul className="divide-y divide-border-soft">
-            <MenuRow
-              icon={rowIcon(Settings)}
-              label="Account settings"
-              detail={shell.name}
-              active={shell.accountActive}
-              render={(props) => <Link to="/settings" {...props} />}
-            />
-            <MenuRow icon={rowIcon(LogOut)} label="Sign out" onClick={shell.signOut} />
-          </ul>
-        </section>
-      </div>
+      <ul className="divide-y divide-border-soft border-y border-border-soft">
+        {overflow.map((item) => (
+          <MenuRow
+            key={item.key}
+            icon={rowIcon(item.icon)}
+            label={item.label}
+            active={item.isActive}
+            render={(props) => item.render(props)}
+          />
+        ))}
+      </ul>
     </BottomSheet>
   );
 }

@@ -373,7 +373,7 @@
     animation: enter-up var(--duration-enter) var(--ease-out) both;
   }
   .place-popover {
-    transform-origin: top left;
+    transform-origin: top right;
     animation: place-pop var(--duration-enter) var(--ease-out) both;
   }
   .place-cue {

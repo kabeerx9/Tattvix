@@ -4,7 +4,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@tattvix/ui/lib/utils";
-import { Check, ChevronsUpDown, Clock, Plus, Search, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, Clock, Plus, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandMark } from "@/components/brand";
@@ -86,8 +86,34 @@ export function placeIdentity(place: Place | null, person: PlacePerson) {
 /* Triggers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Desktop: the current place, far left. Opens the list (also ⌘K). */
-export function PlacePill({
+/** The person's photo or initials: the account half of the combined control. */
+export function PersonAvatar({ person, className }: { person: PlacePerson; className?: string }) {
+  return person.imageUrl ? (
+    <img src={person.imageUrl} alt="" className={cn("size-8 shrink-0 rounded-full object-cover", className)} />
+  ) : (
+    <span
+      aria-hidden
+      className={cn("grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background", className)}
+    >
+      {getInitials(person.name)}
+    </span>
+  );
+}
+
+/** Short name of the current place for the pill and the phone tab. */
+export function shortPlaceLabel(place: Place | null) {
+  if (!place) return "Hotels";
+  if (place.kind === "personal") return "Personal";
+  if (place.kind === "platform") return "Admin";
+  return place.label;
+}
+
+/**
+ * Desktop: one control, top-right, for where you are and who you are.
+ * The current place (picture and short name) then the person's avatar;
+ * Personal shows the avatar once. Opens the account and switch panel (also ⌘K).
+ */
+export function AccountPill({
   place,
   person,
   coverUrl,
@@ -101,25 +127,25 @@ export function PlacePill({
   onToggle: () => void;
 }) {
   const identity = placeIdentity(place, person);
+  const personal = place?.kind === "personal";
   return (
     <button
       type="button"
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-keyshortcuts="Meta+K Control+K"
-      aria-label={`${identity.title}. Switch place`}
+      aria-label={`${identity.title}, signed in as ${person.name}. Switch place or manage account`}
       onClick={onToggle}
       className={cn(
-        "press flex h-12 max-w-[300px] min-w-0 items-center gap-2.5 rounded-full border border-border py-1 pr-3 pl-1.5 outline-none hover:shadow-raised focus-visible:ring-2 focus-visible:ring-ring",
+        "press flex h-12 max-w-[280px] min-w-0 items-center gap-2.5 rounded-full border border-border py-1 pr-1.5 pl-1.5 outline-none hover:shadow-raised focus-visible:ring-2 focus-visible:ring-ring",
+        personal && "pl-4",
         open && "shadow-raised",
       )}
     >
-      <PlaceThumb place={place} person={person} coverUrl={coverUrl} className="size-9 rounded-full" />
-      <span className="min-w-0 text-left">
-        <span className="block truncate text-[15px] leading-tight font-semibold">{identity.title}</span>
-        <span className="block truncate text-xs text-muted-foreground">{identity.detail}</span>
-      </span>
-      <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      {personal ? null : <PlaceThumb place={place} person={person} coverUrl={coverUrl} className="size-9 rounded-full" />}
+      <span className="min-w-0 truncate text-sm font-semibold">{shortPlaceLabel(place)}</span>
+      <ChevronDown className={cn("-ml-1 size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-press)", open && "rotate-180")} aria-hidden />
+      <PersonAvatar person={person} className="size-9" />
     </button>
   );
 }
@@ -190,11 +216,17 @@ export function PlaceList({
   useEffect(() => {
     if (!autoFocus) return;
     // Fine pointers type straight away; on touch the keyboard would hide the list.
-    if (searchable && window.matchMedia("(pointer: fine)").matches) inputRef.current?.focus();
-    else listRef.current?.focus();
+    if (searchable && window.matchMedia("(pointer: fine)").matches) inputRef.current?.focus({ preventScroll: true });
+    else listRef.current?.focus({ preventScroll: true });
   }, [autoFocus, searchable]);
 
+  // Follow the keyboard highlight, but open at the top so the account header shows first.
+  const opened = useRef(false);
   useEffect(() => {
+    if (!opened.current) {
+      opened.current = true;
+      return;
+    }
     listRef.current?.querySelector("[data-highlighted]")?.scrollIntoView({ block: "nearest" });
   }, [highlight]);
 
@@ -300,7 +332,7 @@ export function PlaceList({
 /* Desktop popover and the arrival cue                                 */
 /* ------------------------------------------------------------------ */
 
-/** Anchored under the pill; closes on outside press or Escape (focus returns to the pill). */
+/** Anchored under the top-right pill, growing from its corner; closes on outside press or Escape (focus returns to the pill). */
 export function PlacePopover({
   open,
   onClose,
@@ -336,8 +368,8 @@ export function PlacePopover({
       {open ? (
         <div
           role="dialog"
-          aria-label="Switch place"
-          className="place-popover absolute top-[calc(100%+8px)] left-0 z-40 max-h-[min(72vh,620px)] w-[380px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-border bg-popover p-3 shadow-raised"
+          aria-label="Account and places"
+          className="place-popover absolute top-[calc(100%+8px)] right-0 z-40 max-h-[min(72vh,620px)] w-[380px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-border bg-popover p-3 shadow-raised"
         >
           {children}
         </div>

@@ -104,6 +104,20 @@ Consequences: with a place pill, the section links take a second header row betw
 (personal) move into Menu. Hotel covers in the list come from one photo request per property
 while the list is open. Putting covers in `/me` would remove that request fan-out.
 
+Revision (combined control): having a place pill on the left and an avatar menu on the right
+split one question ("where am I, and as whom?") across two controls. They are now **one pill at
+the top-right**, Airbnb-style: the current place's picture and short name, then the avatar. The
+nav's left side is just `BrandLogo`. The pill (and ⌘K) opens one panel, which grows from the
+pill's top-right corner:
+- the person (name, email);
+- **Switch to** (the same list as above);
+- Manage properties (inside a hotel), Account settings and Sign out.
+
+On phones the place tab stays the switch (one thumb-reach tap, always on screen). It opens the
+same panel as a sheet, account section included. The Menu sheet keeps only the pages without a
+tab, and the scrolling phone top bar is gone; it returns only when there is no tab bar. The page
+header still names the current place.
+
 Revision (same day): the switcher was first hidden for guest-only accounts, which left a quiet
 "List your hotel" link as their only way in. In testing that read as a missing switcher, so it
 is now always shown and the link lives in the list.
