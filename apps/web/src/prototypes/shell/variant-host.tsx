@@ -15,8 +15,6 @@ import { cn } from "@tattvix/ui/lib/utils";
 import { Check, ChevronRight, LogOut, Menu, Settings, UserRound } from "lucide-react";
 import { useState } from "react";
 
-import { BottomTabBar } from "@/components/design-system";
-
 import {
   currentWorkspace,
   isActive,
@@ -25,6 +23,7 @@ import {
   openNav,
   openWorkspace,
   userFor,
+  TabBar,
   UserAvatar,
   WorkspaceMark,
   workspaces,
@@ -46,7 +45,7 @@ export function HostVariant({ screen, onScreen }: VariantProps) {
       <main className="mx-auto w-full max-w-[1440px] px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+32px)] sm:px-8 md:pt-10 md:pb-16 xl:px-12">
         {screen === "hotels" ? <PortfolioScreen layout="gallery" /> : <TodayScreen layout="airy" />}
       </main>
-      <BottomTabBar
+      <TabBar
         label={screen === "hotels" ? "Platform" : "Hotel"}
         items={[
           ...tabs.map((item) => ({
@@ -67,8 +66,8 @@ export function HostVariant({ screen, onScreen }: VariantProps) {
 function Wordmark() {
   return (
     <span className="flex w-fit items-center gap-2">
-      <span className="grid size-9 place-items-center rounded-[11px] bg-primary text-base font-bold text-primary-foreground">T</span>
-      <span className="hidden text-[19px] font-bold tracking-tight text-primary lg:inline">tattwix</span>
+      <span className="grid size-9 place-items-center rounded-[11px] bg-foreground text-base font-bold text-background">T</span>
+      <span className="hidden text-[19px] font-bold tracking-tight lg:inline">Tattwix</span>
     </span>
   );
 }
@@ -96,9 +95,9 @@ function TopNav({ screen, onScreen, nav }: VariantProps & { nav: NavItem[] }) {
               >
                 {item.short}
                 {item.badge ? (
-                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground tabular-nums">{item.badge}</span>
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full border border-border px-1.5 text-[11px] font-semibold text-foreground tabular-nums">{item.badge}</span>
                 ) : null}
-                {active ? <span aria-hidden className="absolute inset-x-3 -bottom-[17px] h-[3px] rounded-full bg-foreground lg:inset-x-4" /> : null}
+                {active ? <span aria-hidden className="absolute inset-x-3 -bottom-[17px] h-[3px] rounded-full bg-primary lg:inset-x-4" /> : null}
               </button>
             );
           })}
@@ -137,7 +136,7 @@ function AccountMenu({ screen, onScreen }: VariantProps) {
                 <span className="block truncate text-sm font-medium">{entry.label}</span>
                 <span className="block truncate text-xs text-muted-foreground">{entry.detail}</span>
               </span>
-              {entry.key === workspace.key ? <Check className="size-4 text-primary" /> : null}
+              {entry.key === workspace.key ? <Check className="size-4 text-foreground" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>
@@ -168,7 +167,7 @@ function MenuRow({ label, detail, leading, active, onClick }: { label: string; d
           <span className={cn("block truncate text-base", active && "font-semibold")}>{label}</span>
           {detail ? <span className="block truncate text-sm text-muted-foreground">{detail}</span> : null}
         </span>
-        {active ? <Check className="size-4 shrink-0 text-primary" aria-label="Current" /> : <ChevronRight className="size-4 shrink-0 text-subtle-foreground" aria-hidden />}
+        {active ? <Check className="size-4 shrink-0 text-foreground" aria-label="Current" /> : <ChevronRight className="size-4 shrink-0 text-subtle-foreground" aria-hidden />}
       </button>
     </li>
   );

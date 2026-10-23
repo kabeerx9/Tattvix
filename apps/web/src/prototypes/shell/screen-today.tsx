@@ -25,7 +25,7 @@ import {
 } from "@/features/hotel-overview/metrics";
 import { formatMoneyWholeRupees } from "@/lib/money";
 
-import { notBuilt, useLastDefined } from "./common";
+import { notBuilt, Photo, useLastDefined } from "./common";
 import {
   roomTypePhotos,
   staffUser,
@@ -53,7 +53,7 @@ const tabOrder: ReservationTab[] = ["checkingOut", "inHouse", "arriving", "check
 const toneClassName: Record<StayStatusTone, string> = {
   warning: "text-warning",
   danger: "text-destructive",
-  primary: "text-primary",
+  primary: "text-muted-foreground",
   muted: "text-muted-foreground",
 };
 
@@ -197,13 +197,7 @@ function ReservationCard({ stay, model, index }: { stay: HotelStayListItem; mode
 
 function RoomPhoto({ room, className }: { room: HotelRoom; className?: string }) {
   const url = roomTypePhotos[room.roomType];
-  return url ? (
-    <img src={url} alt="" loading="lazy" decoding="async" className={cn("bg-muted object-cover", className)} />
-  ) : (
-    <div aria-hidden className={cn("grid place-items-center bg-muted text-subtle-foreground", className)}>
-      <BedDouble className="size-7" strokeWidth={1.5} />
-    </div>
-  );
+  return <Photo url={url} className={className} label="No photo yet" />;
 }
 
 function ReadyRooms({ model, railClassName }: { model: Model; railClassName: string }) {
@@ -261,9 +255,7 @@ function ReservationsEmpty({ tab }: { tab: ReservationTab }) {
   const Icon = copy.icon;
   return (
     <div role="tabpanel" className="mt-1 grid place-items-center gap-3 rounded-card bg-muted/60 px-6 py-10 text-center">
-      <span className="grid size-12 place-items-center rounded-full bg-background text-muted-foreground shadow-card">
-        <Icon className="size-5" />
-      </span>
+      <Icon className="size-6 text-muted-foreground" strokeWidth={1.75} aria-hidden />
       <div className="max-w-sm">
         <p className="text-[15px] font-semibold">{copy.title}</p>
         <p className="mt-1 text-sm text-muted-foreground">{copy.text}</p>
@@ -297,16 +289,13 @@ function Housekeeping({ model, className }: { model: Model; className?: string }
           {list.map((room) => (
             <li key={room.id} className="flex min-h-14 items-center gap-3 py-1">
               <span
-                className={cn(
-                  "grid h-10 min-w-10 place-items-center rounded-xl px-2 text-sm font-semibold tabular-nums",
-                  room.status === "CLEANING" ? "bg-warning-tint text-warning" : "bg-destructive-tint text-destructive",
-                )}
+                className="w-12 shrink-0 text-[17px] font-semibold tabular-nums"
               >
                 {room.number}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px]">{room.roomType}</span>
-                <span className="block text-xs text-subtle-foreground">{room.status === "CLEANING" ? "Cleaning" : "Maintenance"}</span>
+                <span className={cn("block text-xs font-medium", room.status === "CLEANING" ? "text-warning" : "text-destructive")}>{room.status === "CLEANING" ? "Cleaning" : "Maintenance"}</span>
               </span>
               <Button variant="outline" className="h-9 rounded-full px-4 text-sm" onClick={() => model.setRoomId(room.id)}>
                 {room.status === "CLEANING" ? "Mark ready" : "Update"}
@@ -511,7 +500,7 @@ function StaySheet({ model }: { model: Model }) {
                       aria-pressed={selected}
                       className={cn(
                         "press relative block w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        selected && "ring-2 ring-foreground ring-offset-2",
+                        selected && "ring-2 ring-primary ring-offset-2",
                       )}
                     >
                       <RoomPhoto room={entry} className="aspect-[4/3] w-full rounded-xl" />

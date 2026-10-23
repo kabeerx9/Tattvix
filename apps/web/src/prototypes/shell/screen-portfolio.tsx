@@ -1,5 +1,5 @@
 // The platform admin "Hotels" portfolio, rendered three ways. Data and the
-// room types sheet are the production ones (metrics helpers, RoomTypesSheet);
+// metrics are the production helpers; the room types sheet is a neutral copy;
 // only the layout changes per direction.
 import type { PlatformPortfolioProperty } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
@@ -8,35 +8,25 @@ import { PillTabs } from "@tattvix/ui/components/pill-tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@tattvix/ui/components/select";
 import { cn } from "@tattvix/ui/lib/utils";
 import {
-  BedDouble,
-  CalendarCheck,
   ChevronRight,
   ClipboardList,
-  Hotel,
-  IndianRupee,
   MapPin,
   Plus,
   Search,
-  UsersRound,
 } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import {
-  EmptyState,
-  Kpi,
-  KpiStrip,
   ListRow,
   PageHeader,
   Panel,
   PanelHeader,
   PanelSection,
-  PhotoTile,
   ResponsiveTable,
   SectionTitle,
 } from "@/components/design-system";
 import {
   RoomStatusBar,
-  RoomTypesSheet,
   SetupPill,
   roomStatusSummary,
 } from "@/features/platform-portfolio/components/portfolio-parts";
@@ -55,7 +45,8 @@ import {
 } from "@/features/platform-portfolio/metrics";
 import { formatMoneyWholeRupees } from "@/lib/money";
 
-import { notBuilt, useLastDefined } from "./common";
+import { notBuilt, Photo, StatStrip, useLastDefined } from "./common";
+import { RoomTypesSheet } from "./room-types-sheet";
 import { portfolio, portfolioTrend } from "./data";
 
 export type PortfolioLayout = "gallery" | "table" | "split";
@@ -128,14 +119,16 @@ function HeaderActions({ compact }: { compact?: boolean }) {
 function Kpis({ model }: { model: Model }) {
   const t = model.totals;
   return (
-    <KpiStrip>
-      <Kpi icon={Hotel} label="Properties" value={t.properties} detail={`${t.organizations} organizations`} />
-      <Kpi icon={BedDouble} label="Rooms" value={t.rooms} detail={`${t.readyRooms} ready tonight`} />
-      <Kpi icon={BedDouble} label="Occupancy tonight" value={formatPercent(t.occupancyTonight)} detail={`${t.occupiedRooms} of ${t.rooms} rooms · ${formatPercent(t.occupancyRecent)} last 7 nights`} />
-      <Kpi icon={UsersRound} label="In house" value={t.inHouse} detail={`${t.arrivalsPending} waiting to check in`} />
-      <Kpi icon={CalendarCheck} label="Check-ins" value={t.checkInsLast7Days} detail="Last 7 days" />
-      <Kpi icon={IndianRupee} label="Revenue" value={formatCrore(t.revenueLast30DaysMinor)} detail={`${formatMoneyWholeRupees(t.revenueLast30DaysMinor)} billed, last 30 days`} />
-    </KpiStrip>
+    <StatStrip
+      items={[
+        { label: "Properties", value: t.properties, detail: `${t.organizations} organizations` },
+        { label: "Rooms", value: t.rooms, detail: `${t.readyRooms} ready tonight` },
+        { label: "Occupancy tonight", value: formatPercent(t.occupancyTonight), detail: `${t.occupiedRooms} of ${t.rooms} rooms · ${formatPercent(t.occupancyRecent)} last 7 nights` },
+        { label: "In house", value: t.inHouse, detail: `${t.arrivalsPending} waiting to check in` },
+        { label: "Check-ins", value: t.checkInsLast7Days, detail: "Last 7 days" },
+        { label: "Revenue", value: formatCrore(t.revenueLast30DaysMinor), detail: `${formatMoneyWholeRupees(t.revenueLast30DaysMinor)} billed, last 30 days` },
+      ]}
+    />
   );
 }
 
@@ -190,16 +183,15 @@ function StatusTabs({ model }: { model: Model }) {
 
 function NoMatches({ model }: { model: Model }) {
   return (
-    <EmptyState
-      icon={Search}
-      title="No hotels match"
-      description="Try a property, organization or city name."
-      action={
-        <Button variant="outline" onClick={() => { model.setSearch(""); model.setStatus("all"); }}>
-          Clear filters
-        </Button>
-      }
-    />
+    <div className="grid place-items-center gap-3 rounded-card border border-dashed border-border px-6 py-12 text-center">
+      <div className="max-w-sm">
+        <p className="text-base font-semibold">No hotels match</p>
+        <p className="mt-1 text-sm text-muted-foreground">Try a property, organization or city name.</p>
+      </div>
+      <Button variant="outline" onClick={() => { model.setSearch(""); model.setStatus("all"); }}>
+        Clear filters
+      </Button>
+    </div>
   );
 }
 
@@ -270,7 +262,7 @@ function Gallery({ model }: { model: Model }) {
         )}
       </section>
 
-      <section className="grid grid-cols-1 gap-4 border-t border-border pt-8 lg:grid-cols-[1fr_2fr] lg:gap-12">
+      <section className="grid grid-cols-1 items-start gap-4 border-t border-border pt-8 lg:grid-cols-[1fr_2fr] lg:gap-12">
         <SectionTitle title="Occupancy, last 7 nights" meta={`${formatPercent(model.totals.occupancyRecent)} across the portfolio · up 6 pts on last week`} />
         <OccupancyChart tall />
       </section>
@@ -290,7 +282,7 @@ function ListingCard({ property, onOpen }: { property: PlatformPortfolioProperty
       aria-label={`${property.name}, room types and prices`}
     >
       <span className="relative block">
-        <PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="aspect-[4/3] w-full rounded-2xl" iconClassName="size-9" />
+        <Photo url={property.coverPhotoUrl} className="aspect-[4/3] w-full rounded-2xl" label="No photo yet" />
         <span className="absolute top-3 left-3 rounded-full bg-card shadow-card">
           <SetupPill property={property} />
         </span>
@@ -331,7 +323,7 @@ function TableLayout({ model }: { model: Model }) {
       <Kpis model={model} />
       <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
         <Panel>
-          <PanelHeader title="Properties" icon={Hotel} meta={model.rows.length === portfolio.length ? model.rows.length : `${model.rows.length} of ${portfolio.length}`} />
+          <PanelHeader title="Properties" meta={model.rows.length === portfolio.length ? model.rows.length : `${model.rows.length} of ${portfolio.length}`} />
           <PanelSection className="grid gap-3">
             <StatusTabs model={model} />
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -354,7 +346,7 @@ function TableLayout({ model }: { model: Model }) {
               {attention.map((property) => (
                 <li key={property.id} className="px-5 py-3.5">
                   <ListRow
-                    leading={<PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="size-10 shrink-0 rounded-lg" iconClassName="size-4" />}
+                    leading={<Photo url={property.coverPhotoUrl} className="size-10 shrink-0 rounded-lg" />}
                     title={property.name}
                     meta={`Missing ${getMissingSetup(property).join(", ")}`}
                     trailing={<SetupPill property={property} />}
@@ -393,7 +385,7 @@ function PortfolioTable({ rows, onOpen }: { rows: PlatformPortfolioProperty[]; o
           className: "flex items-center gap-3",
           cell: (property) => (
             <>
-              <PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="h-11 w-14 shrink-0 rounded-lg" iconClassName="size-5" />
+              <Photo url={property.coverPhotoUrl} className="h-11 w-14 shrink-0 rounded-lg" />
               <span className="min-w-0">
                 <span className="block truncate text-[15px] font-medium">{property.name}</span>
                 <span className="block truncate text-xs text-subtle-foreground">
@@ -452,7 +444,7 @@ function PortfolioTable({ rows, onOpen }: { rows: PlatformPortfolioProperty[]; o
       ]}
       mobileRow={(property) => (
         <ListRow
-          leading={<PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="size-12 shrink-0 rounded-lg" iconClassName="size-5" />}
+          leading={<Photo url={property.coverPhotoUrl} className="size-12 shrink-0 rounded-lg" />}
           title={property.name}
           badge={<SetupPill property={property} />}
           meta={
@@ -541,7 +533,7 @@ function PropertyRow({ property, onOpen }: { property: PlatformPortfolioProperty
       className="press grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 p-4 text-left outline-none hover:bg-muted/60 focus-visible:bg-muted disabled:cursor-default sm:grid-cols-[132px_minmax(0,1fr)_auto] sm:p-5 lg:grid-cols-[132px_minmax(0,1.4fr)_minmax(0,1fr)_120px_24px]"
       aria-label={`${property.name}, room types and prices`}
     >
-      <PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="aspect-[4/3] w-full rounded-xl" iconClassName="size-6" />
+      <Photo url={property.coverPhotoUrl} className="aspect-[4/3] w-full rounded-xl" label="No photo yet" />
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-base font-semibold wrap-anywhere">{property.name}</span>
