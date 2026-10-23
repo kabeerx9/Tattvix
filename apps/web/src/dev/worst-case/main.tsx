@@ -22,6 +22,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AppProviders } from "@/core/providers/app-providers";
 import { queryClient } from "@/core/query/query-client";
 import { hideBootSplash } from "@/lib/boot-splash";
+import { settleEntranceMotionAfterFirstUse } from "@/lib/entrance-motion";
 import type { RouterAuthContext } from "@/lib/router-auth";
 import { routeTree } from "@/routeTree.gen";
 
@@ -56,3 +57,4 @@ ReactDOM.createRoot(rootElement).render(
   </ThemeProvider>,
 );
 hideBootSplash();
+settleEntranceMotionAfterFirstUse();

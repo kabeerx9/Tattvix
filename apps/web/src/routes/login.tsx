@@ -2,6 +2,8 @@ import { SignIn, useAuth } from "@clerk/react";
 import { Navigate, Outlet, createFileRoute, useMatch } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { z } from "zod";
+import { BrandLogo } from "@/components/brand";
+import { travelImages } from "@/lib/travel-images";
 import { stashPostLoginRedirect } from "@/utils/post-login-redirect";
 
 export const Route = createFileRoute("/login")({
@@ -55,17 +57,19 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-svh bg-background lg:grid-cols-[1.05fr_.95fr]">
-      <div className="relative hidden overflow-hidden bg-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute -right-24 -top-24 size-96 rounded-full bg-white/10" /><div className="absolute -bottom-32 -left-24 size-[30rem] rounded-full border-[80px] border-white/10" />
-        <p className="relative text-lg font-semibold tracking-tight">Tattwix</p>
-        <div className="relative max-w-lg"><h1 className="mt-4 text-5xl font-semibold leading-[1.08] tracking-[-0.045em]">Every stay starts with a calmer front desk.</h1><p className="mt-5 max-w-md text-sm leading-7 text-white/75">One thoughtful workspace for your team, your properties, and every guest arriving today.</p></div>
-        <p className="relative text-xs text-white/55">Secure access powered by Clerk</p>
+      <div className="relative hidden overflow-hidden bg-muted p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <img src={travelImages.hotelOwner} alt="" decoding="async" className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
+        <BrandLogo tone="inverse" className="relative" />
+        <div className="relative max-w-lg"><h1 className="mt-4 text-5xl font-semibold leading-[1.08] tracking-[-0.045em]">Every stay starts with a calmer front desk.</h1><p className="mt-5 max-w-md text-sm leading-7 text-white/80">One thoughtful workspace for your team, your properties, and every guest arriving today.</p></div>
+        <p className="relative text-xs text-white/70">Secure access powered by Clerk</p>
       </div>
       {/* 16px phone gutter: Clerk's card is 100vw - 2.5rem wide, so p-6 caused an 8px horizontal scroll. */}
       <div className="grid place-items-center px-4 py-6 sm:p-10">
       <div className="grid w-full max-w-md gap-7">
         <div className="text-center">
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">Sign in to Tattwix</h2>
+          <BrandLogo size="lg" className="lg:hidden" />
+          <h2 className="mt-6 text-3xl font-semibold tracking-tight lg:mt-2">Sign in to Tattwix</h2>
           <p className="mt-2 text-sm text-muted-foreground">Continue to your hospitality workspace.</p>
         </div>
         <SignIn

@@ -1,6 +1,7 @@
 import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowRight, BedDouble, CalendarCheck, ClipboardList, Users } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand";
 import { getFirstAccessibleHotelScope } from "@/lib/hotel-scope";
 import { hasAnyHotelPermission, hasPlatformPermission } from "@/lib/router-auth";
 
@@ -59,8 +60,8 @@ function HomePage() {
   return (
     <div className="min-h-svh bg-background">
       <nav className="absolute inset-x-0 top-0 z-20 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-white">
-        <Link to="/" className="text-lg font-semibold tracking-tight">
-          Tattwix
+        <Link to="/" aria-label="Tattwix home">
+          <BrandLogo tone="inverse" />
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link to="/login" className="text-white/80 hover:text-white">
@@ -117,7 +118,7 @@ function HomePage() {
       <section className="mx-auto grid max-w-7xl gap-4 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         {operations.map((item) => (
           <div key={item.title} className="app-surface p-5">
-            <span className="mb-5 grid size-9 place-items-center rounded-md bg-muted text-muted-foreground"><item.icon className="size-[18px]" /></span>
+            <item.icon aria-hidden className="mb-4 size-5 text-muted-foreground" strokeWidth={1.75} />
             <h2 className="text-sm font-semibold">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {item.description}

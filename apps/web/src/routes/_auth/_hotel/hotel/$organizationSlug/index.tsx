@@ -40,9 +40,7 @@ function OrganizationWorkspacePage() {
         <Panel>
         <PanelSection className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-            <Users className="size-5" />
-          </span>
+          <Users aria-hidden className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
           <div>
             <h2 className="text-sm font-semibold">Organization members</h2>
             <p className="mt-1 text-xs text-muted-foreground">
