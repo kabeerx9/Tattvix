@@ -11,12 +11,20 @@ import {
   getDataset,
   type Dataset,
 } from "./fixtures";
+import { sampleCoverUrl, shellAccount, shellAccounts, type ShellAccount } from "./shell-accounts";
 
-const param = new URLSearchParams(window.location.search).get("data");
+const search = new URLSearchParams(window.location.search);
+const param = search.get("data");
 export const activeDataset: Dataset = datasets.includes(param as Dataset)
   ? (param as Dataset)
   : "worst";
-export const fixtureData = getDataset(activeDataset);
+const accountParam = search.get("account") as ShellAccount | null;
+// `?account=` swaps the signed-in user's memberships to check the shell's place switcher.
+const baseData = getDataset(activeDataset);
+export const fixtureData =
+  accountParam && shellAccounts.includes(accountParam)
+    ? { ...baseData, me: { ...baseData.me, ...shellAccount(accountParam) } }
+    : baseData;
 
 const realFetch = window.fetch.bind(window);
 
@@ -67,6 +75,20 @@ function route(method: string, path: string, body: string) {
     );
   }
   if (path === "/api/me/") return json(data.me);
+  const photos = path.match(/^\/api\/hotel\/[^/]+\/([^/]+)\/photos\/$/);
+  if (photos) {
+    const url = sampleCoverUrl(decodeURIComponent(photos[1]!));
+    return json({ cover: url ? { url } : null, roomTypes: [] });
+  }
+  // Just enough for the hotel Today and platform Hotels homes the switcher lands on.
+  if (/^\/api\/hotel\/[^/]+\/[^/]+\/overview\/$/.test(path)) {
+    const today = new Date().toISOString().slice(0, 10);
+    return json({ dateFrom: today, dateTo: today, activeRooms: 0, occupancy: [], revenue: null });
+  }
+  if (path === "/api/platform/portfolio/") return json({ generatedAt: new Date().toISOString(), properties: [] });
+  if (path === "/api/platform/organizations/") return json({ organizations: [] });
+  if (/^\/api\/hotel\/[^/]+\/[^/]+\/stays\/$/.test(path)) return json({ stays: [] });
+  if (/^\/api\/hotel\/[^/]+\/[^/]+\/rooms\/$/.test(path)) return json({ rooms: [] });
   if (path === "/api/guest/profile/") return json(data.profile);
   if (path === "/api/guest/identity-documents/")
     return json({ documents: data.documents });

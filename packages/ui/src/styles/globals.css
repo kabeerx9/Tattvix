@@ -367,6 +367,37 @@
     animation: none;
   }
 
+  /* Place switcher (ADR 0003). After a switch the page content fades and
+     rises once, and a small cue names where you landed, then leaves. */
+  .place-swap {
+    animation: enter-up var(--duration-enter) var(--ease-out) both;
+  }
+  .place-popover {
+    transform-origin: top left;
+    animation: place-pop var(--duration-enter) var(--ease-out) both;
+  }
+  .place-cue {
+    position: fixed;
+    left: 50%;
+    top: calc(env(safe-area-inset-top, 0px) + 92px);
+    z-index: 40;
+    translate: -50% 0;
+    animation:
+      place-cue-in var(--duration-enter) var(--ease-out) both,
+      place-cue-out var(--duration-exit) var(--ease-out) 1400ms forwards;
+  }
+  @media (max-width: 767px) {
+    .place-cue {
+      top: calc(env(safe-area-inset-top, 0px) + 72px);
+    }
+  }
+  /* Tablet: the section links sit on a second header row. */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .place-cue {
+      top: calc(env(safe-area-inset-top, 0px) + 124px);
+    }
+  }
+
   /* Reduced motion: keep fades that explain a change, drop movement. */
   @media (prefers-reduced-motion: reduce) {
     .press:active {
@@ -388,8 +419,15 @@
     .pill-tabs-active {
       transition: none;
     }
-    .enter-up {
+    .enter-up,
+    .place-swap,
+    .place-popover {
       animation-name: enter-fade;
+    }
+    .place-cue {
+      animation:
+        enter-fade var(--duration-enter) ease both,
+        place-cue-out var(--duration-exit) ease 1400ms forwards;
     }
     [data-sonner-toast] {
       transition-property: opacity !important;
@@ -406,6 +444,26 @@
 
 @keyframes enter-fade {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes place-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+
+@keyframes place-cue-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+
+@keyframes place-cue-out {
+  to {
     opacity: 0;
   }
 }

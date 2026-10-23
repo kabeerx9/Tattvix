@@ -59,3 +59,45 @@ reworked the directions so the accent stays restrained. **Host** was chosen.
 - Adding a fifth everyday destination to any workspace still means revisiting its tab split.
 - Swapping in the real logo touches three places: `brand.tsx`, `public/favicon.svg` and the
   splash in `index.html`.
+
+## Addendum (2026-10-23): place switcher
+
+Hotel owners with several properties, and owners who also travel, needed switching to be
+obvious. Three models were prototyped in PR #37 (an Airbnb-style hosting/travelling toggle, a
+context pill, and Stay · Host · Admin modes). **Context pill** was chosen, and it replaces the
+workspace pill and the switchers in the account menu and the Menu sheet.
+
+- **One control, one list.** A *place* is Personal, Platform admin, one hotel property, or an
+  organization that has no property yet. From 768px the current place sits at the far left as
+  a pill (cover photo or initials, name, organization or role). It opens one searchable list:
+  - Personal and Platform first;
+  - then Recent;
+  - then hotels grouped by organization.
+
+  ↑↓ move, ↵ opens, and ⌘K / Ctrl+K opens the list from anywhere except while typing. On phones
+  the first tab is the current place and opens the same list as a sheet. The top bar (it scrolls
+  with the page) also shows the place. Guest-only accounts get no switcher, just a quiet "List
+  your hotel" link to `/register-hotel`. The avatar menu now holds only account settings and
+  sign out.
+- **Model, not markup.** `lib/workspace-switcher.ts` builds the places from `/me`:
+  - a hotel needs `hotel:view` on its membership;
+  - Platform needs `platform:admin`;
+  - each place's home is fixed: a property opens Today, an organization with no property opens
+    its setup page, Personal opens My stays, and Platform opens Hotels.
+
+  Listing a place never grants access, and the routes still enforce permissions. Tests cover the
+  grouping, ordering, search, Recent filtering, the guest-only and admin cases, and the homes.
+  This supersedes `getWorkspaceOptions` and `getHotelSwitchOptions`.
+- **Recent** holds up to four place keys (`property:<id>`, ids only) per user id in
+  localStorage, with every access wrapped in try/catch. It is re-filtered against the current
+  memberships every time it is shown, so a revoked hotel disappears. It shows only once a list
+  is long enough to search (7+ hotels), never while searching, and never includes the current
+  place.
+- **Motion.** After a switch the content fades and rises (200ms) and a "Place · Home" cue shows
+  for 1.4s. Reduced motion gets an opacity-only fade.
+
+Consequences: with a place pill, the section links take a second header row between 768 and
+1023px. On phones the place tab replaces one section tab, so Guests (hotel) and Companions
+(personal) move into Menu. Hotel covers in the list come from one photo request per property
+while the list is open. Putting covers in `/me` would remove that request fan-out.
+
