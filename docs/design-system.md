@@ -93,18 +93,33 @@ Sentence case everywhere. No uppercase eyebrows.
 Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell`
 (`apps/web/src/components/app-shell.tsx`). There is no sidebar.
 
-- **`md` and up:** sticky top nav with `BrandLogo` on the left and the workspace's section links in
-  the centre. The active link is foreground text plus a 3px rose underline, one element that slides
-  between links. The workspace pill on the right shows the property cover and name, or "Platform
-  admin". It opens a menu with the hotel/property switcher (hotel workspace), workspaces,
-  account settings and sign out.
-- **Phones:** a `BottomTabBar` with up to four everyday pages plus **Menu**. Menu opens a
-  `BottomSheet` with the remaining pages, the hotel switcher, the workspace switcher and account
-  links. Without any tab (a hotel with no property yet) the top bar shows on phones instead.
-- **Model, not markup:** the pages per workspace, the tab split and which workspaces a user may
-  open are pure functions in `lib/workspace-navigation.ts` (`getHotelNavItems`,
-  `getPersonalNavItems`, `getPlatformNavItems`, `split*NavForTabBar`, `getWorkspaceOptions`).
-  Permission gating lives there and is tested; the shell only renders it.
+- **`md` and up:** sticky top nav. When the user can switch places, the left side shows the
+  `BrandMark` and the **place pill**; otherwise it shows `BrandLogo`. The workspace's section
+  links sit in the centre (on their own row below `lg` when the pill is present). The active
+  link is foreground text plus a 3px rose underline, one element that slides between links. The
+  avatar menu on the right holds only account settings and sign out.
+- **Place switcher** (`components/place-switcher.tsx`, ADR 0003 addendum): the one way to move
+  between Personal, each hotel property and Platform admin.
+  - **Desktop:** the pill opens one list: Personal and Platform, then Recent (7+ hotels), then
+    hotels grouped by organization, with search at 7+ hotels. ↑↓/↵ move and open, and ⌘K /
+    Ctrl+K opens it except inside text inputs.
+  - **Rows:** each row is a real link to the place's home: Today, the org setup, My stays or
+    Hotels.
+  - **Pictures:** covers are real property photos with an initials fallback. Platform is a bare
+    neutral shield, and Personal is the person's avatar.
+  - **After a switch:** a 200ms fade-rise of the content and a short "Place · Home" cue.
+  - **Guest-only accounts:** no switcher, just a quiet "List your hotel" link.
+- **Phones:** a `BottomTabBar`. The first tab is the current place (its picture) and opens the
+  same list in a `BottomSheet`. Up to three everyday pages follow, then **Menu**, which holds the
+  remaining pages and account links. A slim top bar (not sticky, so `LargeTitle` keeps the top
+  edge) also shows the current place. Without any tab (a hotel with no property yet), the top
+  bar carries the account menu.
+- **Model, not markup:** these are pure, tested functions, and the shell only renders them.
+  - `lib/workspace-navigation.ts` (`getHotelNavItems`, `getPersonalNavItems`,
+    `getPlatformNavItems`, `split*NavForTabBar`) sets the pages per workspace and the tab split.
+  - `lib/workspace-switcher.ts` (`getSwitchPlaces`, `buildSwitcherSections`,
+    `filterRecentPlaces`) sets which places a user may open and how the list is built. Permission
+    gating lives there.
 - Main content leaves room for the tab bar and the safe areas (`--tab-bar-height`,
   `env(safe-area-inset-*)`). Toasts lift above the tab bar automatically (`--toast-clearance`).
 - Do not add another fixed bottom element on phones; put actions in the page or a sheet.
@@ -177,8 +192,9 @@ Crisp and minimal: motion is feedback or orientation, never decoration. Tokens i
 
 - Only these move: press feedback (scale 0.97); sheets, menus, selects and toasts (ease-out
   entrance, faster exit, popovers scale from their trigger); the nav, tab and pill indicators;
-  and a once-per-visit fade-and-rise of KPI cells and cards (`enter-up`, settled by
-  `lib/entrance-motion.ts`).
+  a once-per-visit fade-and-rise of KPI cells and cards (`enter-up`, settled by
+  `lib/entrance-motion.ts`); and a place switch, which plays one `place-swap` fade-rise of the
+  content and the `place-cue` pill (in 200ms, out after 1.4s).
 - `transform` and `opacity` only (`clip-path` for the pill indicator). Nothing animates layout.
 - No motion on keyboard-driven changes (arrow keys in pill tabs jump), route changes or anything
   done many times a minute. Name exact properties; never `transition: all`.
