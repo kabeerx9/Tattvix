@@ -25,17 +25,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           "Tattwix lets hotel guests share identity documents securely for check-in by scanning the property's QR code.",
       },
     ],
-    links: [
-      {
-        rel: "icon",
-        type: "image/svg+xml",
-        href: "/favicon.svg",
-      },
-      {
-        rel: "apple-touch-icon",
-        href: "/apple-touch-icon.png",
-      },
-    ],
+    // Icon links live in index.html: browsers read them before any JS runs.
   }),
 });
 

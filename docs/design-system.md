@@ -134,7 +134,7 @@ The mark is **Threshold**: an open, offset doorway in near-black `#222222`, neve
 logo; every shell, login, sign-up and check-in screen uses them, drawn in `currentColor`. Three
 non-React copies must stay in sync with its paths:
 
-1. `apps/web/public/favicon.svg` (32-unit version; flips to white in dark browser chrome).
+1. `apps/web/public/favicon.svg` (32-unit version; flips to white in dark browser chrome) and `favicon.ico` (32px, for browsers that only ask for `/favicon.ico`). Both are linked statically in `index.html`.
 2. `apps/web/public/apple-touch-icon.png` (180px, white background).
 3. The boot splash mark in `apps/web/index.html`, which paints before React loads.
 
