@@ -1,14 +1,15 @@
 # Tattvix Web Design System
 
 This document is the implementation contract for all Tattvix web UI. Decision records:
-`docs/adr/0001-web-visual-language.md` (palette, density) and
-`docs/adr/0002-airbnb-style-staff-shell.md` (hotel staff shell, card radius, shadows, titles).
+`docs/adr/0003-host-shell-and-accent-restraint.md` (palette, accent restraint, the one app shell,
+logo, motion tokens), `docs/adr/0002-airbnb-style-staff-shell.md` (card radius, shadows, titles,
+Today) and `docs/adr/0001-web-visual-language.md` (density and composition).
 Visual reference: `docs/design/reference/`.
 
 
 ## Product character
 
-A calm, precise front-desk tool. White canvas, one deep-teal accent, cool greys. Density is a
+A calm, precise front-desk tool. White canvas, warm-neutral greys, one rose accent used sparingly. Density is a
 feature: staff use it all day. Imagery adds warmth only where it comes from real data.
 
 **Light theme only** until further notice. Do not add `dark:` variants.
@@ -19,7 +20,7 @@ Build with shadcn components from `@tattvix/ui`, then the composed patterns in
 `apps/web/src/components/design-system.tsx`:
 
 1. Existing `@tattvix/ui` component.
-2. A pattern from `design-system.tsx` (`PageHeader`, `LargeTitle`, `SectionTitle`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`, `PhotoTile`, `BottomTabBar`).
+2. A pattern from `design-system.tsx` (`PageHeader`, `LargeTitle`, `SectionTitle`, `KpiStrip`, `Panel`/`PanelSection`, `FactsRow`, `StatusPill`, `EmptyState`, `ConfirmDialog`, `ResponsiveTable`, `ListRow`, `FilterBar`, `InitialsAvatar`, `PhotoTile`, `BottomTabBar`), plus `BrandLogo` in `apps/web/src/components/brand.tsx`.
 3. A feature component composed from those.
 4. A new shared primitive only when none of the above can express the interaction.
 
@@ -35,13 +36,16 @@ Tailwind palette colours (`emerald-*`, `amber-*`, `gray-*`) in feature code.
 | Canvas, panels | `background`, `card` (white) |
 | Text | `foreground` · `muted-foreground` (secondary) · `subtle-foreground` (labels, meta) |
 | Lines | `border` (panels, controls) · `border-soft` (dividers inside a panel) |
-| Fills | `muted` (table header, neutral pill) · `accent` (**neutral grey** — generic hover/highlight used by menus and selects) · `primary-tint` (KPI icon tile only) |
-| Brand / action | `primary` (deep teal) — primary button, active nav text, links, chart series 1 |
-| Status | `success` · `warning` · `destructive`, each with a `-tint` background |
-| Charts | `chart-1` (teal) primary · `chart-2` (grey) comparison · `chart-3..5` room statuses |
+| Fills | `muted` (table header, neutral pill, empty photo slot) · `accent` (**neutral grey** — generic hover/highlight used by menus and selects) · `primary-tint` (neutral grey, kept for compatibility; accent tints are retired) |
+| Brand / action | `primary` (rose `#d70f58`) — see the accent rule below |
+| Status | `success` · `warning` · `destructive`, each with a `-tint` background for pills |
+| Charts | `chart-1` (rose) primary series · `chart-2` (grey) comparison · `chart-3` amber (cleaning) · `chart-4`/`chart-5` greys |
 
-Teal is the **only** accent, and it is rare: primary button, active nav item (`sidebar-accent`), links, success pills, KPI icon tiles. Everything else is white and grey. Do not use `accent`/`text-primary` to tint icons or boxes. Status colours carry meaning, never decoration. No gradients, glows,
-multicolour metric cards, or purple.
+**The accent rule.** Rose appears only on: the primary button, the active nav/tab indicator, focus
+rings, links, selected pills and chart series 1. **Never** on icons, icon tiles, decorative
+backgrounds, card borders, headings or selected controls (checkboxes, choice cards and segmented
+controls use `foreground`). Status colours are small text or pills only. No gradients (except a
+photo scrim), glows, multicolour metric cards or tinted panels.
 
 ## Shape and elevation
 
@@ -64,7 +68,7 @@ Inter (variable) with `cv11`, `ss01`; `tabular-nums` for every number column, KP
 | Panel title | 14px / 600, optional 16px line icon |
 | Body | 14px |
 | Label (above a value) | 12px `subtle-foreground` |
-| KPI value | 28px / 600 |
+| KPI label / value | 14px `muted-foreground` / 28px / 600 — no icon |
 
 Sentence case everywhere. No uppercase eyebrows.
 
@@ -75,7 +79,7 @@ Sentence case everywhere. No uppercase eyebrows.
 - Lists: 44px rows; bill/ledger: 52px rows. Table header `bg-muted`, 12px labels.
 - Mobile collapses to one column; side panels move below the main column.
 - Tables use `ResponsiveTable`: a grid table when its container is wide enough, a divided list of
-  `ListRow`s when it isn't (a container query, so it also adapts beside an expanded sidebar). Pick
+  `ListRow`s when it isn't (a container query, so it also adapts inside a narrow column). Pick
   `switchAt` as the smallest size where every column fits. Never ship a table that scrolls sideways
   on a phone.
 - Filters above a list go in a `FilterBar`: full-width stacked controls on a phone.
@@ -84,20 +88,36 @@ Sentence case everywhere. No uppercase eyebrows.
 - Pick-one filters with counts ("Arriving (3)") use `PillTabs` (`@tattvix/ui`): a tablist of
   rounded pills that scrolls sideways instead of wrapping.
 
-## Hotel staff shell
+## App shell
 
-Hotel staff routes (`/hotel/...`) use `HotelShell` (`apps/web/src/components/hotel-shell.tsx`),
-not the sidebar. Personal and platform-admin workspaces keep the sidebar `AppShell`.
+Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell`
+(`apps/web/src/components/app-shell.tsx`). There is no sidebar.
 
-- **`md` and up:** sticky top nav — logo left, section links centred (active = foreground text
-  with an underline), account menu right (property cover + name, switcher, workspaces, sign out).
-- **Phones:** `BottomTabBar` with Today, Stays, Rooms, Guests and **Menu**. Menu opens a
-  `BottomSheet` with the remaining destinations (Reports, Property settings), the hotel switcher
-  and account links. Which items become tabs is decided by `splitHotelNavForTabBar` in
-  `lib/workspace-navigation.ts`; permission gating stays in `getHotelNavItems`.
+- **`md` and up:** sticky top nav with `BrandLogo` on the left and the workspace's section links in
+  the centre. The active link is foreground text plus a 3px rose underline, one element that slides
+  between links. The workspace pill on the right shows the property cover and name, or "Platform
+  admin". It opens a menu with the hotel/property switcher (hotel workspace), workspaces,
+  account settings and sign out.
+- **Phones:** a `BottomTabBar` with up to four everyday pages plus **Menu**. Menu opens a
+  `BottomSheet` with the remaining pages, the hotel switcher, the workspace switcher and account
+  links. Without any tab (a hotel with no property yet) the top bar shows on phones instead.
+- **Model, not markup:** the pages per workspace, the tab split and which workspaces a user may
+  open are pure functions in `lib/workspace-navigation.ts` (`getHotelNavItems`,
+  `getPersonalNavItems`, `getPlatformNavItems`, `split*NavForTabBar`, `getWorkspaceOptions`).
+  Permission gating lives there and is tested; the shell only renders it.
 - Main content leaves room for the tab bar and the safe areas (`--tab-bar-height`,
   `env(safe-area-inset-*)`). Toasts lift above the tab bar automatically (`--toast-clearance`).
 - Do not add another fixed bottom element on phones; put actions in the page or a sheet.
+
+## Brand
+
+`BrandLogo` (`apps/web/src/components/brand.tsx`) is the only React source of the logo; every
+shell, login, sign-up and check-in screen uses it. It is a plain near-black wordmark placeholder.
+When the real logo arrives, swap it in three places:
+
+1. `apps/web/src/components/brand.tsx` (the SVG, coloured with `currentColor`).
+2. `apps/web/public/favicon.svg`.
+3. The boot splash wordmark in `apps/web/index.html`, which paints before React loads.
 
 ## Page anatomy
 
@@ -108,10 +128,10 @@ not the sidebar. Personal and platform-admin workspaces keep the sidebar `AppShe
 ## Density over austerity
 
 Screens should feel full and alive at real data volumes (see `docs/design/reference/overview.jpg`):
-avatars on people, neutral category tiles on destinations, KPI strips above lists, status pills,
+avatars on people, KPI strips above lists, status pills,
 charts where there is a trend, imagery where real photos exist, and a short orienting line where
 a newcomer would wonder what an area is for. The rules below remove **noise** (boxes in boxes,
-repeated facts, internals copy, teal tints) — never **information**. Judge a screen with seeded
+repeated facts, internals copy, accent tints) — never **information**. Judge a screen with seeded
 data (`pnpm seed -- --email <you>`), not an empty dev database.
 
 ## Composition rules
@@ -125,27 +145,50 @@ data (`pnpm seed -- --email <you>`), not an empty dev database.
 
 ## Components and interactions
 
-- Buttons: `default` (teal) for the one primary; `outline` for secondary; `ghost` for tertiary (Print).
+- Buttons: `default` (rose) for the one primary; `outline` for secondary; `ghost` for tertiary (Print).
 - Inputs: visible labels; placeholder is an example, not the label. Selects must render the selected option's **label**, never its raw value.
 - Remote-record selection uses a shadcn Combobox with loading, empty and error states.
 - Focused tasks started from a card (assign a room, check out, change room status) open in a
   `BottomSheet` (`@tattvix/ui`): a drag-to-dismiss sheet on phones, a centred dialog from 768px.
   One primary action in its footer. Use `Dialog` only for confirmations.
-- Pressable cards use the `press` class (scale 0.97 while pressed). Motion uses `--ease-out-strong`
-  for UI and `--ease-drawer` for sheets; everything honours `prefers-reduced-motion`.
+- Pressable cards use the `press` class (scale 0.97 while pressed). See "Motion" below.
 - Whole rows/cards that navigate are the link — not just a small arrow inside them.
-- Empty states: what belongs here + one useful next action.
-- Navigation: sidebar active item = `sidebar-accent` fill (teal tint) + `primary` text; top nav
-  active item = foreground text + underline; tab bar active item = `primary` icon and label.
-  Inactive items quiet.
-- Icons: Lucide, 16px, stroke 1.75, `muted-foreground`. The only tinted icon tile is the 28px KPI icon (`bg-primary-tint text-primary`).
+- Empty states: a bare muted line icon (no tile), what belongs here, one useful next action.
+- Navigation: top nav active item = foreground text + sliding rose underline; tab bar active item
+  = foreground icon and label with a short rose tick above it. Inactive items quiet.
+- Icons: Lucide, 16px, stroke 1.75, `muted-foreground` (or `foreground` on an active item). No
+  background square or circle behind an icon, ever, and never in the accent colour.
+
+## Motion
+
+Crisp and minimal: motion is feedback or orientation, never decoration. Tokens in `globals.css`:
+
+| Token | Value | Use |
+|---|---|---|
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | entering and leaving (also the `ease-out` utility) |
+| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` | an indicator moving on screen |
+| `--ease-drawer` | `cubic-bezier(0.32, 0.72, 0, 1)` | phone bottom sheet |
+| `--duration-press` | 140ms | `press` scale-down |
+| `--duration-enter` / `--duration-exit` | 200ms / 140ms | dialogs, centred sheets, first-load rise |
+| `--duration-move` | 220ms | nav underline, tab tick, pill indicator |
+| `--duration-sheet` / `--duration-sheet-exit` | 240ms / 180ms | phone bottom sheet, backdrop, toasts |
+| `--stagger-step` | 40ms | between KPI cells and cards |
+
+- Only these move: press feedback (scale 0.97); sheets, menus, selects and toasts (ease-out
+  entrance, faster exit, popovers scale from their trigger); the nav, tab and pill indicators;
+  and a once-per-visit fade-and-rise of KPI cells and cards (`enter-up`, settled by
+  `lib/entrance-motion.ts`).
+- `transform` and `opacity` only (`clip-path` for the pill indicator). Nothing animates layout.
+- No motion on keyboard-driven changes (arrow keys in pill tabs jump), route changes or anything
+  done many times a minute. Name exact properties; never `transition: all`.
+- `prefers-reduced-motion`: movement is removed; short opacity fades remain.
 
 ## Imagery
 
 - **Hotel imagery is real data only:** property cover and room-type photos uploaded in Property
   settings. Where a layout is built around a photo (room tiles on Today, room choices in a sheet),
-  a missing photo shows a quiet `muted` tile with a line icon so the grid stays even; elsewhere
-  omit the slot.
+  a missing photo shows a quiet `muted` block (large slots may say "No photo yet"; no icon) so the
+  grid stays even; elsewhere omit the slot.
 - **Guest-facing pages may use decorative travel photography** to feel alive: the guest home hero,
   destination cards, and a `PageCover` strip under personal page headers. Sources live in
   `apps/web/public/images/travel` (self-hosted WebP, credits in `CREDITS.md`), referenced through
@@ -165,6 +208,8 @@ action the UI doesn't actually have.
 
 - Built from `@tattvix/ui` + `design-system.tsx` patterns; no route-local primitives.
 - Semantic tokens only; no raw palette classes, no `dark:` variants.
+- Accent only where the accent rule allows; no icon tiles; icons neutral.
+- Motion uses the tokens, has a purpose, and handles reduced motion.
 - No hero header, no eyebrow, no box in a box, each fact once, one primary action.
 - Numbers tabular; selects show labels; clickable rows are fully clickable.
 - Loading, empty, error, disabled and narrow-screen states covered.

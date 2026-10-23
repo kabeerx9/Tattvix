@@ -1,6 +1,6 @@
 # 0001 — Web visual language: deep teal on white ("A3.1")
 
-Date: 2026-10-03 · Status: accepted (implementation pending) · Scope: web app, light theme
+Date: 2026-10-03 · Status: palette superseded by 0003 (density and composition rules still apply) · Scope: web app, light theme
 
 ## Context
 
