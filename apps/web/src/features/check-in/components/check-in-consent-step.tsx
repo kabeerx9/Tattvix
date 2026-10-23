@@ -121,7 +121,7 @@ export function ConsentStep({
       <label
         className={cn(
           "flex cursor-pointer items-start gap-3 rounded-lg border p-4",
-          accepted ? "border-primary bg-primary-tint/40" : showError ? "border-destructive" : "border-border",
+          accepted ? "border-foreground shadow-[inset_0_0_0_1px_var(--foreground)]" : showError ? "border-destructive" : "border-border",
         )}
       >
         <Checkbox

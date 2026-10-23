@@ -33,7 +33,7 @@ const timeFormat = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "
 export const statusToneClassName: Record<StayStatusTone, string> = {
   warning: "text-warning",
   danger: "text-destructive",
-  primary: "text-primary",
+  primary: "text-muted-foreground",
   muted: "text-muted-foreground",
 };
 
@@ -364,7 +364,7 @@ const roomStatusLabel: Record<HotelRoom["status"], string> = {
 };
 
 const roomStatusClassName: Record<HotelRoom["status"], string> = {
-  VACANT: "text-primary",
+  VACANT: "text-foreground",
   OCCUPIED: "text-foreground",
   CLEANING: "text-warning",
   MAINTENANCE: "text-destructive",

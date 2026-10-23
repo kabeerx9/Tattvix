@@ -120,10 +120,10 @@ export function HotelStaysPage({
       ) : null}
 
       <KpiStrip>
-        <Kpi icon={UsersRound} label={hasActiveFilters ? "Filtered results" : "All stays"} value={stays.length} />
-        <Kpi icon={Clock3} label="Waiting" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-        <Kpi icon={UsersRound} label="In house" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
-        <Kpi icon={UsersRound} label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
+        <Kpi label={hasActiveFilters ? "Filtered results" : "All stays"} value={stays.length} />
+        <Kpi label="Waiting" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
+        <Kpi label="In house" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
+        <Kpi label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
       </KpiStrip>
 
       <Panel>

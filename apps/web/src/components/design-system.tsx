@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@tattvix/ui/components/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { Children, useEffect, useRef, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
@@ -50,36 +50,27 @@ export function PageHeader({
 }
 
 /**
- * Shared empty-state grammar: icon in a softly tinted square, a one-line
- * heading, a short explanation, and an optional single action. Use this
- * instead of hand-rolling the same icon+heading+description markup per
- * screen (see docs/design-system.md "Empty states").
+ * Shared empty-state grammar: a bare line icon (no tile behind it), a
+ * one-line heading, a short explanation, and an optional single action. Use
+ * this instead of hand-rolling the same markup per screen (see
+ * docs/design-system.md "Empty states").
  */
 export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
-  tone = "muted",
   className,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
   action?: React.ReactNode;
-  tone?: "muted" | "accent";
   className?: string;
 }) {
   return (
     <div className={cn("grid place-items-center gap-4 p-8 text-center sm:p-12", className)}>
-      <span
-        className={cn(
-          "grid size-12 place-items-center rounded-xl",
-          tone === "accent" ? "bg-muted text-muted-foreground" : "bg-muted text-foreground",
-        )}
-      >
-        <Icon className="size-6" />
-      </span>
+      <Icon aria-hidden className="size-7 text-muted-foreground" strokeWidth={1.5} />
       <div className="max-w-md">
         <h2 className="text-base font-semibold">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
@@ -174,9 +165,7 @@ export function RouteErrorState({
   return (
     <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center px-5 text-center">
       <div>
-        <span className="mx-auto grid size-12 place-items-center rounded-xl bg-destructive/10 text-destructive">
-          <AlertTriangle className="size-6" />
-        </span>
+        <AlertTriangle aria-hidden className="mx-auto size-7 text-muted-foreground" strokeWidth={1.5} />
         <h1 className="mt-4 text-xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{message}</p>
         <Button className="mt-6" onClick={retry}>
@@ -193,36 +182,35 @@ export function RouteErrorState({
  * Below `lg` it wraps into a 2- or 3-column grid; every cell draws its own
  * right and bottom hairline and is pulled 1px outward, so the outer edges are
  * clipped by the strip's border and an odd count leaves a clean empty cell
- * instead of a floating number.
+ * instead of a floating number. Cells rise in with a short stagger on the
+ * first screen of a visit (`enter-up`).
  */
 export function KpiStrip({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border bg-card shadow-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
-      {children}
+      {Children.toArray(children).map((child, index) => (
+        <div key={index} className="enter-up min-w-0" style={{ "--i": index } as React.CSSProperties}>
+          {child}
+        </div>
+      ))}
     </div>
   );
 }
 
+/** A KPI is a label and a number; typography carries the weight, not an icon. */
 export function Kpi({
-  icon: Icon,
   label,
   value,
   detail,
 }: {
-  icon: LucideIcon;
   label: string;
   value: React.ReactNode;
   detail?: React.ReactNode;
 }) {
   return (
     <div className="min-w-0 p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-tint text-primary">
-          <Icon className="size-4" />
-        </span>
-        <span className="min-w-0 leading-tight">{label}</span>
-      </div>
-      <p className="mt-3 text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
+      <p className="text-sm leading-tight text-muted-foreground">{label}</p>
+      <p className="mt-2 text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
         {value}
       </p>
       {detail ? (
@@ -346,25 +334,25 @@ export function StatusPill({
 
 /**
  * A hotel photo (property cover or room type) that keeps its slot when the
- * hotel hasn't uploaded one: a quiet muted tile with a line icon, so photo-led
- * grids stay even. Photos are real hotel data only, never stock imagery.
+ * hotel hasn't uploaded one: a quiet muted block, with an optional short
+ * label on large slots ("No photo yet"), so photo-led grids stay even. No
+ * icon in the empty slot. Photos are real hotel data only, never stock.
  */
 export function PhotoTile({
   url,
-  icon: Icon,
+  label,
   className,
-  iconClassName,
 }: {
   url?: string | null;
-  icon: LucideIcon;
+  /** Shown in the empty slot; leave out for small thumbnails. */
+  label?: string;
   className?: string;
-  iconClassName?: string;
 }) {
   return url ? (
     <img src={url} alt="" loading="lazy" decoding="async" className={cn("bg-muted object-cover", className)} />
   ) : (
-    <div aria-hidden className={cn("grid place-items-center bg-muted text-subtle-foreground", className)}>
-      <Icon className={cn("size-7", iconClassName)} strokeWidth={1.5} />
+    <div aria-hidden className={cn("grid place-items-center bg-muted text-sm text-subtle-foreground", className)}>
+      {label}
     </div>
   );
 }
@@ -491,7 +479,7 @@ export type ResponsiveTableRowProps = {
 /**
  * Container width at which the grid table replaces the stacked list. It is a
  * container query, not a viewport breakpoint: the same table can fill a page
- * on a laptop, sit beside an expanded sidebar on a tablet, or live in the
+ * * on a laptop, sit in a two-column layout on a tablet, or live in the
  * main column of a detail screen, and each needs its own switch point. Pick
  * the smallest size at which every column fits without sideways scrolling.
  * Class strings stay literal so Tailwind can see them.
@@ -724,57 +712,73 @@ export type BottomTabBarItem = {
 };
 
 /**
- * Mobile bottom tab bar (below `md`): outline icons with labels, the active
- * tab teal with a filled icon. Pads itself above the home indicator. Pages
- * under it need `pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)]`.
+ * Mobile bottom tab bar (below `md`): neutral outline icons with labels. The
+ * active tab is foreground text and a bolder stroke; the only colour is the
+ * short accent indicator at the top edge, which slides between tabs (a
+ * transform on one element, see `.nav-indicator`). Pads itself above the
+ * home indicator. Pages under it need
+ * `pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom,0px)+24px)]`.
  */
 export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; label: string }) {
+  const activeIndex = items.findIndex((item) => item.isActive);
+  // The first paint places the indicator without moving it.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   return (
     <nav
       aria-label={label}
       data-bottom-tab-bar=""
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pr-[env(safe-area-inset-right,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] backdrop-blur md:hidden"
     >
-      <ul
-        className="mx-auto grid h-(--tab-bar-height) max-w-md"
-        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-      >
-        {items.map((item) => {
-          const Icon = item.icon;
-          const className = cn(
-            "press grid h-full place-content-center justify-items-center gap-1 text-[11px] outline-none focus-visible:bg-muted",
-            item.isActive ? "font-semibold text-primary" : "text-muted-foreground",
-          );
-          const children = (
-            <>
-              <Icon
-                aria-hidden
-                className="size-6"
-                strokeWidth={item.isActive ? 2.1 : 1.6}
-                fill={item.isActive ? "currentColor" : "none"}
-                fillOpacity={item.isActive ? 0.16 : 0}
-              />
-              <span className="max-w-full truncate px-1">{item.label}</span>
-            </>
-          );
-          return (
-            <li key={item.key} className="grid min-w-0">
-              {item.render ? (
-                item.render({ className, children, "aria-current": item.isActive ? "page" : undefined })
-              ) : (
-                <button
-                  type="button"
-                  className={className}
-                  onClick={item.onClick}
-                  aria-current={item.isActive ? "page" : undefined}
-                >
-                  {children}
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="relative mx-auto max-w-md">
+        {activeIndex >= 0 ? (
+          <span
+            aria-hidden
+            className="nav-indicator pointer-events-none absolute top-0 left-0 flex justify-center"
+            data-instant={settled ? undefined : ""}
+            style={{ width: `${100 / items.length}%`, transform: `translateX(${activeIndex * 100}%)` }}
+          >
+            <span className="h-[3px] w-8 rounded-b-full bg-primary" />
+          </span>
+        ) : null}
+        <ul
+          className="grid h-(--tab-bar-height)"
+          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+        >
+          {items.map((item) => {
+            const Icon = item.icon;
+            const className = cn(
+              "press grid h-full place-content-center justify-items-center gap-1 text-[11px] outline-none focus-visible:bg-muted",
+              item.isActive ? "font-semibold text-foreground" : "text-muted-foreground",
+            );
+            const children = (
+              <>
+                <Icon aria-hidden className="size-6" strokeWidth={item.isActive ? 2.1 : 1.6} />
+                <span className="max-w-full truncate px-1">{item.label}</span>
+              </>
+            );
+            return (
+              <li key={item.key} className="grid min-w-0">
+                {item.render ? (
+                  item.render({ className, children, "aria-current": item.isActive ? "page" : undefined })
+                ) : (
+                  <button
+                    type="button"
+                    className={className}
+                    onClick={item.onClick}
+                    aria-current={item.isActive ? "page" : undefined}
+                  >
+                    {children}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </nav>
   );
 }

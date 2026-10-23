@@ -5,9 +5,10 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Label } from "@tattvix/ui/components/label";
 import { cn } from "@tattvix/ui/lib/utils";
-import { ChevronLeft, Hotel } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useId } from "react";
 
+import { BrandLogo } from "@/components/brand";
 import { checkInSteps, stepNumber, type CheckInStep } from "@/features/check-in/steps";
 
 /** Brand bar for screens outside the numbered steps (welcome, stay status). */
@@ -15,10 +16,7 @@ export function CheckInBrandBar() {
   return (
     <header className="border-b border-border">
       <div className="mx-auto flex h-14 max-w-xl items-center gap-2.5 px-4">
-        <span className="grid size-8 place-items-center rounded-md bg-muted text-muted-foreground">
-          <Hotel className="size-4" />
-        </span>
-        <p className="text-sm font-semibold">Tattwix</p>
+        <BrandLogo size="sm" />
         <p className="text-xs text-subtle-foreground">Secure hotel check-in</p>
       </div>
     </header>
@@ -61,7 +59,7 @@ export function StepHeader({
           <span key={item} className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
             <span
               className={cn(
-                "block h-full origin-left rounded-full bg-primary transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none",
+                "block h-full origin-left rounded-full bg-primary transition-transform duration-300 ease-out motion-reduce:transition-none",
                 index < current ? "scale-x-100" : "scale-x-0",
               )}
             />

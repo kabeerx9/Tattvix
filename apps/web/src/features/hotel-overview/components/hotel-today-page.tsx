@@ -316,9 +316,7 @@ function ReservationsEmpty({
   const Icon = copy.icon;
   return (
     <div role="tabpanel" className="mt-1 grid place-items-center gap-3 rounded-card bg-muted/60 px-6 py-10 text-center">
-      <span className="grid size-12 place-items-center rounded-full bg-background text-muted-foreground shadow-card">
-        <Icon className="size-5" />
-      </span>
+      <Icon aria-hidden className="size-6 text-muted-foreground" strokeWidth={1.5} />
       <div className="max-w-sm">
         <p className="text-[15px] font-semibold">{copy.title}</p>
         <p className="mt-1 text-sm text-muted-foreground">{copy.text}</p>
@@ -368,17 +366,15 @@ function Housekeeping({
         <ul className="mt-3 divide-y divide-border-soft">
           {list.map((room) => (
             <li key={room.id} className="flex min-h-14 items-center gap-3 py-1">
-              <span
-                className={cn(
-                  "grid h-10 min-w-10 place-items-center rounded-xl px-2 text-sm font-semibold tabular-nums",
-                  room.status === "CLEANING" ? "bg-warning-tint text-warning" : "bg-destructive-tint text-destructive",
-                )}
-              >
-                {room.number}
-              </span>
+              <span className="w-12 shrink-0 text-[17px] font-semibold tabular-nums">{room.number}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px]">{room.roomType || `Room ${room.number}`}</span>
-                <span className="block text-xs text-subtle-foreground">
+                <span
+                  className={cn(
+                    "block text-xs font-medium",
+                    room.status === "CLEANING" ? "text-warning" : "text-destructive",
+                  )}
+                >
                   {room.status === "CLEANING" ? "Cleaning" : "Maintenance"}
                 </span>
               </span>
@@ -422,9 +418,9 @@ function Tonight({
         <span className="pb-1.5 text-sm text-muted-foreground">occupancy</span>
       </div>
       <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-        <span className="bg-primary" style={{ width: share(stats.occupied) }} />
-        <span className="bg-warning/70" style={{ width: share(stats.cleaning) }} />
-        <span className="bg-destructive/70" style={{ width: share(stats.maintenance) }} />
+        <span className="bg-chart-1" style={{ width: share(stats.occupied) }} />
+        <span className="bg-chart-3" style={{ width: share(stats.cleaning) }} />
+        <span className="bg-chart-5" style={{ width: share(stats.maintenance) }} />
       </div>
       <p className="mt-3 text-sm text-muted-foreground tabular-nums">
         {stats.vacant} ready · {stats.cleaning} cleaning · {stats.maintenance} maintenance
