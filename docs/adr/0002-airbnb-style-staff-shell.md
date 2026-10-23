@@ -1,6 +1,6 @@
 # 0002 — Airbnb-style hotel staff shell and card tokens
 
-Date: 2026-10-22 · Status: accepted · Scope: web app, hotel staff routes
+Date: 2026-10-22 · Status: shell superseded by 0003 (card tokens, titles and Today still apply) · Scope: web app, hotel staff routes
 
 ## Context
 

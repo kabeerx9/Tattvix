@@ -7,56 +7,68 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Host palette (docs/adr/0003-host-shell-and-accent-restraint.md): white
+     canvas, warm-neutral greys, one rose accent. The accent is reserved for
+     the primary button, the active nav/tab indicator, focus rings, links,
+     selected pills and chart series 1 — never icons, icon tiles, decorative
+     fills, card borders or headings. */
   --background: #ffffff;
-  --foreground: #0f1720;
+  --foreground: #222222;
   --card: #ffffff;
-  --card-foreground: #0f1720;
+  --card-foreground: #222222;
   --popover: #ffffff;
-  --popover-foreground: #0f1720;
-  --primary: #0f5f5c;
-  --primary-hover: #0b4a47;
+  --popover-foreground: #222222;
+  --primary: #d70f58;
+  --primary-hover: #b00c49;
   --primary-foreground: #ffffff;
-  --secondary: #f2f4f7;
-  --secondary-foreground: #0f1720;
-  --muted: #f2f4f7;
-  --muted-foreground: #475467;
-  --subtle-foreground: #8a94a3;
-  --accent: #f2f4f7;
-  --accent-foreground: #0f1720;
-  --primary-tint: #e8f3f2;
-  --success: #0f5f5c;
-  --success-tint: #e8f3f2;
+  --secondary: #f7f7f7;
+  --secondary-foreground: #222222;
+  --muted: #f7f7f7;
+  --muted-foreground: #6a6a6a;
+  /* 4.8:1 on white (the old #8a94a3 was 3.1:1 and failed AA for text). */
+  --subtle-foreground: #717171;
+  --accent: #f7f7f7;
+  --accent-foreground: #222222;
+  /* Neutral on purpose: accent-tinted fills are retired. */
+  --primary-tint: #f7f7f7;
+  --success: #067647;
+  --success-tint: #ecfdf3;
   --warning: #b54708;
   --warning-tint: #fef4e6;
   --destructive: #b42318;
   --destructive-tint: #feeceb;
-  --border: #e7e9ec;
-  --border-soft: #f0f1f3;
-  --input: #e7e9ec;
-  --ring: rgb(15 95 92 / 0.4);
-  --chart-1: #0f5f5c;
-  --chart-2: #c9ced6;
+  --border: #dddddd;
+  --border-soft: #ebebeb;
+  /* Form-control outline: 3:1 against white (WCAG non-text contrast). */
+  --input: #929292;
+  --ring: rgb(215 15 88 / 0.55);
+  --chart-1: #d70f58;
+  --chart-2: #dddddd;
   --chart-3: #f0b86e;
-  --chart-4: #8fcfc9;
-  --chart-5: #d0d5dd;
+  --chart-4: #6a6a6a;
+  --chart-5: #b0b0b0;
   --radius: 0.5rem;
-  /* Staff shell (docs/adr/0002-airbnb-style-staff-shell.md): cards and
-     photos are rounder and sit on a soft two-layer shadow. */
   --card-radius: 16px;
-  --elevation-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.04);
-  --elevation-raised: 0 2px 4px rgb(16 24 40 / 0.04), 0 10px 28px rgb(16 24 40 / 0.1);
+  --elevation-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px rgb(0 0 0 / 0.06);
+  --elevation-raised: 0 2px 4px rgb(0 0 0 / 0.05), 0 12px 32px rgb(0 0 0 / 0.12);
   --tab-bar-height: 64px;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f1720;
-  --sidebar-primary: #0f5f5c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8f3f2;
-  --sidebar-accent-foreground: #0f5f5c;
-  --sidebar-border: #e7e9ec;
-  --sidebar-ring: rgb(15 95 92 / 0.4);
+
+  /* Motion tokens (docs/design-system.md "Motion"). Strong ease-out for
+     anything entering or leaving and ease-in-out for indicators moving on
+     screen live in @theme below, so the Tailwind `ease-out`/`ease-in-out`
+     utilities use them too; the drawer curve is for bottom sheets. Every UI
+     motion stays under 250ms; exits are faster than entrances. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 140ms;
+  --duration-enter: 200ms;
+  --duration-exit: 140ms;
+  --duration-move: 220ms;
+  --duration-sheet: 240ms;
+  --duration-sheet-exit: 180ms;
+  --stagger-step: 40ms;
 }
 
-/* Unmaintained since the 2026-10 redesign (docs/adr/0001-web-visual-language.md).
+/* Unmaintained since the 2026-10 redesign (docs/adr/0003-host-shell-and-accent-restraint.md).
    The web app forces light theme; kept so reviving dark mode is additive. */
 .dark {
   --background: oklch(0.17 0.012 145);
@@ -82,26 +94,10 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.19 0.012 145);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.73 0.07 147);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.3 0.03 147);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @theme inline {
   --font-sans: "Inter Variable", sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -144,8 +140,9 @@
   --radius-card: var(--card-radius);
   --shadow-card: var(--elevation-card);
   --shadow-raised: var(--elevation-raised);
-  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Motion curves; also back Tailwind's ease-out / ease-in-out utilities. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @layer base {
@@ -165,7 +162,7 @@
     text-size-adjust: 100%;
     /* overscroll-behavior stays default: every route scrolls the document,
        so pull-to-refresh is the only reload affordance in a home-screen launch.
-       Inner scrollers (sheets, sidebar, popups) use overscroll-contain. */
+       Inner scrollers (sheets, popups) use overscroll-contain. */
   }
   /* Controls fire click without the double-tap-zoom wait. */
   a,
@@ -213,8 +210,8 @@
   /* Press feedback for cards and custom controls: instant, on pointer-down. */
   .press {
     transition:
-      transform 140ms var(--ease-out-strong),
-      box-shadow 200ms var(--ease-out-strong),
+      transform var(--duration-press) var(--ease-out),
+      box-shadow 200ms var(--ease-out),
       background-color 150ms ease,
       border-color 150ms ease,
       color 150ms ease;
@@ -274,21 +271,24 @@
   /* Bottom sheet on phones, centred dialog from 768px (BottomSheet). */
   .sheet-backdrop {
     opacity: 0;
-    transition: opacity 240ms var(--ease-out-strong);
+    transition: opacity var(--duration-sheet) var(--ease-out);
   }
   .sheet-backdrop[data-open] {
     opacity: 1;
   }
+  .sheet-backdrop[data-closing] {
+    transition-duration: var(--duration-sheet-exit);
+  }
   .bottom-sheet {
     transform: translate3d(0, 100%, 0);
-    transition: transform 320ms var(--ease-drawer);
+    transition: transform var(--duration-sheet) var(--ease-drawer);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .bottom-sheet[data-open] {
     transform: translate3d(0, 0, 0);
   }
   .bottom-sheet[data-closing] {
-    transition-duration: 220ms;
+    transition-duration: var(--duration-sheet-exit);
   }
   .bottom-sheet[data-dragging] {
     transition: none;
@@ -297,25 +297,34 @@
     .bottom-sheet {
       padding-bottom: 0;
       opacity: 0;
-      transform: translate3d(0, 12px, 0) scale(0.97);
+      transform: translate3d(0, 8px, 0) scale(0.97);
       transition:
-        transform 220ms var(--ease-out-strong),
-        opacity 220ms var(--ease-out-strong);
+        transform var(--duration-enter) var(--ease-out),
+        opacity var(--duration-enter) var(--ease-out);
     }
     .bottom-sheet[data-open] {
       opacity: 1;
       transform: none;
     }
     .bottom-sheet[data-closing] {
-      transition-duration: 160ms;
+      transition-duration: var(--duration-exit);
     }
+  }
+
+  /* Popups (menus, selects, comboboxes, tooltips) take their timing from
+     utilities on the component: duration-150 ease-out, data-closed:duration-100. */
+
+  /* Toasts: Sonner's 400ms default is slower than the rest of the UI. */
+  [data-sonner-toast] {
+    transition-duration: var(--duration-sheet) !important;
+    transition-timing-function: var(--ease-out) !important;
   }
 
   /* LargeTitle: compact sticky bar whose title fades in once the large
      title scrolls away (phones only). */
   .large-title-bar {
     padding-top: env(safe-area-inset-top, 0px);
-    transition: box-shadow 200ms var(--ease-out-strong);
+    transition: box-shadow 200ms var(--ease-out);
   }
   .large-title-bar[data-collapsed] {
     box-shadow: 0 1px 0 var(--border);
@@ -324,32 +333,66 @@
     opacity: 0;
     transform: translateY(4px);
     transition:
-      opacity 200ms var(--ease-out-strong),
-      transform 200ms var(--ease-out-strong);
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
   }
   .large-title-bar[data-collapsed] .large-title-bar-text {
     opacity: 1;
     transform: none;
   }
 
-  /* Entrance for cards on mount; set --i on each for a short stagger. */
-  .enter-up {
-    animation: enter-up 320ms var(--ease-out-strong) both;
-    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  /* Active nav/tab indicator (one element that moves between items).
+     Keyboard-driven changes and the first paint skip the transition. */
+  .nav-indicator {
+    transform-origin: left center;
+    transition: transform var(--duration-move) var(--ease-in-out);
+  }
+  .pill-tabs-active {
+    transition: clip-path var(--duration-move) var(--ease-in-out);
+  }
+  .nav-indicator[data-instant],
+  .pill-tabs-active[data-instant] {
+    transition: none;
   }
 
+  /* First-load entrance for KPI cells and cards: a 200ms rise with a short
+     stagger (set --i on each). Plays on the first screen of a visit only;
+     src/lib/entrance-motion.ts sets data-motion-settled afterwards so
+     revisiting a page never replays it. */
+  .enter-up {
+    animation: enter-up var(--duration-enter) var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 8) * var(--stagger-step));
+  }
+  [data-motion-settled] .enter-up {
+    animation: none;
+  }
+
+  /* Reduced motion: keep fades that explain a change, drop movement. */
   @media (prefers-reduced-motion: reduce) {
-    .press,
-    .sheet-backdrop,
-    .bottom-sheet,
-    .large-title-bar-text {
-      transition-duration: 0ms !important;
-    }
     .press:active {
       transform: none;
     }
+    .bottom-sheet,
+    .bottom-sheet[data-open] {
+      transform: none;
+      opacity: 0;
+      transition: opacity var(--duration-exit) ease;
+    }
+    .bottom-sheet[data-open] {
+      opacity: 1;
+    }
+    .large-title-bar-text {
+      transform: none;
+    }
+    .nav-indicator,
+    .pill-tabs-active {
+      transition: none;
+    }
     .enter-up {
-      animation: none;
+      animation-name: enter-fade;
+    }
+    [data-sonner-toast] {
+      transition-property: opacity !important;
     }
   }
 }
@@ -357,7 +400,13 @@
 @keyframes enter-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
   }
 }
 

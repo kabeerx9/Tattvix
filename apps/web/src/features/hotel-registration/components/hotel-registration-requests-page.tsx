@@ -16,7 +16,7 @@ import {
 } from "@tattvix/ui/components/sheet";
 import { Textarea } from "@tattvix/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, RefreshCw, X, Clock3 } from "lucide-react";
+import { Check, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -71,7 +71,7 @@ export function HotelRegistrationRequestsPage() {
     <div className="flex flex-wrap gap-2" aria-label="Request status filter">
       {statusFilters.map((filter) => <Button key={filter.value} size="sm" variant={status === filter.value ? "secondary" : "outline"} onClick={() => { setStatus(filter.value); setReviewError(null); }}>{filter.label}</Button>)}
     </div>
-    {requestQuery.data ? <KpiStrip><Kpi icon={RefreshCw} label="Requests shown" value={requestQuery.data.requests.length} /><Kpi icon={Clock3} label="Awaiting review" value={requestQuery.data.requests.filter((request) => request.status === "PENDING").length} /><Kpi icon={Check} label="Reviewed" value={requestQuery.data.requests.filter((request) => request.status !== "PENDING").length} /></KpiStrip> : null}
+    {requestQuery.data ? <KpiStrip><Kpi label="Requests shown" value={requestQuery.data.requests.length} /><Kpi label="Awaiting review" value={requestQuery.data.requests.filter((request) => request.status === "PENDING").length} /><Kpi label="Reviewed" value={requestQuery.data.requests.filter((request) => request.status !== "PENDING").length} /></KpiStrip> : null}
     {reviewError ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{reviewError}</p> : null}
     {requestQuery.isPending ? <Panel className="p-8 text-sm text-muted-foreground">Loading registration requests…</Panel> : null}
     {requestQuery.isError ? <Panel className="p-8"><p className="text-sm text-destructive">Registration requests could not be loaded.</p><Button className="mt-4" variant="outline" onClick={() => requestQuery.refetch()}><RefreshCw />Try again</Button></Panel> : null}

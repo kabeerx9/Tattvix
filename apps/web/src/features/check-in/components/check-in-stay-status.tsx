@@ -59,14 +59,14 @@ export function CheckInStayStatus({
     <div className="flex min-h-dvh flex-col bg-background">
       <CheckInBrandBar />
       <main className="mx-auto grid w-full max-w-xl flex-1 content-center justify-items-center gap-4 px-6 py-10 text-center">
-        <span
+        <Check
+          aria-hidden
           className={cn(
-            "grid size-16 place-items-center rounded-full motion-safe:animate-in motion-safe:zoom-in-95 motion-safe:fade-in-0 motion-safe:duration-200",
-            revoked ? "bg-muted text-muted-foreground" : "bg-primary-tint text-primary",
+            "size-10 ease-out motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-200",
+            revoked ? "text-muted-foreground" : "text-foreground",
           )}
-        >
-          <Check className="size-8" strokeWidth={2.5} />
-        </span>
+          strokeWidth={2}
+        />
         <StatusPill tone={revoked ? "neutral" : pending ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
           {revoked ? "Not shared" : guestStayStatusLabel(stay.operationalStatus)}
         </StatusPill>

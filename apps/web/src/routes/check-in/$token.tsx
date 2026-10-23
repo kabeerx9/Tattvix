@@ -1,8 +1,9 @@
 import { Button } from "@tattvix/ui/components/button";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Hotel, QrCode } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { z } from "zod";
 
+import { BrandLogo } from "@/components/brand";
 import { Panel } from "@/components/design-system";
 import { companionQueries } from "@/features/companions/queries";
 import { CheckInPage } from "@/features/check-in/components/check-in-page";
@@ -82,19 +83,12 @@ function CheckInUnavailablePage({
     <div className="min-h-svh bg-background">
       <header className="border-b">
         <div className="mx-auto flex h-20 max-w-3xl items-center justify-between px-5">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-md bg-muted text-muted-foreground">
-              <Hotel className="size-5" />
-            </span>
-            <p className="text-sm font-semibold">Tattwix</p>
-          </div>
+          <BrandLogo />
         </div>
       </header>
       <main className="mx-auto grid max-w-3xl place-items-center px-5 py-16">
         <Panel className="grid w-full place-items-center gap-4 p-8 text-center sm:p-12">
-          <span className="grid size-9 place-items-center rounded-md bg-muted text-muted-foreground">
-            <QrCode className="size-6" />
-          </span>
+          <QrCode aria-hidden className="size-7 text-muted-foreground" strokeWidth={1.5} />
           <div className="max-w-md">
 
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">

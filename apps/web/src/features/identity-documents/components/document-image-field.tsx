@@ -173,10 +173,8 @@ export function DocumentPhotoSlot({
           className="grid aspect-[1.586] w-full touch-manipulation place-items-center rounded-lg border-2 border-dashed border-border bg-background text-muted-foreground transition-[background-color,scale] duration-150 outline-none select-none focus-visible:border-ring active:bg-muted motion-safe:active:scale-[0.99] disabled:opacity-50 aria-invalid:border-destructive/60"
         >
           <span className="grid justify-items-center gap-2 px-4 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-muted text-foreground">
-              <Camera className="size-5 pointer-fine:hidden" />
-              <ImageUp className="size-5 pointer-coarse:hidden" />
-            </span>
+            <Camera aria-hidden className="size-6 text-muted-foreground pointer-fine:hidden" strokeWidth={1.5} />
+            <ImageUp aria-hidden className="size-6 text-muted-foreground pointer-coarse:hidden" strokeWidth={1.5} />
             <span className="text-sm font-medium text-foreground">
               <span className="pointer-fine:hidden">Take photo of {label.toLowerCase()}</span>
               <span className="pointer-coarse:hidden">Choose {label.toLowerCase()} photo</span>
@@ -266,7 +264,7 @@ function SlotStatus({
   required: boolean;
 }) {
   if (state === "new") {
-    return <span className="text-xs font-medium text-primary">New photo · saves with the document</span>;
+    return <span className="text-xs font-medium text-foreground">New photo · saves with the document</span>;
   }
   if (state === "saved") {
     return (

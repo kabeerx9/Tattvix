@@ -7,7 +7,14 @@ import {
   getActiveWorkspace,
   getHotelDestination,
   getHotelSwitchOptions,
+  getPersonalNavItems,
+  getPlatformNavItems,
+  getWorkspaceOptions,
+  isAccountPath,
   splitHotelNavForTabBar,
+  splitNavForTabBar,
+  splitPersonalNavForTabBar,
+  splitPlatformNavForTabBar,
 } from "./workspace-navigation";
 
 const user: MeResponse = {
@@ -218,5 +225,107 @@ describe("hotel switcher options", () => {
       memberships: [{ ...user.memberships[0]!, permissions: [] }, user.memberships[1]!],
     };
     assert.deepEqual(getHotelSwitchOptions(denied, null).map((option) => option.label), ["Second · Branch"]);
+  });
+});
+
+describe("personal navigation", () => {
+  it("lists the guest pages and marks nested stay pages under My stays", () => {
+    const items = getPersonalNavItems("/stays/abc-123");
+    assert.deepEqual(items.map((item) => item.to), [
+      "/guest",
+      "/stays",
+      "/profile",
+      "/companions",
+      "/privacy",
+      "/register-hotel",
+    ]);
+    assert.deepEqual(items.filter((item) => item.isActive).map((item) => item.key), ["stays"]);
+  });
+  it("does not light a page for a lookalike URL", () => {
+    assert.equal(getPersonalNavItems("/stays-archive").some((item) => item.isActive), false);
+  });
+  it("gives four everyday pages a tab and the rest to Menu", () => {
+    const { tabs, overflow, menuActive } = splitPersonalNavForTabBar(getPersonalNavItems("/privacy"));
+    assert.deepEqual(tabs.map((item) => item.shortLabel), ["Overview", "Stays", "Profile", "Companions"]);
+    assert.deepEqual(overflow.map((item) => item.key), ["privacy", "register"]);
+    assert.equal(menuActive, true);
+  });
+  it("treats account settings as a Menu page", () => {
+    assert.equal(isAccountPath("/settings"), true);
+    assert.equal(isAccountPath("/settings/extra"), false);
+    assert.equal(getPersonalNavItems("/settings").some((item) => item.isActive), false);
+  });
+});
+
+describe("platform navigation", () => {
+  it("keeps Hotels lit on pages reached from the portfolio", () => {
+    for (const pathname of ["/admin", "/admin/first", "/admin/oversight", "/admin/onboard"]) {
+      const active = getPlatformNavItems(pathname).filter((item) => item.isActive);
+      assert.deepEqual(active.map((item) => item.key), ["hotels"], pathname);
+    }
+  });
+  it("lights only Requests on the requests page", () => {
+    const active = getPlatformNavItems("/admin/requests").filter((item) => item.isActive);
+    assert.deepEqual(active.map((item) => item.key), ["requests"]);
+  });
+  it("gives both pages a tab, leaving Menu for workspaces and account", () => {
+    const { tabs, overflow, menuActive } = splitPlatformNavForTabBar(getPlatformNavItems("/admin"));
+    assert.deepEqual(tabs.map((item) => item.shortLabel), ["Hotels", "Requests"]);
+    assert.equal(overflow.length, 0);
+    assert.equal(menuActive, false);
+  });
+});
+
+describe("tab bar split", () => {
+  it("keeps the nav order and ignores tab keys that are not present", () => {
+    const items = [
+      { key: "a", isActive: false },
+      { key: "b", isActive: true },
+      { key: "c", isActive: false },
+    ];
+    const { tabs, overflow, menuActive } = splitNavForTabBar(items, ["c", "a", "missing"]);
+    assert.deepEqual(tabs.map((item) => item.key), ["a", "c"]);
+    assert.deepEqual(overflow.map((item) => item.key), ["b"]);
+    assert.equal(menuActive, true);
+  });
+});
+
+describe("workspace switcher", () => {
+  it("offers only Personal to a guest", () => {
+    const guest: MeResponse = { ...user, memberships: [] };
+    assert.deepEqual(getWorkspaceOptions(guest, "/guest").map((option) => [option.key, option.isActive]), [
+      ["personal", true],
+    ]);
+  });
+  it("offers Hotel when a membership can view the hotel, keeping the open property", () => {
+    const options = getWorkspaceOptions(user, "/hotel/second/branch/rooms");
+    assert.deepEqual(options.map((option) => [option.key, option.isActive]), [
+      ["personal", false],
+      ["hotel", true],
+    ]);
+    const hotel = options[1];
+    assert.equal(hotel?.key, "hotel");
+    if (hotel?.key === "hotel") {
+      assert.deepEqual(hotel.destination.params, { organizationSlug: "second", propertySlug: "branch" });
+    }
+  });
+  it("hides Hotel when no membership has hotel:view", () => {
+    const denied: MeResponse = {
+      ...user,
+      memberships: user.memberships.map((membership) => ({ ...membership, permissions: [] })),
+    };
+    assert.deepEqual(getWorkspaceOptions(denied, "/guest").map((option) => option.key), ["personal"]);
+  });
+  it("offers Platform admin only with platform:admin", () => {
+    const admin: MeResponse = { ...user, platformPermissions: ["platform:admin"] };
+    assert.deepEqual(getWorkspaceOptions(admin, "/admin/requests").map((option) => [option.key, option.isActive]), [
+      ["personal", false],
+      ["hotel", false],
+      ["platform", true],
+    ]);
+    assert.equal(getWorkspaceOptions(user, "/admin").some((option) => option.key === "platform"), false);
+  });
+  it("offers nothing beyond Personal while signed-out data is missing", () => {
+    assert.deepEqual(getWorkspaceOptions(null, "/guest").map((option) => option.key), ["personal"]);
   });
 });

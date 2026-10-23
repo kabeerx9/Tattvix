@@ -38,9 +38,9 @@ function SegmentedControl<Value extends string>({
           disabled={option.disabled}
           data-slot="segmented-control-item"
           className={cn(
-            "inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-card px-3.5 text-sm font-medium text-muted-foreground transition-[color,background-color,border-color,scale] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none select-none pointer-coarse:h-11 pointer-coarse:px-4",
+            "inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-card px-3.5 text-sm font-medium text-muted-foreground transition-[color,background-color,border-color,scale] duration-150 ease-out outline-none select-none pointer-coarse:h-11 pointer-coarse:px-4",
             "focus-visible:ring-2 focus-visible:ring-ring/35",
-            "data-checked:border-primary data-checked:bg-primary-tint data-checked:text-primary",
+            "data-checked:border-foreground data-checked:text-foreground data-checked:shadow-[inset_0_0_0_1px_var(--foreground)]",
             "data-disabled:cursor-not-allowed data-disabled:opacity-50",
             "motion-safe:active:scale-[0.97]",
             "aria-invalid:border-destructive",

@@ -16,7 +16,7 @@ import {
   SheetTitle,
 } from "@tattvix/ui/components/sheet";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Baby, CheckCircle2, FileKey2, Pencil, Plus, UsersRound } from "lucide-react";
+import { Baby, FileKey2, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -100,7 +100,7 @@ export function CompanionsPage() {
       />
       <PageCover src={travelImages.companions} />
 
-      <KpiStrip><Kpi icon={UsersRound} label="Companions" value={data.companions.length} /><Kpi icon={CheckCircle2} label="Ready" value={data.companions.filter((companion) => companion.readiness.isReady).length} /><Kpi icon={FileKey2} label="Incomplete" value={data.companions.filter((companion) => !companion.readiness.isReady).length} /></KpiStrip>
+      <KpiStrip><Kpi label="Companions" value={data.companions.length} /><Kpi label="Ready" value={data.companions.filter((companion) => companion.readiness.isReady).length} /><Kpi label="Incomplete" value={data.companions.filter((companion) => !companion.readiness.isReady).length} /></KpiStrip>
       {data.companions.length ? (
         <Panel><PanelHeader title="Companions" meta={data.companions.length} />
           {data.companions.map((companion) => (
@@ -234,7 +234,6 @@ function EmptyCompanions({ onAdd }: { onAdd: () => void }) {
     <Panel>
       <EmptyState
         icon={Baby}
-        tone="accent"
         title="No companions yet"
         description="Add family members or people you travel with often. This is optional and does not add anyone to a hotel stay."
         action={<Button onClick={onAdd}><Plus />Add your first companion</Button>}

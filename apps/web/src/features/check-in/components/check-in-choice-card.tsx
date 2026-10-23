@@ -33,7 +33,7 @@ export function ChoiceCard({
     <div
       className={cn(
         "rounded-lg border bg-card transition-colors duration-150",
-        checked ? "border-primary bg-primary-tint/40" : "border-border",
+        checked ? "border-foreground shadow-[inset_0_0_0_1px_var(--foreground)]" : "border-border",
       )}
     >
       <label
@@ -67,7 +67,7 @@ export function ChoiceCard({
           className={cn(
             "grid size-6 shrink-0 place-items-center border transition-colors duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-ring/35",
             type === "radio" ? "rounded-full" : "rounded-md",
-            checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card",
+            checked ? "border-foreground bg-foreground text-background" : "border-input bg-card",
             disabled && "opacity-50",
           )}
         >

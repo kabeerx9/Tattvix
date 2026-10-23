@@ -77,9 +77,9 @@ export function PrivacyCenterPage() {
       <PageCover src={travelImages.privacy} />
 
       <KpiStrip>
-        <Kpi icon={Hotel} label="Current stays" value={currentStays.length} />
-        <Kpi icon={History} label="Past stays" value={pastStays.length} />
-        <Kpi icon={ShieldOff} label="Revoked" value={data.stays.filter((stay) => stay.status === "REVOKED").length} />
+        <Kpi label="Current stays" value={currentStays.length} />
+        <Kpi label="Past stays" value={pastStays.length} />
+        <Kpi label="Revoked" value={data.stays.filter((stay) => stay.status === "REVOKED").length} />
       </KpiStrip>
       {error ? (
         <p
@@ -208,9 +208,7 @@ function ShareCard({
     <div className="border-t border-border-soft">
       <div className="group flex min-h-11 flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div className="flex min-w-0 flex-[1_1_16rem] items-start gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-            <Hotel className="size-[18px]" />
-          </span>
+          <Hotel aria-hidden className="mt-0.5 size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="min-w-0 text-sm font-semibold [overflow-wrap:anywhere]">

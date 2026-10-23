@@ -417,18 +417,16 @@ function TypePicker({
             onClick={() => onChange(type)}
             className={cn(
               "flex min-h-16 w-full touch-manipulation items-center gap-3 rounded-lg border px-3 py-3 text-left transition-[background-color,border-color,scale] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring active:bg-muted motion-safe:active:scale-[0.99]",
-              selected ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-card hover:bg-muted/60",
+              selected ? "border-foreground bg-card ring-1 ring-foreground" : "border-border bg-card hover:bg-muted/60",
             )}
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-              <Icon className="size-5" strokeWidth={1.75} />
-            </span>
+            <Icon aria-hidden className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
             <span className="min-w-0 flex-1">
               <span className="block text-[15px] font-medium">{documentTypeLabels[type]}</span>
               <span className="block text-xs text-muted-foreground">{documentTypeHint(type)}</span>
             </span>
             {selected ? (
-              <Check className="size-5 text-primary" />
+              <Check className="size-5 text-foreground" />
             ) : (
               <ChevronRight className="size-4 text-subtle-foreground" />
             )}
@@ -501,8 +499,8 @@ function SubmitFooter({
           className="h-1 overflow-hidden rounded-full bg-muted"
         >
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-            style={{ width: `${progressValue * 100}%` }}
+            className="h-full origin-left rounded-full bg-foreground transition-transform duration-200 ease-out motion-reduce:transition-none"
+            style={{ transform: `scaleX(${progressValue})` }}
           />
         </div>
       ) : null}

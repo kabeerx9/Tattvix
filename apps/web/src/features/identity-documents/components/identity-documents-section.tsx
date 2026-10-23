@@ -270,10 +270,7 @@ function DocumentRow({
       onClick={onOpen}
       className="flex w-full touch-manipulation items-center gap-3 px-4 py-3.5 text-left transition-colors outline-none select-none hover:bg-muted/50 focus-visible:bg-muted/60 active:bg-muted sm:px-5"
     >
-      {/* An ID-card-shaped tile: reads as "a card in a wallet" at a glance. */}
-      <span className="grid h-10 w-[3.75rem] shrink-0 place-items-center rounded-md border border-border bg-muted text-muted-foreground">
-        <Icon className="size-5" strokeWidth={1.75} />
-      </span>
+      <Icon aria-hidden className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-sm font-semibold">

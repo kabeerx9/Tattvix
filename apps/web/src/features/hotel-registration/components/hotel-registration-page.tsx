@@ -92,7 +92,7 @@ export function HotelRegistrationPage() {
       />
       <PageCover src={travelImages.hotelOwner} />
 
-      {requestQuery.data ? <KpiStrip><Kpi icon={Clock3} label="Pending" value={requests.filter((request) => request.status === "PENDING").length} /><Kpi icon={CheckCircle2} label="Approved" value={requests.filter((request) => request.status === "APPROVED").length} /><Kpi icon={CircleAlert} label="Rejected" value={requests.filter((request) => request.status === "REJECTED").length} /></KpiStrip> : null}
+      {requestQuery.data ? <KpiStrip><Kpi label="Pending" value={requests.filter((request) => request.status === "PENDING").length} /><Kpi label="Approved" value={requests.filter((request) => request.status === "APPROVED").length} /><Kpi label="Rejected" value={requests.filter((request) => request.status === "REJECTED").length} /></KpiStrip> : null}
       {requestQuery.isPending ? <LoadingState /> : null}
       {requestQuery.isError ? <QueryError onRetry={() => requestQuery.refetch()} /> : null}
       {requestQuery.data ? (
@@ -160,7 +160,7 @@ function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitt
 }
 
 function PendingState() {
-  return <Panel className="p-6 sm:p-8"><div className="flex gap-4"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><Clock3 className="size-5" /></span><div><StatusPill tone="warning">Under review</StatusPill><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">We will update this page when a platform administrator has made a decision. Hotel workspace access is not available until the request is approved.</p></div></div></Panel>;
+  return <Panel className="p-6 sm:p-8"><div className="flex gap-4"><Clock3 aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} /><div><StatusPill tone="warning">Under review</StatusPill><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">We will update this page when a platform administrator has made a decision. Hotel workspace access is not available until the request is approved.</p></div></div></Panel>;
 }
 
 function RequestHistory({ requests, accessRefreshPending }: { requests: HotelRegistrationRequest[]; accessRefreshPending: boolean }) {

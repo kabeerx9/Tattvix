@@ -10,17 +10,7 @@ import {
 } from "@tattvix/ui/components/select";
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-  BedDouble,
-  CalendarCheck,
-  ClipboardList,
-  Hotel,
-  IndianRupee,
-  Plus,
-  Search,
-  ShieldAlert,
-  UsersRound,
-} from "lucide-react";
+import { ClipboardList, Hotel, Plus, Search, ShieldAlert } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import {
@@ -91,12 +81,12 @@ export function PortfolioOverviewPage() {
       />
 
       <KpiStrip>
-        <Kpi icon={Hotel} label="Properties" value={totals.properties} detail={`${totals.organizations} ${totals.organizations === 1 ? "organization" : "organizations"}`} />
-        <Kpi icon={BedDouble} label="Rooms" value={totals.rooms} detail={`${totals.readyRooms} ready tonight`} />
-        <Kpi icon={BedDouble} label="Occupancy tonight" value={formatPercent(totals.occupancyTonight)} detail={`${totals.occupiedRooms} of ${totals.rooms} rooms · ${formatPercent(totals.occupancyRecent)} last 7 nights`} />
-        <Kpi icon={UsersRound} label="In house" value={totals.inHouse} detail={`${totals.arrivalsPending} waiting to check in`} />
-        <Kpi icon={CalendarCheck} label="Check-ins" value={totals.checkInsLast7Days} detail="Last 7 days" />
-        <Kpi icon={IndianRupee} label="Revenue" value={formatMoneyWholeRupees(totals.revenueLast30DaysMinor)} detail="Billed, last 30 days" />
+        <Kpi label="Properties" value={totals.properties} detail={`${totals.organizations} ${totals.organizations === 1 ? "organization" : "organizations"}`} />
+        <Kpi label="Rooms" value={totals.rooms} detail={`${totals.readyRooms} ready tonight`} />
+        <Kpi label="Occupancy tonight" value={formatPercent(totals.occupancyTonight)} detail={`${totals.occupiedRooms} of ${totals.rooms} rooms · ${formatPercent(totals.occupancyRecent)} last 7 nights`} />
+        <Kpi label="In house" value={totals.inHouse} detail={`${totals.arrivalsPending} waiting to check in`} />
+        <Kpi label="Check-ins" value={totals.checkInsLast7Days} detail="Last 7 days" />
+        <Kpi label="Revenue" value={formatMoneyWholeRupees(totals.revenueLast30DaysMinor)} detail="Billed, last 30 days" />
       </KpiStrip>
 
       {portfolio.properties.length ? (
@@ -166,7 +156,7 @@ export function PortfolioOverviewPage() {
 }
 
 function PropertyThumb({ property }: { property: PlatformPortfolioProperty }) {
-  return <PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="size-11 shrink-0 rounded-xl" iconClassName="size-5" />;
+  return <PhotoTile url={property.coverPhotoUrl} className="size-11 shrink-0 rounded-xl" />;
 }
 
 function PortfolioTable({ rows }: { rows: PlatformPortfolioProperty[] }) {

@@ -13,10 +13,12 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AppProviders } from "./core/providers/app-providers";
 import { queryClient } from "./core/query/query-client";
 import { clerkAppearance, clerkLocalization } from "./lib/clerk-config";
+import { settleEntranceMotionAfterFirstUse } from "./lib/entrance-motion";
 import { reactErrorHandler, initTelemetry, trackPageView } from "./lib/telemetry";
 import { routeTree } from "./routeTree.gen";
 
 initTelemetry();
+settleEntranceMotionAfterFirstUse();
 
 const router = createRouter({
   routeTree,

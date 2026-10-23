@@ -6,13 +6,7 @@ import type {
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
-import {
-  BedDouble,
-  ClipboardList,
-  Download,
-  Gauge,
-  UserRound,
-} from "lucide-react";
+import { ClipboardList, Download, Gauge, UserRound } from "lucide-react";
 
 import { EmptyState, FilterBar, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, StatusPill } from "@/components/design-system";
 import { ApiError } from "@/lib/api";
@@ -163,25 +157,21 @@ function OccupancySection({
   return (
     <KpiStrip>
         <Kpi
-          icon={BedDouble}
           label="Occupied / active rooms"
           value={`${occupancy.occupiedRooms} / ${occupancy.activeRooms}`}
           detail="Rooms currently occupied out of active inventory"
         />
         <Kpi
-          icon={BedDouble}
           label="Vacant"
           value={String(occupancy.statusCounts.VACANT)}
           detail="Ready to assign"
         />
         <Kpi
-          icon={BedDouble}
           label="Cleaning"
           value={String(occupancy.statusCounts.CLEANING)}
           detail="Turned over, not yet vacant"
         />
         <Kpi
-          icon={BedDouble}
           label="Maintenance"
           value={String(occupancy.statusCounts.MAINTENANCE)}
           detail="Out of service"

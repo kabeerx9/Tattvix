@@ -5,7 +5,7 @@ import type { PlatformPortfolioProperty, PlatformPortfolioRoomCounts } from "@ta
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
 import { cn } from "@tattvix/ui/lib/utils";
-import { BedDouble, Hotel, MapPin } from "lucide-react";
+import { BedDouble, MapPin } from "lucide-react";
 import { useState } from "react";
 
 import { PhotoTile, StatusPill } from "@/components/design-system";
@@ -98,7 +98,7 @@ export function PortfolioPropertyCard({ property }: { property: PlatformPortfoli
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card shadow-card">
       <div className="relative">
-        <PhotoTile url={property.coverPhotoUrl} icon={Hotel} className="aspect-[16/9] w-full" iconClassName="size-9" />
+        <PhotoTile url={property.coverPhotoUrl} label="No photo yet" className="aspect-[16/9] w-full" />
         <div className="absolute top-3 left-3 rounded-full bg-card shadow-card">
           <SetupPill property={property} />
         </div>
@@ -162,7 +162,7 @@ export function RoomTypesSheet({
       <ul className="grid gap-4">
         {property.roomTypes.map((roomType) => (
           <li key={roomType.name} className="flex min-w-0 gap-4">
-            <PhotoTile url={roomType.photoUrl} icon={BedDouble} className="size-20 shrink-0 rounded-xl" iconClassName="size-6" />
+            <PhotoTile url={roomType.photoUrl} className="size-20 shrink-0 rounded-xl" />
             <div className="grid min-w-0 flex-1 gap-1.5">
               <div className="flex min-w-0 items-baseline justify-between gap-3">
                 <h3 className="min-w-0 truncate text-[15px] font-semibold">{roomTypeLabel(roomType.name)}</h3>
