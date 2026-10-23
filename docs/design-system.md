@@ -111,13 +111,14 @@ Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell
 
 ## Brand
 
-`BrandLogo` (`apps/web/src/components/brand.tsx`) is the only React source of the logo; every
-shell, login, sign-up and check-in screen uses it. It is a plain near-black wordmark placeholder.
-When the real logo arrives, swap it in three places:
+The mark is **Threshold**: an open, offset doorway in near-black `#222222`, never in the accent.
+`BrandLogo` and `BrandMark` (`apps/web/src/components/brand.tsx`) are the only React source of the
+logo; every shell, login, sign-up and check-in screen uses them, drawn in `currentColor`. Three
+non-React copies must stay in sync with its paths:
 
-1. `apps/web/src/components/brand.tsx` (the SVG, coloured with `currentColor`).
-2. `apps/web/public/favicon.svg`.
-3. The boot splash wordmark in `apps/web/index.html`, which paints before React loads.
+1. `apps/web/public/favicon.svg` (32-unit version; flips to white in dark browser chrome).
+2. `apps/web/public/apple-touch-icon.png` (180px, white background).
+3. The boot splash mark in `apps/web/index.html`, which paints before React loads.
 
 ## Page anatomy
 
