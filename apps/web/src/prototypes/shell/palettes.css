@@ -5,6 +5,12 @@
  * variant is mounted, which also reaches portalled sheets and menus.
  * Contrast measured with WCAG 2.x: every text pair >= 4.5:1, input borders
  * and chart series >= 3:1 against white (see the PR for the table).
+ *
+ * Accent restraint (revision 2): the accent appears only on the primary
+ * button, the active nav/tab indicator, focus rings, links, selected states
+ * and chart series 1. Never on icons, icon tiles, decorative fills, card
+ * borders or headings. --primary-tint and --sidebar-accent are neutral, and
+ * the non-primary chart series are greys plus amber for "cleaning".
  */
 
 /* 1. Host: Airbnb-like rose on warm-neutral greys. */
@@ -25,7 +31,7 @@ html[data-proto-palette="host"] {
   --subtle-foreground: #717171;
   --accent: #f7f7f7;
   --accent-foreground: #222222;
-  --primary-tint: #fff0f4;
+  --primary-tint: #f7f7f7; /* neutral: accent tints are retired */
   --success: #067647;
   --success-tint: #ecfdf3;
   --warning: #b54708;
@@ -37,10 +43,10 @@ html[data-proto-palette="host"] {
   --input: #929292;
   --ring: rgb(215 15 88 / 0.55);
   --chart-1: #d70f58;
-  --chart-2: #c4c4c4;
+  --chart-2: #dddddd;
   --chart-3: #f0b86e;
-  --chart-4: #f7a9c3;
-  --chart-5: #8e8e8e;
+  --chart-4: #6a6a6a;
+  --chart-5: #b0b0b0;
   --card-radius: 16px;
   --elevation-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px rgb(0 0 0 / 0.06);
   --elevation-raised: 0 2px 4px rgb(0 0 0 / 0.05), 0 12px 32px rgb(0 0 0 / 0.12);
@@ -72,7 +78,7 @@ html[data-proto-palette="ledger"] {
   --subtle-foreground: #667085;
   --accent: #f4f5f7;
   --accent-foreground: #101828;
-  --primary-tint: #eef0ff;
+  --primary-tint: #f4f5f7; /* neutral: accent tints are retired */
   --success: #067647;
   --success-tint: #ecfdf3;
   --warning: #b54708;
@@ -84,9 +90,9 @@ html[data-proto-palette="ledger"] {
   --input: #8d95a5;
   --ring: rgb(67 56 202 / 0.5);
   --chart-1: #4338ca;
-  --chart-2: #c5cad3;
+  --chart-2: #d0d5dd;
   --chart-3: #f0b86e;
-  --chart-4: #a5b4fc;
+  --chart-4: #475467;
   --chart-5: #98a2b3;
   --card-radius: 14px;
   --elevation-card: 0 1px 2px rgb(16 24 40 / 0.05);
@@ -95,8 +101,8 @@ html[data-proto-palette="ledger"] {
   --sidebar-foreground: #101828;
   --sidebar-primary: #4338ca;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef0ff;
-  --sidebar-accent-foreground: #3730a3;
+  --sidebar-accent: #f4f5f7;
+  --sidebar-accent-foreground: #101828;
   --sidebar-border: #e4e7ec;
   --sidebar-ring: rgb(67 56 202 / 0.5);
   /* Proposed new sidebar roles (not in globals.css yet). */
@@ -123,7 +129,7 @@ html[data-proto-palette="concierge"] {
   --subtle-foreground: #6e6a80;
   --accent: #f5f4f7;
   --accent-foreground: #18151f;
-  --primary-tint: #f6eef9;
+  --primary-tint: #f5f4f7; /* neutral: accent tints are retired */
   --success: #067647;
   --success-tint: #ecfdf3;
   --warning: #b54708;
@@ -135,10 +141,10 @@ html[data-proto-palette="concierge"] {
   --input: #8f8a9c;
   --ring: rgb(123 45 142 / 0.5);
   --chart-1: #7b2d8e;
-  --chart-2: #cfcbd8;
+  --chart-2: #d9d6e0;
   --chart-3: #edb463;
-  --chart-4: #d3aee2;
-  --chart-5: #9c97a8;
+  --chart-4: #57536a;
+  --chart-5: #a8a3b5;
   --card-radius: 18px;
   --elevation-card: 0 1px 2px rgb(24 21 31 / 0.04), 0 8px 24px rgb(24 21 31 / 0.05);
   --elevation-raised: 0 2px 6px rgb(24 21 31 / 0.06), 0 16px 40px rgb(24 21 31 / 0.14);

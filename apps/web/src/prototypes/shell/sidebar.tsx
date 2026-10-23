@@ -39,9 +39,7 @@ export function SidebarBody({ screen, onScreen, tone, onNavigate }: VariantProps
     <div className="flex h-full min-h-0 flex-col text-sidebar-foreground">
       <div className="px-5 pt-6 pb-4">
         <span className="flex items-center gap-2.5">
-          <span className={cn("grid size-9 place-items-center rounded-[11px] text-base font-bold", tone === "ink" ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-primary text-primary-foreground")}>
-            T
-          </span>
+          <span className="grid size-9 place-items-center rounded-[11px] bg-sidebar-foreground text-base font-bold text-sidebar">T</span>
           <span className="text-[19px] font-bold tracking-tight">Tattwix</span>
         </span>
       </div>
@@ -62,24 +60,18 @@ export function SidebarBody({ screen, onScreen, tone, onNavigate }: VariantProps
                       onClick={() => go(() => openNav(item, onScreen))}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "press flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                        "press relative flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                         active
                           ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
                           : "text-(--sidebar-nav-foreground) hover:bg-(--sidebar-hover) hover:text-sidebar-foreground",
                       )}
                     >
-                      <item.icon
-                        className={cn("size-5 shrink-0", active && tone === "ink" && "text-sidebar-primary", active && tone === "light" && "text-primary")}
-                        strokeWidth={active ? 2 : 1.75}
-                      />
+                      {/* The accent is only this indicator; icon and label stay neutral. */}
+                      {active ? <span aria-hidden className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-r-full bg-sidebar-primary" /> : null}
+                      <item.icon className="size-5 shrink-0" strokeWidth={active ? 2 : 1.75} />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.badge ? (
-                        <span
-                          className={cn(
-                            "grid h-6 min-w-6 place-items-center rounded-full px-2 text-xs font-semibold tabular-nums",
-                            tone === "ink" ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-primary text-primary-foreground",
-                          )}
-                        >
+                        <span className="grid h-6 min-w-6 place-items-center rounded-full border border-sidebar-border px-2 text-xs font-semibold text-sidebar-foreground tabular-nums">
                           {item.badge}
                         </span>
                       ) : null}
@@ -109,7 +101,7 @@ function WorkspaceSwitcher({ screen, onScreen, tone }: VariantProps & { tone: To
         )}
         aria-label={`Workspace: ${workspace.label}. Switch workspace`}
       >
-        <WorkspaceMark workspace={workspace} className={cn("size-11", tone === "ink" && !workspace.photo && "bg-white/10 text-sidebar-foreground")} />
+        <WorkspaceMark workspace={workspace} className={cn("size-11", tone === "ink" && !workspace.photo && "border-sidebar-border text-sidebar-foreground")} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold">{workspace.label}</span>
           <span className={cn("block truncate text-[13px]", "text-(--sidebar-muted-foreground)")}>{workspace.detail}</span>
@@ -126,7 +118,7 @@ function WorkspaceSwitcher({ screen, onScreen, tone }: VariantProps & { tone: To
                 <span className="block truncate text-sm font-medium">{entry.label}</span>
                 <span className="block truncate text-xs text-muted-foreground">{entry.detail}</span>
               </span>
-              {entry.key === workspace.key ? <Check className="size-4 text-primary" /> : null}
+              {entry.key === workspace.key ? <Check className="size-4 text-foreground" /> : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

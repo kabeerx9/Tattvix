@@ -6,9 +6,7 @@ import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 
-import { BottomTabBar } from "@/components/design-system";
-
-import { currentWorkspace, isActive, navFor, openNav, userFor, UserAvatar, WorkspaceMark, type VariantProps } from "./common";
+import { currentWorkspace, isActive, navFor, openNav, TabBar, userFor, UserAvatar, WorkspaceMark, type VariantProps } from "./common";
 import { PortfolioScreen } from "./screen-portfolio";
 import { TodayScreen } from "./screen-today";
 import { SidebarBody } from "./sidebar";
@@ -47,7 +45,7 @@ export function LedgerVariant({ screen, onScreen }: VariantProps) {
         {screen === "hotels" ? <PortfolioScreen layout="table" /> : <TodayScreen layout="workbench" />}
       </main>
 
-      <BottomTabBar
+      <TabBar
           label={screen === "hotels" ? "Platform" : "Hotel"}
           items={[
             ...nav.slice(0, 4).map((item) => ({

@@ -116,14 +116,83 @@ export function UserAvatar({ name, className }: { name: string; className?: stri
   );
 }
 
-/** Workspace mark: hotel photo, or a neutral tile with an icon for platform. */
+/**
+ * Workspace mark: the hotel photo, or (platform) a hairline-outlined slot with
+ * a neutral line icon. Never a tinted fill behind an icon.
+ */
 export function WorkspaceMark({ workspace, className }: { workspace: Workspace; className?: string }) {
   if (workspace.photo) return <img src={workspace.photo} alt="" className={cn("size-10 shrink-0 rounded-xl object-cover", className)} />;
   const Icon = workspace.icon ?? Building2;
   return (
-    <span aria-hidden className={cn("grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground", className)}>
-      <Icon className="size-5" />
+    <span aria-hidden className={cn("grid size-10 shrink-0 place-items-center rounded-xl border border-border text-foreground", className)}>
+      <Icon className="size-5" strokeWidth={1.75} />
     </span>
+  );
+}
+
+/**
+ * A photo slot. Without a photo it is a quiet muted slot with a short text
+ * label (big slots) or nothing (thumbnails), never an icon-on-grey tile.
+ */
+export function Photo({ url, className, label }: { url?: string | null; className?: string; label?: string }) {
+  return url ? (
+    <img src={url} alt="" loading="lazy" decoding="async" className={cn("bg-muted object-cover", className)} />
+  ) : (
+    <div aria-hidden={!label} className={cn("grid place-items-center bg-muted p-2 text-center text-xs text-muted-foreground", className)}>{label}</div>
+  );
+}
+
+/**
+ * Stats without icon tiles: weight comes from the number's typography.
+ * Divided by hairlines like KpiStrip, wrapping to 2/3 columns below lg.
+ */
+export function StatStrip({ items }: { items: { label: string; value: React.ReactNode; detail?: React.ReactNode }[] }) {
+  return (
+    <dl className="grid grid-cols-2 overflow-hidden rounded-card border border-border bg-card shadow-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x lg:divide-border-soft">
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0 p-4 sm:p-5">
+          <dt className="text-sm text-muted-foreground">{item.label}</dt>
+          <dd className="mt-2 text-[30px] leading-none font-semibold tracking-[-0.02em] tabular-nums">{item.value}</dd>
+          {item.detail ? <dd className="mt-2 text-xs leading-relaxed text-subtle-foreground">{item.detail}</dd> : null}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export type TabBarItem = { key: string; label: string; icon: LucideIcon; isActive: boolean; onClick: () => void };
+
+/**
+ * Phone tab bar. Icons and labels stay neutral; the active tab is
+ * foreground + semibold with a short accent indicator above it.
+ */
+export function TabBar({ items, label }: { items: TabBarItem[]; label: string }) {
+  return (
+    <nav
+      aria-label={label}
+      data-bottom-tab-bar=""
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pr-[env(safe-area-inset-right,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] backdrop-blur md:hidden"
+    >
+      <ul className="mx-auto grid h-(--tab-bar-height) max-w-md" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item) => (
+          <li key={item.key} className="grid min-w-0">
+            <button
+              type="button"
+              onClick={item.onClick}
+              aria-current={item.isActive ? "page" : undefined}
+              className={cn(
+                "press relative grid h-full place-content-center justify-items-center gap-1 text-[11px] outline-none focus-visible:bg-muted",
+                item.isActive ? "font-semibold text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {item.isActive ? <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-primary" /> : null}
+              <item.icon aria-hidden className="size-6" strokeWidth={item.isActive ? 2.1 : 1.6} />
+              <span className="max-w-full truncate px-1">{item.label}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
