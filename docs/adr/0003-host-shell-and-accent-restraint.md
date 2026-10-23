@@ -76,9 +76,12 @@ workspace pill and the switchers in the account menu and the Menu sheet.
 
   ↑↓ move, ↵ opens, and ⌘K / Ctrl+K opens the list from anywhere except while typing. On phones
   the first tab is the current place and opens the same list as a sheet. The top bar (it scrolls
-  with the page) also shows the place. Guest-only accounts get no switcher, just a quiet "List
-  your hotel" link to `/register-hotel`. The avatar menu now holds only account settings and
-  sign out.
+  with the page) also shows the place. The switcher is **always visible** to signed-in users,
+  guest-only accounts included, because the guest-to-host moment is where it matters most. A
+  guest's list is Personal, then a "List your hotel" row (to `/register-hotel`). That row also
+  ends the list for anyone without hotels or platform access, and reads "Hotel request pending"
+  when a pending request is already in the query cache. The avatar menu holds only account
+  settings and sign out.
 - **Model, not markup.** `lib/workspace-switcher.ts` builds the places from `/me`:
   - a hotel needs `hotel:view` on its membership;
   - Platform needs `platform:admin`;
@@ -100,4 +103,8 @@ Consequences: with a place pill, the section links take a second header row betw
 1023px. On phones the place tab replaces one section tab, so Guests (hotel) and Companions
 (personal) move into Menu. Hotel covers in the list come from one photo request per property
 while the list is open. Putting covers in `/me` would remove that request fan-out.
+
+Revision (same day): the switcher was first hidden for guest-only accounts, which left a quiet
+"List your hotel" link as their only way in. In testing that read as a missing switcher, so it
+is now always shown and the link lives in the list.
 

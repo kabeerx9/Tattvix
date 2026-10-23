@@ -4,7 +4,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@tattvix/ui/lib/utils";
-import { Check, ChevronsUpDown, Search, ShieldCheck } from "lucide-react";
+import { Check, ChevronsUpDown, Clock, Plus, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandMark } from "@/components/brand";
@@ -47,6 +47,15 @@ export function PlaceThumb({
       </span>
     );
   }
+  if (place.kind === "register") {
+    // An outline, not a filled tile: this is an invitation, not a place yet.
+    const Icon = place.pending ? Clock : Plus;
+    return (
+      <span aria-hidden className={cn(base, "rounded-lg border border-dashed border-input text-foreground", className)}>
+        <Icon className="size-[48%]" strokeWidth={1.75} />
+      </span>
+    );
+  }
   if (place.kind === "personal") {
     return person.imageUrl ? (
       <img src={person.imageUrl} alt="" className={cn(base, "rounded-full object-cover", className)} />
@@ -69,7 +78,7 @@ export function PlaceThumb({
 export function placeIdentity(place: Place | null, person: PlacePerson) {
   if (!place) return { title: "Hotels", detail: "Choose a property" };
   if (place.kind === "personal") return { title: person.name, detail: "Personal" };
-  if (place.kind === "platform") return { title: place.label, detail: place.detail };
+  if (place.kind === "platform" || place.kind === "register") return { title: place.label, detail: place.detail };
   return { title: place.label, detail: place.kind === "property" ? place.detail : place.organization.name };
 }
 

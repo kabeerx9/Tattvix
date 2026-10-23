@@ -58,11 +58,40 @@ const twoOrgs = me({
 const keys = (places: { key: string }[]) => places.map((place) => place.key);
 
 describe("getSwitchPlaces", () => {
-  it("gives a guest-only account Personal alone, so there is no switcher", () => {
+  it("gives a guest-only account the switcher: Personal, then List your hotel", () => {
     const places = getSwitchPlaces(me());
-    assert.deepEqual(keys(places), ["personal"]);
-    assert.equal(hasPlaceSwitcher(places), false);
+    assert.deepEqual(keys(places), ["personal", "register"]);
+    assert.equal(hasPlaceSwitcher(places), true);
+    assert.deepEqual(places[1]!.home, { to: "/register-hotel" });
+    assert.equal(places[1]!.label, "List your hotel");
+    assert.deepEqual(
+      buildSwitcherSections(places, { currentKey: "personal" }).map((section) => [section.key, keys(section.places)]),
+      [
+        ["you", ["personal"]],
+        ["register", ["register"]],
+      ],
+    );
+    assert.equal(getCurrentPlace(places, me(), "/register-hotel")?.key, "personal");
+  });
+
+  it("shows a pending hotel request instead of List your hotel", () => {
+    const [, entry] = getSwitchPlaces(me(), { hotelRequestPending: true });
+    assert.equal(entry!.label, "Hotel request pending");
+    assert.deepEqual(entry!.home, { to: "/register-hotel" });
+  });
+
+  it("offers List your hotel only to accounts with no hotel and no platform access", () => {
+    assert.equal(getSwitchPlaces(twoOrgs).some((place) => place.kind === "register"), false);
+    assert.equal(getSwitchPlaces(me({ platformPermissions: ["platform:admin"] })).some((place) => place.kind === "register"), false);
+    const viewless = me({
+      memberships: [membership({ id: 3, name: "Hidden", slug: "hidden" }, [{ id: 31, name: "Hidden Inn", slug: "hidden-inn" }], ["stays:view"])],
+    });
+    assert.deepEqual(keys(getSwitchPlaces(viewless)), ["personal", "register"]);
+  });
+
+  it("has no switcher while signed out", () => {
     assert.deepEqual(getSwitchPlaces(null), []);
+    assert.equal(hasPlaceSwitcher([]), false);
   });
 
   it("orders Personal, Platform, then hotels in membership order", () => {
