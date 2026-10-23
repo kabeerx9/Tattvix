@@ -6,7 +6,8 @@ import { cn } from "@tattvix/ui/lib/utils"
 
 const DISMISS_DISTANCE = 0.28 // fraction of the sheet's height
 const DISMISS_VELOCITY = 0.45 // px per ms, measured over the last few moves
-const CLOSE_MS = 240
+// Matches --duration-sheet-exit in globals.css (the slowest exit path).
+const CLOSE_MS = 180
 
 /** Resistance that grows the further the sheet is pulled past its top. */
 function rubberband(overshoot: number, dimension: number, constant = 0.55) {
@@ -154,6 +155,7 @@ function BottomSheet({
         aria-hidden
         className="sheet-backdrop absolute inset-0 bg-foreground/40"
         data-open={visible ? "" : undefined}
+        data-closing={closing ? "" : undefined}
         onClick={close}
       />
       <div
