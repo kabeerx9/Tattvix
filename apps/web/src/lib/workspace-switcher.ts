@@ -18,11 +18,14 @@ export type PlaceHome =
       to: "/hotel/$organizationSlug/$propertySlug/dashboard";
       params: { organizationSlug: string; propertySlug: string };
     }
-  | { to: "/hotel/$organizationSlug"; params: { organizationSlug: string } };
+  | { to: "/hotel/$organizationSlug"; params: { organizationSlug: string } }
+  | { to: "/register-hotel"; params?: undefined };
 
 export type Place =
   | { key: "personal"; kind: "personal"; label: string; detail: string; home: PlaceHome; homeLabel: string }
   | { key: "platform"; kind: "platform"; label: string; detail: string; home: PlaceHome; homeLabel: string }
+  /** Not a place but the way to one: "List your hotel", or the pending request's status. */
+  | { key: "register"; kind: "register"; label: string; detail: string; home: PlaceHome; homeLabel: string; pending: boolean }
   | {
       /** `property:<id>`. Ids only, so a stored recent never carries names. */
       key: string;
@@ -63,8 +66,10 @@ export const isHotelPlace = (place: Place): place is HotelPlace =>
  * admin (platform:admin only), then hotels in membership order. A hotel
  * membership counts only with hotel:view, the same check the hotel route
  * guard applies, so nothing listed here redirects to /unauthorized.
+ * Someone with no hotel and no platform access gets a last "List your
+ * hotel" entry instead (or "Hotel request pending" once they applied).
  */
-export function getSwitchPlaces(user: MeResponse | null): Place[] {
+export function getSwitchPlaces(user: MeResponse | null, options: { hotelRequestPending?: boolean } = {}): Place[] {
   if (!user) return [];
   const places: Place[] = [
     {
@@ -120,12 +125,27 @@ export function getSwitchPlaces(user: MeResponse | null): Place[] {
       });
     }
   }
+  if (places.length === 1) {
+    const pending = Boolean(options.hotelRequestPending);
+    places.push({
+      key: "register",
+      kind: "register",
+      label: pending ? "Hotel request pending" : "List your hotel",
+      detail: pending ? "We will let you know when it is approved" : "Run a hotel? Set it up on Tattwix",
+      home: { to: "/register-hotel" },
+      homeLabel: pending ? "Request" : "Register",
+      pending,
+    });
+  }
   return places;
 }
 
-/** A switcher is worth showing only when there is somewhere else to go. */
+/**
+ * Every signed-in user gets the switcher, guests included: it is where a
+ * guest becomes a host. Only a missing /me (signed out) has none.
+ */
 export function hasPlaceSwitcher(places: Place[]) {
-  return places.length > 1;
+  return places.length > 0;
 }
 
 /**
@@ -178,7 +198,8 @@ export type SwitcherSection = { key: string; title: string | null; places: Place
 /**
  * The switcher list: Personal and Platform first, then Recent (long lists
  * only, never while searching, never the current place), then hotels
- * grouped by organization in membership order.
+ * grouped by organization in membership order, then "List your hotel"
+ * for accounts with nowhere else to go.
  */
 export function buildSwitcherSections(
   places: Place[],
@@ -189,7 +210,9 @@ export function buildSwitcherSections(
   const hotels = places.filter(isHotelPlace);
   const sections: SwitcherSection[] = [];
 
-  const you = places.filter((place) => !isHotelPlace(place) && matchesPlaceQuery(place, query));
+  const you = places.filter(
+    (place) => (place.kind === "personal" || place.kind === "platform") && matchesPlaceQuery(place, query),
+  );
   if (you.length) sections.push({ key: "you", title: null, places: you });
 
   if (!searching && hotels.length >= SWITCHER_SEARCH_THRESHOLD) {
@@ -209,6 +232,9 @@ export function buildSwitcherSections(
   for (const group of groups.values()) {
     sections.push({ key: `org:${group.organization.id}`, title: group.organization.name, places: group.places });
   }
+
+  const register = places.filter((place) => place.kind === "register" && matchesPlaceQuery(place, query));
+  if (register.length) sections.push({ key: "register", title: null, places: register });
   return sections;
 }
 

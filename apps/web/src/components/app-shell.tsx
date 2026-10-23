@@ -44,6 +44,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo, BrandMark } from "@/components/brand";
 import { BottomTabBar } from "@/components/design-system";
 import { PlaceCue, PlaceList, PlacePill, PlacePopover, PlaceThumb, placeIdentity, type PlacePerson } from "@/components/place-switcher";
+import { hotelRegistrationQueries } from "@/features/hotel-registration/queries";
+import { hasPendingHotelRequest } from "@/features/hotel-registration/status";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { getInitials } from "@/lib/initials";
 import {
@@ -199,7 +201,11 @@ function useAppShell() {
     ...propertyPhotoQueries.list(context?.membership.organization.slug ?? "", context?.property?.slug ?? ""),
     enabled: Boolean(context?.property),
   });
-  const places = useMemo(() => getSwitchPlaces(me), [me]);
+  // A pending hotel request turns "List your hotel" into its status. Only read
+  // from cache (the register page loads it); the shell never fetches it.
+  const { data: registrations } = useQuery({ ...hotelRegistrationQueries.guest(), enabled: false });
+  const hotelRequestPending = hasPendingHotelRequest(registrations?.requests ?? []);
+  const places = useMemo(() => getSwitchPlaces(me, { hotelRequestPending }), [me, hotelRequestPending]);
   const currentPlace = getCurrentPlace(places, me, pathname);
   const recentKeys = useRecentPlaces(me?.id, currentPlace);
   const name =
@@ -272,7 +278,7 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
   const onPick = useCallback((place: Place) => {
     setPopoverOpen(false);
     setSheetOpen(false);
-    if (place.key !== currentKey) setCue({ id: Date.now(), label: `${placeLabel(place)} · ${place.homeLabel}` });
+    if (place.key !== currentKey && place.kind !== "register") setCue({ id: Date.now(), label: `${placeLabel(place)} · ${place.homeLabel}` });
   }, [currentKey]);
 
   const nav = switcher ? { ...shell.nav, ...makeRoomForPlaceTab(shell.nav) } : shell.nav;
@@ -395,21 +401,6 @@ function ManageProperties({ shell, onNavigate }: { shell: Shell; onNavigate?: ()
   );
 }
 
-/** Guest-only accounts get no switcher, just this quiet way in. */
-function ListYourHotel({ className }: { className?: string }) {
-  return (
-    <Link
-      to="/register-hotel"
-      className={cn(
-        "press flex h-10 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-        className,
-      )}
-    >
-      List your hotel
-    </Link>
-  );
-}
-
 function TopNav({
   shell,
   person,
@@ -508,7 +499,6 @@ function TopNav({
           ) : null}
         </nav>
         <div className="flex shrink-0 items-center justify-end gap-2 lg:flex-1">
-          {!switcher ? <ListYourHotel /> : null}
           <AccountMenu shell={shell} />
         </div>
       </div>
@@ -516,7 +506,7 @@ function TopNav({
   );
 }
 
-/** Phones: the current place (or the logo for guests), scrolling with the page. */
+/** Phones: the current place, scrolling with the page. */
 function PhoneTopBar({
   shell,
   person,
@@ -553,8 +543,6 @@ function PhoneTopBar({
               className: "flex items-center rounded-lg pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
               children: <BrandLogo size="sm" />,
             })}
-            <span className="flex-1" />
-            <ListYourHotel />
           </>
         )}
         {showAccount ? (

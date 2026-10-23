@@ -93,9 +93,9 @@ Sentence case everywhere. No uppercase eyebrows.
 Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell`
 (`apps/web/src/components/app-shell.tsx`). There is no sidebar.
 
-- **`md` and up:** sticky top nav. When the user can switch places, the left side shows the
-  `BrandMark` and the **place pill**; otherwise it shows `BrandLogo`. The workspace's section
-  links sit in the centre (on their own row below `lg` when the pill is present). The active
+- **`md` and up:** sticky top nav. The left side always shows the `BrandMark` and the **place
+  pill**, for every signed-in user. The workspace's section links sit in the centre (on their
+  own row below `lg`). The active
   link is foreground text plus a 3px rose underline, one element that slides between links. The
   avatar menu on the right holds only account settings and sign out.
 - **Place switcher** (`components/place-switcher.tsx`, ADR 0003 addendum): the one way to move
@@ -108,7 +108,10 @@ Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell
   - **Pictures:** covers are real property photos with an initials fallback. Platform is a bare
     neutral shield, and Personal is the person's avatar.
   - **After a switch:** a 200ms fade-rise of the content and a short "Place · Home" cue.
-  - **Guest-only accounts:** no switcher, just a quiet "List your hotel" link.
+  - **Always visible**, guest-only accounts included: their list is Personal (current), then a
+    "List your hotel" row ("Run a hotel? Set it up on Tattwix", to `/register-hotel`). The same
+    row ends the list for anyone with no hotel and no platform access. A pending hotel request
+    (when already in the query cache) shows as "Hotel request pending" instead.
 - **Phones:** a `BottomTabBar`. The first tab is the current place (its picture) and opens the
   same list in a `BottomSheet`. Up to three everyday pages follow, then **Menu**, which holds the
   remaining pages and account links. A slim top bar (not sticky, so `LargeTitle` keeps the top
