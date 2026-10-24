@@ -391,3 +391,9 @@ class HotelReportDateRangeQuerySerializer(serializers.Serializer):
                 "dateFrom must not be after dateTo."
             )
         return attrs
+
+
+class PlatformTrialExtendSerializer(serializers.Serializer):
+    # The target date, not a delta: replaying the request is a no-op.
+    trialEndsAt = serializers.DateTimeField(source="trial_ends_at")
+    note = serializers.CharField(max_length=500, allow_blank=True, required=False, default="")

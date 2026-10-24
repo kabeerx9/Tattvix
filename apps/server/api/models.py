@@ -200,6 +200,21 @@ class PlatformRoleAssignment(models.Model):
         return f"{self.user} — {self.get_role_display()}"
 
 
+class OrganizationManager(models.Manager):
+    def create(self, **kwargs):
+        """An organization is born with its free trial already running.
+
+        Starting the clock here, rather than at each call site, means no code
+        path (admin onboarding, self-serve approval, seeds, tests) can create a
+        hotel that the entitlement gate would then fail closed on.
+        """
+        from .subscriptions import start_trial
+
+        organization = super().create(**kwargs)
+        start_trial(organization)
+        return organization
+
+
 class Organization(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
@@ -207,8 +222,63 @@ class Organization(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = OrganizationManager()
+
     def __str__(self) -> str:
         return self.name
+
+
+class Subscription(models.Model):
+    """Per-organization entitlement, expressed as dates only.
+
+    Whether the hotel may operate is computed from `trial_ends_at` and
+    `paid_until` against the current time (see `subscriptions.py`); there is no
+    stored status to drift out of sync and no scheduled job to flip it.
+    """
+
+    organization = models.OneToOneField(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="subscription",
+    )
+    trial_ends_at = models.DateTimeField()
+    paid_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.organization.slug} — trial until {self.trial_ends_at:%Y-%m-%d}"
+
+
+class SubscriptionEventKind(models.TextChoices):
+    TRIAL_STARTED = "TRIAL_STARTED", "Trial started"
+    TRIAL_EXTENDED = "TRIAL_EXTENDED", "Trial extended"
+
+
+class SubscriptionEvent(models.Model):
+    """Append-only trail of every change to an organization's entitlement dates."""
+
+    subscription = models.ForeignKey(
+        Subscription,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    # Null for system-originated events (trial started at provisioning).
+    actor = models.ForeignKey(
+        ClerkUser,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="subscription_events",
+    )
+    kind = models.CharField(max_length=32, choices=SubscriptionEventKind.choices)
+    previous_trial_ends_at = models.DateTimeField(null=True, blank=True)
+    new_trial_ends_at = models.DateTimeField()
+    note = models.CharField(max_length=500, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
 
 
 class Property(models.Model):

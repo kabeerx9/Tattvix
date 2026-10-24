@@ -9,6 +9,8 @@ import { Input } from "@tattvix/ui/components/input";
 import { ClipboardList, Download, Gauge, UserRound } from "lucide-react";
 
 import { EmptyState, FilterBar, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, StatusPill } from "@/components/design-system";
+import { LockedSection } from "@/features/subscription/components/locked-section";
+import { isSubscriptionExpiredError } from "@/features/subscription/errors";
 import { ApiError } from "@/lib/api";
 
 import { hotelReportsApi } from "../api";
@@ -36,15 +38,24 @@ export function HotelReportsPage({
   const registerQuery = useQuery(
     hotelReportsQueries.register(organizationSlug, propertySlug, range),
   );
-  const statusCountsQuery = useQuery(
-    hotelReportsQueries.statusCounts(organizationSlug, propertySlug, range),
-  );
+  const statusCountsQuery = useQuery({
+    ...hotelReportsQueries.statusCounts(organizationSlug, propertySlug, range),
+    retry: (count, error) => !isSubscriptionExpiredError(error) && count < 3,
+  });
   const { data: inHouse } = useSuspenseQuery(
     hotelReportsQueries.inHouse(organizationSlug, propertySlug),
   );
-  const { data: occupancy } = useSuspenseQuery(
-    hotelReportsQueries.occupancy(organizationSlug, propertySlug),
-  );
+  // Analytics are part of the paid plan: once the trial lapses the server
+  // answers 402 and these sections show a locked placeholder instead of
+  // throwing to the route error boundary. The register and in-house list
+  // above are the hotel's own records and stay readable.
+  const occupancyQuery = useQuery({
+    ...hotelReportsQueries.occupancy(organizationSlug, propertySlug),
+    retry: (count, error) => !isSubscriptionExpiredError(error) && count < 3,
+  });
+  const reportsLocked =
+    isSubscriptionExpiredError(occupancyQuery.error) ||
+    isSubscriptionExpiredError(statusCountsQuery.error);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -111,12 +122,20 @@ export function HotelReportsPage({
       </PanelSection>
       </Panel>
 
-      <OccupancySection occupancy={occupancy} />
-
-      <StatusCountsSection
-        counts={statusCountsQuery.data?.counts}
-        isLoading={statusCountsQuery.isLoading}
-      />
+      {reportsLocked ? (
+        <>
+          <LockedSection title="Occupancy" icon={Gauge} tiles={4} />
+          <LockedSection title="Status counts" icon={ClipboardList} />
+        </>
+      ) : (
+        <>
+          {occupancyQuery.data ? <OccupancySection occupancy={occupancyQuery.data} /> : null}
+          <StatusCountsSection
+            counts={statusCountsQuery.data?.counts}
+            isLoading={statusCountsQuery.isLoading}
+          />
+        </>
+      )}
 
       <InHouseSection entries={inHouse.entries} />
 

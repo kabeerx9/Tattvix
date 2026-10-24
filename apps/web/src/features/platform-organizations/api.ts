@@ -4,10 +4,12 @@ import {
   platformOrganizationListResponseSchema,
   platformOrganizationOnboardingResponseSchema,
   platformPropertySchema,
+  platformSubscriptionSchema,
   type PlatformMemberAddInput,
   type PlatformMemberUpdateInput,
   type PlatformOrganizationOnboardingInput,
   type PlatformPropertyCreateInput,
+  type PlatformTrialExtendInput,
 } from "@tattvix/contracts";
 
 import { apiClient } from "@/lib/api";
@@ -59,6 +61,13 @@ export const platformOrganizationsApi = {
       `${organizationBase(organizationSlug)}/members/${memberId}/`,
       platformMemberSchema,
       { method: "PATCH", body: JSON.stringify(input) },
+    );
+  },
+  extendTrial(organizationSlug: string, input: PlatformTrialExtendInput) {
+    return apiClient.requestJson(
+      `${organizationBase(organizationSlug)}/subscription/extend-trial/`,
+      platformSubscriptionSchema,
+      { method: "POST", body: JSON.stringify(input) },
     );
   },
 };

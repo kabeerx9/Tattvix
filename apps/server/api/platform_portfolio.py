@@ -30,8 +30,10 @@ from .models import (
     Stay,
     StayCharge,
     StayStatus,
+    Subscription,
 )
 from .object_storage import PrivateObjectStorage
+from .subscriptions import build_subscription_payload
 
 logger = logging.getLogger(__name__)
 
@@ -235,9 +237,10 @@ def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
         HotelRegistrationRequest.objects.filter(property_id__in=property_ids)
         .values_list("property_id", flat=True)
     )
+    organization_ids = {property_.organization_id for property_ in properties}
     members = dict(
         Membership.objects.filter(
-            organization_id__in={property_.organization_id for property_ in properties},
+            organization_id__in=organization_ids,
             is_active=True,
         )
         .values("organization_id")
@@ -245,6 +248,12 @@ def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
         .order_by()
         .values_list("organization_id", "count")
     )
+    subscriptions = {
+        subscription.organization_id: subscription
+        for subscription in Subscription.objects.filter(
+            organization_id__in=organization_ids
+        )
+    }
 
     payload = []
     for property_ in properties:
@@ -284,6 +293,9 @@ def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
                     "slug": organization.slug,
                     "isActive": organization.is_active,
                     "activeMemberCount": members.get(organization.id, 0),
+                    "subscription": build_subscription_payload(
+                        subscriptions.get(organization.id), now=now
+                    ),
                 },
                 "onboarding": {
                     "source": "REQUEST" if property_.id in via_request else "ADMIN",

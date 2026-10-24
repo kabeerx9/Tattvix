@@ -46,6 +46,9 @@ def hotel_report_register(request, organization_slug: str, property_slug: str):
         organization_slug=organization_slug,
         property_slug=property_slug,
         permission=Permission.REPORTS_VIEW,
+        # The guest register is a legal record the hotel must always be able
+        # to produce; it is not gated by the subscription.
+        allow_expired=True,
     )
     date_from, date_to = _resolve_date_range(request)
     entries = build_register_entries(
@@ -113,6 +116,8 @@ def hotel_report_in_house(request, organization_slug: str, property_slug: str):
         organization_slug=organization_slug,
         property_slug=property_slug,
         permission=Permission.REPORTS_VIEW,
+        # Who is in-house right now is operational, not analytics.
+        allow_expired=True,
     )
     return Response({"entries": build_in_house_entries(property_=property_)})
 

@@ -7,6 +7,15 @@
  */
 import type { MeResponse, Permission } from "@tattvix/contracts";
 
+const TRIAL_SUBSCRIPTION = {
+  status: "TRIALING",
+  entitled: true,
+  trialEndsAt: "2026-12-08T00:00:00Z",
+  paidUntil: null,
+  entitledUntil: "2026-12-08T00:00:00Z",
+  daysLeft: 45,
+} as const;
+
 export type ShellAccount = "guest" | "one" | "two-orgs" | "many" | "admin";
 export const shellAccounts: ShellAccount[] = ["guest", "one", "two-orgs", "many", "admin"];
 
@@ -35,6 +44,7 @@ function membership(
     id: nextId++,
     role,
     hasAllProperties: role === "OWNER",
+    subscription: TRIAL_SUBSCRIPTION,
     permissions: role === "RECEPTION" ? reception : owner,
     organization: { id: nextId++, name, slug },
     properties: properties.map(([propertyName, propertySlug]) => ({ id: nextId++, name: propertyName, slug: propertySlug })),

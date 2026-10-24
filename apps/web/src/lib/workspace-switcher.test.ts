@@ -15,6 +15,15 @@ import {
   SWITCHER_SEARCH_THRESHOLD,
 } from "./workspace-switcher";
 
+const TRIAL_SUBSCRIPTION = {
+  status: "TRIALING",
+  entitled: true,
+  trialEndsAt: "2026-12-08T00:00:00Z",
+  paidUntil: null,
+  entitledUntil: "2026-12-08T00:00:00Z",
+  daysLeft: 45,
+} as const;
+
 const view: Permission[] = ["hotel:view"];
 let nextId = 100;
 function membership(
@@ -23,7 +32,7 @@ function membership(
   permissions: Permission[] = view,
   role: "OWNER" | "MANAGER" | "RECEPTION" = "OWNER",
 ): MeResponse["memberships"][number] {
-  return { id: nextId++, role, hasAllProperties: role === "OWNER", permissions, organization: org, properties };
+  return { id: nextId++, role, hasAllProperties: role === "OWNER", subscription: TRIAL_SUBSCRIPTION, permissions, organization: org, properties };
 }
 function me(overrides: Partial<MeResponse> = {}): MeResponse {
   return {

@@ -50,6 +50,7 @@ import {
 import { hotelRegistrationQueries } from "@/features/hotel-registration/queries";
 import { hasPendingHotelRequest } from "@/features/hotel-registration/status";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
+import { SubscriptionBanner } from "@/features/subscription/components/subscription-banner";
 import {
   getActiveHotelContext,
   getActiveWorkspace,
@@ -313,6 +314,8 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
       />
       {/* Phones get a top bar only when there is no tab bar (a hotel with no property yet). */}
       {!hasTabBar ? <PhoneTopBar shell={shell} person={person} onOpen={() => setSheetOpen(true)} /> : null}
+      {/* Hotel staff see their trial clock from day one; paid hotels see nothing. */}
+      {shell.context ? <SubscriptionBanner subscription={shell.context.membership.subscription} /> : null}
       <main
         className={cn(
           "mx-auto w-full max-w-[1400px] px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sm:px-8 md:pt-8",

@@ -29,12 +29,26 @@ export const organizationSummarySchema = z.object({
   slug: z.string(),
 }).strict();
 
+// Entitlement is computed server-side from the dates; `status` is a label for
+// display and `entitled` is the one boolean the UI should branch on.
+export const subscriptionStatusSchema = z.enum(["TRIALING", "PAID", "EXPIRED", "MISSING"]);
+
+export const subscriptionSchema = z.object({
+  status: subscriptionStatusSchema,
+  entitled: z.boolean(),
+  trialEndsAt: z.iso.datetime().nullable(),
+  paidUntil: z.iso.datetime().nullable(),
+  entitledUntil: z.iso.datetime().nullable(),
+  daysLeft: z.number().int().nonnegative(),
+}).strict();
+
 export const membershipSchema = z.object({
   id: z.number(),
   role: membershipRoleSchema,
   hasAllProperties: z.boolean(),
   permissions: z.array(permissionSchema),
   organization: organizationSummarySchema,
+  subscription: subscriptionSchema,
   properties: z.array(propertyAccessSchema),
 }).strict();
 
@@ -55,6 +69,8 @@ export const meResponseSchema = z.object({
 }).strict();
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
+export type Subscription = z.infer<typeof subscriptionSchema>;
+export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
 export type Permission = z.infer<typeof permissionSchema>;
 export type PlatformRole = z.infer<typeof platformRoleSchema>;
 export type MembershipRole = z.infer<typeof membershipRoleSchema>;
@@ -62,4 +78,5 @@ export type Membership = z.infer<typeof membershipSchema>;
 
 export const apiErrorResponseSchema = z.object({
   error: z.string(),
+  code: z.string().optional(),
 });

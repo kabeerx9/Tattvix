@@ -19,6 +19,7 @@ from .models import (
     StayStatus,
 )
 from .platform_onboarding import PlatformOnboardingError
+from .subscriptions import build_pricing_payload, build_subscription_payload
 from .user_lookup import (
     AmbiguousExistingUser,
     ExistingUserNotFound,
@@ -93,6 +94,10 @@ def build_organization_detail(organization: Organization) -> dict:
         },
         "properties": [build_property_payload(p) for p in properties],
         "members": [build_member_payload(m) for m in members],
+        "subscription": build_subscription_payload(
+            getattr(organization, "subscription", None), include_events=True
+        ),
+        "pricing": build_pricing_payload(organization),
     }
 
 

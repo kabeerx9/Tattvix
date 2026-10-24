@@ -125,6 +125,8 @@ def hotel_stay_checkout(
         organization_slug=organization_slug,
         property_slug=property_slug,
         permission=Permission.STAYS_UPDATE,
+        # A lapsed subscription must never strand a guest in a room.
+        allow_expired=True,
     )
     stay = get_object_or_404(
         Stay,

@@ -4,11 +4,14 @@ import { apiErrorResponseSchema } from "./me";
 
 export class ApiError extends Error {
   status: number;
+  /** Machine-readable error code from the server, e.g. "subscription_expired". */
+  code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -50,6 +53,7 @@ export function createApiClient(options: ApiClientOptions) {
     throw new ApiError(
       response.status,
       parsed.success ? parsed.data.error : response.statusText,
+      parsed.success ? parsed.data.code ?? null : null,
     );
   }
 

@@ -11,6 +11,7 @@ from .rbac import (
     permissions_for_membership_role,
     permissions_for_platform_role,
 )
+from .subscriptions import build_subscription_payload
 
 
 def build_current_user_payload(user: ClerkUser) -> dict:
@@ -33,7 +34,7 @@ def build_current_user_payload(user: ClerkUser) -> dict:
             is_active=True,
             organization__is_active=True,
         )
-        .select_related("organization")
+        .select_related("organization", "organization__subscription")
         .prefetch_related(
             Prefetch(
                 "organization__properties",
@@ -90,6 +91,9 @@ def _membership_payload(membership: Membership) -> dict:
             "name": membership.organization.name,
             "slug": membership.organization.slug,
         },
+        "subscription": build_subscription_payload(
+            getattr(membership.organization, "subscription", None)
+        ),
         "properties": [
             {
                 "id": property_.id,

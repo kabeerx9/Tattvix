@@ -19,7 +19,8 @@ from .platform_admin import (
 )
 from .platform_portfolio import build_platform_portfolio
 from .platform_onboarding import PlatformOnboardingError, onboard_organization
-from .models import ClerkUser, Membership, Organization
+from .models import ClerkUser, Membership, Organization, Subscription
+from .subscriptions import SubscriptionError, build_subscription_payload, extend_trial
 from .serializers import (
     PlatformMemberAddSerializer,
     PlatformMemberUpdateSerializer,
@@ -28,6 +29,7 @@ from .serializers import (
     PlatformOversightWeeklyCheckInsQuerySerializer,
     PlatformPortfolioQuerySerializer,
     PlatformPropertyCreateSerializer,
+    PlatformTrialExtendSerializer,
     PlatformUserSearchQuerySerializer,
     PlatformUserSearchResultSerializer,
 )
@@ -71,6 +73,31 @@ def platform_user_list(request):
 def platform_organization_detail(request, organization_slug: str):
     organization = get_object_or_404(Organization, slug=organization_slug)
     return Response(build_organization_detail(organization))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsPlatformAdmin])
+def platform_organization_extend_trial(request, organization_slug: str):
+    organization = get_object_or_404(Organization, slug=organization_slug, is_active=True)
+    serializer = PlatformTrialExtendSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        subscription = extend_trial(
+            organization=organization,
+            actor=request.user.db_user,
+            **serializer.validated_data,
+        )
+    except Subscription.DoesNotExist:
+        return Response(
+            {"error": "This organization has no subscription.", "code": "subscription_missing"},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except SubscriptionError as exc:
+        return Response(
+            {"error": exc.message, "code": exc.code},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(build_subscription_payload(subscription, include_events=True))
 
 
 @api_view(["POST"])

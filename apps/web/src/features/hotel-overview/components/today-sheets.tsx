@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { InitialsAvatar } from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { getRoomTypePhotoUrl } from "@/features/property-photos/helpers";
+import { useHotelSubscription } from "@/features/subscription/use-hotel-subscription";
 import { ApiError } from "@/lib/api";
 import { formatMoneyMinor, formatMoneyWholeRupees } from "@/lib/money";
 
@@ -145,6 +146,8 @@ export function StaySheet({
   const queryClient = useQueryClient();
   const checkIn = useMutation(hotelOperationsMutations.checkIn(queryClient));
   const checkout = useMutation(hotelOperationsMutations.checkout(queryClient));
+  // A lapsed trial pauses check-ins (checkout stays open); the server returns 402 regardless.
+  const entitled = useHotelSubscription(scope.organizationSlug)?.entitled ?? true;
   const shownId = useLatest(stayId);
   const stay = stays.find((entry) => entry.id === shownId);
   const [roomId, setRoomId] = useState<number | null>(null);
@@ -204,14 +207,16 @@ export function StaySheet({
     footer = (
       <Button
         className="h-12 w-full rounded-xl text-[15px] font-semibold"
-        disabled={!selected || !selectedHasRate || !idActive || checkIn.isPending}
+        disabled={!entitled || !selected || !selectedHasRate || !idActive || checkIn.isPending}
         onClick={confirmCheckIn}
       >
-        {checkIn.isPending
-          ? "Checking in…"
-          : selected
-            ? `Check in to room ${selected.number}`
-            : "Choose a room"}
+        {!entitled
+          ? "Check-ins paused · trial ended"
+          : checkIn.isPending
+            ? "Checking in…"
+            : selected
+              ? `Check in to room ${selected.number}`
+              : "Choose a room"}
       </Button>
     );
   } else if (stay && inHouse && scope.canCheckout) {

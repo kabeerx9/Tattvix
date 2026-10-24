@@ -44,6 +44,7 @@ from .hotel_report_views import (
 )
 from .platform_views import (
     platform_organization_detail,
+    platform_organization_extend_trial,
     platform_organization_list,
     platform_organization_member_detail,
     platform_organization_members,
@@ -296,6 +297,11 @@ urlpatterns = [
         "api/platform/organizations/<slug:organization_slug>/",
         platform_organization_detail,
         name="platform-organization-detail",
+    ),
+    path(
+        "api/platform/organizations/<slug:organization_slug>/subscription/extend-trial/",
+        platform_organization_extend_trial,
+        name="platform-organization-extend-trial",
     ),
     path(
         "api/platform/organizations/<slug:organization_slug>/properties/",

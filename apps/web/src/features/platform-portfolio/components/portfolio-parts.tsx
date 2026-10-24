@@ -34,6 +34,27 @@ export function SetupPill({ property }: { property: PlatformPortfolioProperty })
   return <StatusPill tone={status.tone}>{status.label}</StatusPill>;
 }
 
+export function SubscriptionPill({
+  subscription,
+}: {
+  subscription: PlatformPortfolioProperty["organization"]["subscription"];
+}) {
+  switch (subscription.status) {
+    case "PAID":
+      return <StatusPill tone="success">Paid</StatusPill>;
+    case "TRIALING":
+      return (
+        <StatusPill tone={subscription.daysLeft <= 14 ? "warning" : "neutral"}>
+          Trial · {subscription.daysLeft}d
+        </StatusPill>
+      );
+    case "EXPIRED":
+      return <StatusPill tone="danger">Trial ended</StatusPill>;
+    default:
+      return <StatusPill tone="danger">No subscription</StatusPill>;
+  }
+}
+
 export function roomStatusSummary(rooms: PlatformPortfolioRoomCounts) {
   if (!rooms.total) return "No rooms yet";
   return roomStatusSegments
@@ -99,8 +120,13 @@ export function PortfolioPropertyCard({ property }: { property: PlatformPortfoli
     <article className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card shadow-card">
       <div className="relative">
         <PhotoTile url={property.coverPhotoUrl} label="No photo yet" className="aspect-[16/9] w-full" />
-        <div className="absolute top-3 left-3 rounded-full bg-card shadow-card">
-          <SetupPill property={property} />
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-card shadow-card">
+            <SetupPill property={property} />
+          </span>
+          <span className="rounded-full bg-card shadow-card">
+            <SubscriptionPill subscription={property.organization.subscription} />
+          </span>
         </div>
       </div>
       <div className="grid flex-1 gap-4 p-5">

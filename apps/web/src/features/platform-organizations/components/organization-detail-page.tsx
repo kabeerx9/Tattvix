@@ -28,6 +28,7 @@ import { formatMoneyWholeRupees } from "@/lib/money";
 
 import { platformOrganizationMutations } from "../mutations";
 import { platformOrganizationQueries } from "../queries";
+import { SubscriptionSection } from "./subscription-section";
 
 const ROLES: PlatformMembershipRole[] = ["OWNER", "MANAGER", "RECEPTION"];
 
@@ -60,6 +61,12 @@ export function OrganizationDetailPage({
         <Fact label="Revenue" value={formatMoneyWholeRupees(totals.revenueLast30DaysMinor)} detail="last 30 days" />
         <Fact label="Members" value={data.members.length} />
       </FactsRow>
+
+      <SubscriptionSection
+        organizationSlug={organizationSlug}
+        subscription={data.subscription}
+        pricing={data.pricing}
+      />
 
       <PropertiesSection
         organizationSlug={organizationSlug}

@@ -12,13 +12,22 @@ import {
   getSetupStatus,
 } from "./metrics";
 
+const TRIAL = {
+  status: "TRIALING",
+  entitled: true,
+  trialEndsAt: "2026-12-08T00:00:00Z",
+  paidUntil: null,
+  entitledUntil: "2026-12-08T00:00:00Z",
+  daysLeft: 45,
+} as const;
+
 function property(overrides: Partial<PlatformPortfolioProperty> & { id: number; name: string }): PlatformPortfolioProperty {
   return {
     slug: overrides.name.toLowerCase(),
     isActive: true,
     address: "",
     coverPhotoUrl: null,
-    organization: { name: "Tattwix Hotels", slug: "tattwix-hotels", isActive: true, activeMemberCount: 1 },
+    organization: { name: "Tattwix Hotels", slug: "tattwix-hotels", isActive: true, activeMemberCount: 1, subscription: TRIAL },
     onboarding: { source: "ADMIN", onboardedAt: "2026-10-01T00:00:00+00:00" },
     setup: { hasAddress: true, hasCoverPhoto: true, hasRooms: true, hasRates: true },
     rooms: { total: 0, occupied: 0, ready: 0, cleaning: 0, maintenance: 0 },
@@ -45,7 +54,7 @@ const jaipur = property({
 const goa = property({
   id: 2,
   name: "Goa",
-  organization: { name: "Other Stays", slug: "other-stays", isActive: true, activeMemberCount: 3 },
+  organization: { name: "Other Stays", slug: "other-stays", isActive: true, activeMemberCount: 3, subscription: TRIAL },
   rooms: { total: 90, occupied: 9, ready: 70, cleaning: 10, maintenance: 1 },
   occupancy: { recentNights: 7, recentOccupiedRoomNights: 63, recentAvailableRoomNights: 630 },
   revenueLast30DaysMinor: 9_000_000,

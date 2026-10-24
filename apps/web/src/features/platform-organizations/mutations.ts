@@ -2,6 +2,7 @@ import type {
   PlatformMemberAddInput,
   PlatformMemberUpdateInput,
   PlatformPropertyCreateInput,
+  PlatformTrialExtendInput,
 } from "@tattvix/contracts";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -67,6 +68,17 @@ export const platformOrganizationMutations = {
     }) =>
       platformOrganizationsApi.updateMember(organizationSlug, memberId, input),
     onSuccess: (_member: unknown, variables: { organizationSlug: string }) =>
+      invalidateOrganization(queryClient, variables.organizationSlug),
+  }),
+  extendTrial: (queryClient: QueryClient) => ({
+    mutationFn: ({
+      organizationSlug,
+      input,
+    }: {
+      organizationSlug: string;
+      input: PlatformTrialExtendInput;
+    }) => platformOrganizationsApi.extendTrial(organizationSlug, input),
+    onSuccess: (_subscription: unknown, variables: { organizationSlug: string }) =>
       invalidateOrganization(queryClient, variables.organizationSlug),
   }),
 };

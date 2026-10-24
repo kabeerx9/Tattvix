@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { identityAccessActionSchema } from "./check-in";
+import { subscriptionSchema } from "./me";
 
 const namedSlugSchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -95,6 +96,35 @@ export const platformMemberSchema = z.object({
   }).strict(),
 }).strict();
 
+export const subscriptionEventKindSchema = z.enum(["TRIAL_STARTED", "TRIAL_EXTENDED"]);
+
+export const subscriptionEventSchema = z.object({
+  id: z.number(),
+  kind: subscriptionEventKindSchema,
+  actorEmail: z.string().nullable(),
+  previousTrialEndsAt: z.iso.datetime().nullable(),
+  newTrialEndsAt: z.iso.datetime(),
+  note: z.string(),
+  createdAt: z.iso.datetime(),
+}).strict();
+
+export const platformSubscriptionSchema = subscriptionSchema.extend({
+  events: z.array(subscriptionEventSchema),
+}).strict();
+
+export const platformPricingSchema = z.object({
+  currency: z.literal("INR"),
+  pricePerPropertyMinor: z.number().int().nonnegative(),
+  activeProperties: z.number().int().nonnegative(),
+  monthlyTotalMinor: z.number().int().nonnegative(),
+}).strict();
+
+export const platformTrialExtendInputSchema = z.object({
+  // The target date, not a delta, so a retried request is a no-op.
+  trialEndsAt: z.iso.datetime(),
+  note: z.string().trim().max(500).optional(),
+}).strict();
+
 export const platformOrganizationDetailSchema = z.object({
   organization: z.object({
     id: z.number(),
@@ -104,6 +134,8 @@ export const platformOrganizationDetailSchema = z.object({
   }).strict(),
   properties: z.array(platformPropertySchema),
   members: z.array(platformMemberSchema),
+  subscription: platformSubscriptionSchema,
+  pricing: platformPricingSchema,
 }).strict();
 
 export const platformPropertyCreateInputSchema = namedSlugSchema;
@@ -319,6 +351,7 @@ export const platformPortfolioPropertySchema = z.object({
     slug: z.string(),
     isActive: z.boolean(),
     activeMemberCount: z.number().int().nonnegative(),
+    subscription: subscriptionSchema,
   }).strict(),
   onboarding: z.object({
     source: z.enum(["REQUEST", "ADMIN"]),
@@ -362,3 +395,8 @@ export type PlatformPortfolioRoomType = z.infer<typeof platformPortfolioRoomType
 export type PlatformPortfolioProperty = z.infer<typeof platformPortfolioPropertySchema>;
 export type PlatformPortfolioResponse = z.infer<typeof platformPortfolioResponseSchema>;
 export type PlatformPortfolioQuery = z.infer<typeof platformPortfolioQuerySchema>;
+
+export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;
+export type PlatformSubscription = z.infer<typeof platformSubscriptionSchema>;
+export type PlatformPricing = z.infer<typeof platformPricingSchema>;
+export type PlatformTrialExtendInput = z.infer<typeof platformTrialExtendInputSchema>;

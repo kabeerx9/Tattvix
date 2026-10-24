@@ -14,6 +14,15 @@ import {
   splitPlatformNavForTabBar,
 } from "./workspace-navigation";
 
+const TRIAL_SUBSCRIPTION = {
+  status: "TRIALING",
+  entitled: true,
+  trialEndsAt: "2026-12-08T00:00:00Z",
+  paidUntil: null,
+  entitledUntil: "2026-12-08T00:00:00Z",
+  daysLeft: 45,
+} as const;
+
 const user: MeResponse = {
   id: 1,
   clerkId: "user_owner",
@@ -32,6 +41,7 @@ const user: MeResponse = {
       id: 1,
       role: "OWNER",
       hasAllProperties: true,
+      subscription: TRIAL_SUBSCRIPTION,
       permissions: ["hotel:view"],
       organization: { id: 1, name: "First", slug: "first" },
       properties: [{ id: 1, name: "Main", slug: "main" }],
@@ -40,6 +50,7 @@ const user: MeResponse = {
       id: 2,
       role: "OWNER",
       hasAllProperties: true,
+      subscription: TRIAL_SUBSCRIPTION,
       permissions: ["hotel:view"],
       organization: { id: 2, name: "Second", slug: "second" },
       properties: [{ id: 2, name: "Branch", slug: "branch" }],

@@ -218,6 +218,12 @@ CLERK_AUTHORIZED_PARTIES = env_list("CLERK_AUTHORIZED_PARTIES", "")
 # Empty disables the cron endpoints (they fail closed with 503).
 CRON_SECRET = os.environ.get("CRON_SECRET", "").strip()
 
+# Every hotel starts on a free trial; after it ends, the owner pays per property.
+SUBSCRIPTION_TRIAL_DAYS = env_positive_int("SUBSCRIPTION_TRIAL_DAYS", 45)
+SUBSCRIPTION_PRICE_PER_PROPERTY_MINOR = env_positive_int(
+    "SUBSCRIPTION_PRICE_PER_PROPERTY_MINOR", 50000
+)
+
 COMPANION_MINOR_AGE_YEARS =env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 HOTEL_QR_TOKEN_TTL_DAYS = env_positive_int("HOTEL_QR_TOKEN_TTL_DAYS", 365)
 HOTEL_IDENTITY_MAX_ACCESS_DAYS = env_positive_int(
@@ -310,6 +316,7 @@ TRUSTED_PROXY_COUNT = (
 
 REST_FRAMEWORK = {
     "NUM_PROXIES": TRUSTED_PROXY_COUNT,
+    "EXCEPTION_HANDLER": "api.exceptions.exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.ClerkAuthentication",
     ],

@@ -38,6 +38,7 @@ import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { toast } from "sonner";
 
+import { useHotelSubscription } from "@/features/subscription/use-hotel-subscription";
 import {
   ConfirmDialog,
   Fact,
@@ -174,6 +175,10 @@ export function HotelStayDetailPage({
   const checkoutMutation = useMutation(
     hotelOperationsMutations.checkout(queryClient),
   );
+  // A lapsed trial pauses new check-ins; checkout stays available so no guest
+  // is stranded. The server enforces this too (402), the UI just doesn't offer it.
+  const subscription = useHotelSubscription(organizationSlug);
+  const entitled = subscription?.entitled ?? true;
   const imagesPreparing = imageQueries.some(
     (query) => !query.data && (query.isPending || query.isFetching),
   );
@@ -337,7 +342,7 @@ export function HotelStayDetailPage({
               <OperationalStayPanel
                 stay={stay}
                 rooms={roomData.rooms}
-                canAssign={canAssign}
+                canAssign={canAssign && entitled}
                 selectedRoomId={selectedRoomId}
                 onRoomChange={setSelectedRoomId}
                 nights={nights}
