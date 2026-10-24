@@ -42,7 +42,7 @@ import {
   type PortfolioSort,
 } from "../metrics";
 import { platformPortfolioQueries } from "../queries";
-import { SetupPill, roomStatusSummary } from "./portfolio-parts";
+import { SetupPill, SubscriptionPill, roomStatusSummary } from "./portfolio-parts";
 
 export function PortfolioOverviewPage() {
   const { data: portfolio } = useSuspenseQuery(platformPortfolioQueries.list());
@@ -248,6 +248,7 @@ function PortfolioTable({ rows }: { rows: PlatformPortfolioProperty[] }) {
           cell: (property) => (
             <span className="grid justify-items-start gap-1">
               <SetupPill property={property} />
+              <SubscriptionPill subscription={property.organization.subscription} />
               <span className="text-xs text-subtle-foreground">{formatLastActivity(property.lastActivityAt)}</span>
             </span>
           ),

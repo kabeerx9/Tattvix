@@ -6,15 +6,13 @@ import { hotelReportsQueries } from "@/features/hotel-reports/queries";
 export const Route = createFileRoute(
   "/_auth/_hotel/hotel/$organizationSlug/$propertySlug/reports",
 )({
+  // Only the in-house list is preloaded: occupancy is gated by the subscription
+  // (402 once the trial ends) and the page renders a locked placeholder for it,
+  // which a throwing loader would pre-empt with the route error state.
   loader: ({ context, params }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(
-        hotelReportsQueries.inHouse(params.organizationSlug, params.propertySlug),
-      ),
-      context.queryClient.ensureQueryData(
-        hotelReportsQueries.occupancy(params.organizationSlug, params.propertySlug),
-      ),
-    ]),
+    context.queryClient.ensureQueryData(
+      hotelReportsQueries.inHouse(params.organizationSlug, params.propertySlug),
+    ),
   component: PropertyReportsRoute,
 });
 
