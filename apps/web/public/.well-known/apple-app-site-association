@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAM_ID.com.tattwix.app"],
+        "components": [
+          { "/": "/check-in/*", "comment": "Guest check-in links" },
+          { "/": "/hotel", "comment": "Hotel landing" },
+          { "/": "/hotel/*", "comment": "Hotel pages" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": { "apps": ["TEAM_ID.com.tattwix.app"] }
+}

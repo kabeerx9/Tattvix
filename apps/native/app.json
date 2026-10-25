@@ -17,7 +17,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tattwix.app",
-      "deploymentTarget": "17.0"
+      "deploymentTarget": "17.0",
+      "associatedDomains": ["applinks:tattwix.in"]
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +28,18 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tattwix.app"
+      "package": "com.tattwix.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "tattwix.in", "pathPrefix": "/check-in/" },
+            { "scheme": "https", "host": "tattwix.in", "pathPrefix": "/hotel" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",

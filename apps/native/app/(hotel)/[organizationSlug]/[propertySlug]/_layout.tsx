@@ -1,4 +1,4 @@
-import { Redirect, Stack, useGlobalSearchParams } from "expo-router";
+import { Redirect, Stack, usePathname, useGlobalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -8,6 +8,7 @@ import { colors } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { HotelPlaceProvider } from "@/src/lib/hotel-place";
 import { writeLastPlace } from "@/src/lib/last-place";
+import { setPendingPath } from "@/src/lib/pending-path";
 import { findHotelPlace, isReadOnly } from "@/src/lib/workspace";
 
 /**
@@ -20,6 +21,7 @@ export default function HotelLayout() {
   // Global, not local: replacing /(hotel)/a/x with /(hotel)/a/y keeps this layout
   // mounted and only the URL params change, so local params would go stale.
   const { organizationSlug, propertySlug } = useGlobalSearchParams<{ organizationSlug: string; propertySlug: string }>();
+  const pathname = usePathname();
   const user = useCurrentUser();
   const place = findHotelPlace(user.data ?? null, organizationSlug, propertySlug);
   const placeKey = place?.key ?? null;
@@ -28,7 +30,11 @@ export default function HotelLayout() {
     if (placeKey && user.clerkUserId) writeLastPlace(user.clerkUserId, placeKey);
   }, [placeKey, user.clerkUserId]);
 
-  if (user.isSignedIn === false) return <Redirect href="/" />;
+  if (user.isSignedIn === false) {
+    // Sign-in resumes here; if the hotel is not theirs after all, the guard below sends them to the landing.
+    setPendingPath(pathname);
+    return <Redirect href="/" />;
+  }
   if (!user.data) {
     if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;
     return <PendingScreen />;

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tattwix.app",
+      "sha256_cert_fingerprints": [
+        "AF:BE:2D:DA:E8:84:4B:F5:DD:EB:FA:C5:E1:D9:AE:19:56:31:D6:93:4D:AA:A5:98:1E:5C:83:95:C4:F9:15:5C",
+        "54:C1:29:6A:FD:7C:56:0E:E1:0B:04:93:F4:A1:1F:10:C4:0B:70:22:32:89:16:67:25:A7:ED:4B:6B:C3:4A:20"
+      ]
+    }
+  }
+]
