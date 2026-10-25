@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import type { MeResponse, Membership } from "@tattvix/contracts";
 
-import { describeHotelPlace, findHotelPlace, getHotelPlaces, getLanding, isReadOnly } from "./workspace";
+import { describeHotelPlace, findHotelPlace, getHotelPlaces, getLanding, isPlatformAdmin, isReadOnly } from "./workspace";
 
 const subscription = {
   status: "TRIALING",
@@ -106,5 +106,15 @@ describe("describeHotelPlace and isReadOnly", () => {
     const expired = getHotelPlaces(me([membership({ organization: sunrise, properties: [jaipur], subscription: { ...subscription, status: "EXPIRED", entitled: false, daysLeft: 0 } })]))[0]!;
     assert.equal(isReadOnly(expired), true);
     assert.equal(isReadOnly(getHotelPlaces(owner)[0]!), false);
+  });
+});
+
+describe("isPlatformAdmin", () => {
+  it("is true only for a person holding platform:admin", () => {
+    assert.equal(isPlatformAdmin({ ...guest, platformPermissions: ["platform:admin"] }), true);
+  });
+  it("is false without the permission, or with no me at all", () => {
+    assert.equal(isPlatformAdmin(owner), false);
+    assert.equal(isPlatformAdmin(null), false);
   });
 });

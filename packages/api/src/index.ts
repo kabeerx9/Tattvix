@@ -64,6 +64,7 @@ export { createGuestStayQueries, createGuestStaysApi, type GuestStaysApi } from 
 export { guestStayStatusLabel } from "./guest-stay-status";
 export { createHotelDetailsApi, createHotelDetailsQueries, hotelDetailsKeys, type HotelDetailsApi } from "./hotel-details";
 export * from "./hotel-metrics";
+export * from "./platform-metrics";
 export { createHotelOperationsApi, createHotelOperationsQueries, hotelOperationsKeys, type HotelOperationsApi } from "./hotel-operations";
 export { createHotelOverviewApi, createHotelOverviewQueries, hotelOverviewKeys, type HotelOverviewApi } from "./hotel-overview";
 export {

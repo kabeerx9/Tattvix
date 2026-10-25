@@ -74,6 +74,11 @@ export function hasPermission(place: Pick<HotelPlace, "permissions">, permission
   return place.permissions.includes(permission);
 }
 
+/** Platform admins see the Tattwix-wide Platform screen; the server still checks every call. */
+export function isPlatformAdmin(me: MeResponse | null) {
+  return me?.platformPermissions.includes("platform:admin") ?? false;
+}
+
 /** Whether a hotel's writes are paused: an expired or missing subscription. */
 export function isReadOnly(place: Pick<HotelPlace, "subscription">) {
   return !place.subscription.entitled;

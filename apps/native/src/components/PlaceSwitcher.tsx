@@ -1,17 +1,17 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
-import { BarChart3, BedDouble, Building2, LogOut, QrCode, Settings, UserRound } from "lucide-react-native";
+import { BarChart3, BedDouble, Building2, LogOut, QrCode, Settings, ShieldCheck, UserRound } from "lucide-react-native";
 import { useState } from "react";
 
 import { BottomSheet, ConfirmSheet, ListRow, Panel, StatusPill } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
-import { describeHotelPlace, getHotelPlaces, hotelHref } from "@/src/lib/workspace";
+import { describeHotelPlace, getHotelPlaces, hotelHref, isPlatformAdmin } from "@/src/lib/workspace";
 import { SectionTitle, space } from "@/src/design-system";
 import { Linking, StyleSheet, View } from "react-native";
 
-export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string };
+export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string } | { kind: "admin" };
 
 /**
  * The rows of the place switcher: Personal, every hotel the person may open,
@@ -53,6 +53,15 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
           />
         );
       })}
+      {isPlatformAdmin(user.data ?? null) ? (
+        <ListRow
+          icon={ShieldCheck}
+          title="Platform"
+          detail="Every hotel, occupancy and check-ins"
+          trailing={current.kind === "admin" ? <StatusPill tone="success">Current</StatusPill> : undefined}
+          onPress={() => go("/(admin)" as Href)}
+        />
+      ) : null}
       {current.kind === "guest" ? (
         <ListRow
           icon={Building2}

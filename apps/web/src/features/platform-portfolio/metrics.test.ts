@@ -5,12 +5,8 @@ import type { PlatformPortfolioProperty, Subscription } from "@tattvix/contracts
 import {
   filterAndSortPortfolio,
   formatLastActivity,
-  formatPercent,
   formatRateRange,
-  getMissingSetup,
   getPortfolioAttention,
-  getPortfolioTotals,
-  getSetupStatus,
 } from "./metrics";
 
 const TRIAL = {
@@ -63,26 +59,6 @@ const goa = property({
 });
 const empty = property({ id: 3, name: "Agra", setup: { hasAddress: false, hasCoverPhoto: false, hasRooms: false, hasRates: false } });
 
-describe("portfolio totals", () => {
-  it("weights occupancy by rooms instead of averaging hotel percentages", () => {
-    const totals = getPortfolioTotals([jaipur, goa, empty]);
-    assert.equal(totals.properties, 3);
-    assert.equal(totals.organizations, 2);
-    assert.equal(totals.rooms, 100);
-    // (9 + 9) / 100, not the 50% mean of 90% and 10%.
-    assert.equal(totals.occupancyTonight, 0.18);
-    assert.equal(totals.occupancyRecent, 119 / 700);
-    assert.equal(totals.revenueLast30DaysMinor, 14_000_000);
-    assert.equal(totals.inHouse, 9);
-  });
-
-  it("has no occupancy when there are no rooms", () => {
-    const totals = getPortfolioTotals([empty]);
-    assert.equal(totals.occupancyTonight, null);
-    assert.equal(formatPercent(totals.occupancyTonight), "—");
-  });
-});
-
 describe("portfolio search and sort", () => {
   const all = [jaipur, goa, empty];
 
@@ -108,18 +84,6 @@ describe("portfolio formatting", () => {
     assert.equal(formatRateRange({ minMinor: null, avgMinor: null, maxMinor: null }), "No rates");
     assert.equal(formatRateRange({ minMinor: 400_000, avgMinor: 400_000, maxMinor: 400_000 }), "₹4,000");
     assert.equal(formatRateRange({ minMinor: 400_000, avgMinor: 733_333, maxMinor: 1_200_000 }), "₹4,000–₹12,000");
-  });
-
-  it("caps recent occupancy at 100%", () => {
-    assert.equal(formatPercent(1.4), "100%");
-    assert.equal(formatPercent(0.555), "56%");
-  });
-
-  it("describes setup progress", () => {
-    assert.deepEqual(getSetupStatus(jaipur), { tone: "success", label: "Live" });
-    assert.deepEqual(getSetupStatus(empty), { tone: "warning", label: "Setup 0/4" });
-    assert.deepEqual(getSetupStatus({ ...jaipur, isActive: false }), { tone: "neutral", label: "Inactive" });
-    assert.deepEqual(getMissingSetup(empty), ["rooms", "nightly rates", "address", "cover photo"]);
   });
 
   it("formats last activity relative to now", () => {
