@@ -33,12 +33,24 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "tattwix.in", "pathPrefix": "/check-in/" },
-            { "scheme": "https", "host": "tattwix.in", "pathPrefix": "/hotel" }
+            {
+              "scheme": "https",
+              "host": "tattwix.in",
+              "pathPrefix": "/check-in/"
+            },
+            {
+              "scheme": "https",
+              "host": "tattwix.in",
+              "pathPrefix": "/hotel"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
-      ]
+      ],
+      "versionCode": 2
     },
     "web": {
       "output": "static",
