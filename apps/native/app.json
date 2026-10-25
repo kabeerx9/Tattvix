@@ -3,6 +3,13 @@
     "name": "Tattwix",
     "slug": "tattwix",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/adc9cd67-1300-4fc7-9acc-1b5cce5e188f"
+    },
+    "owner": "kabeerx9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tattwix",
@@ -64,6 +71,16 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "adc9cd67-1300-4fc7-9acc-1b5cce5e188f"
+      }
     }
   }
 }
