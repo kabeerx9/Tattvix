@@ -33,7 +33,7 @@ export default function HotelLayout() {
   if (user.isSignedIn === false) {
     // Sign-in resumes here; if the hotel is not theirs after all, the guard below sends them to the landing.
     setPendingPath(pathname);
-    return <Redirect href="/" />;
+    return <Redirect href="/sign-in" />;
   }
   if (!user.data) {
     if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;

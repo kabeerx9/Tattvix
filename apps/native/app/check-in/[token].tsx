@@ -60,7 +60,7 @@ export default function CheckInRoute() {
         onSignIn={() => {
           // Sign-in resumes this check-in once the guest is signed in.
           setPendingPath(`/check-in/${token}`);
-          router.replace("/");
+          router.replace("/sign-in");
         }}
       />
     );

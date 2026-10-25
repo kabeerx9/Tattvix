@@ -8,13 +8,14 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Splash } from "@/src/design-system/Splash";
 import { Toaster } from "@/src/design-system/Toast";
 import { setTokenGetter } from "@/src/lib/api";
+import { setPendingPath } from "@/src/lib/pending-path";
 import { queryClient, setAuthHandlers } from "@/src/lib/query";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -40,8 +41,10 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="sign-in" />
             <Stack.Screen name="(guest)" />
             <Stack.Screen name="(hotel)" />
+            <Stack.Screen name="(admin)" />
             <Stack.Screen name="check-in/[token]" />
             <Stack.Screen name="gallery" />
             <Stack.Screen name="+not-found" />
@@ -69,8 +72,17 @@ function AuthWiring() {
     };
   }, [getToken, signOut]);
 
+  // Signing out (true → false) also drops a path stashed for sign-in resume, so
+  // the next person on a shared phone starts from their own landing. A cold
+  // start that is simply signed out (null → false) keeps it: that is a deep link.
+  const wasSignedIn = useRef(false);
   useEffect(() => {
-    if (isLoaded && !isSignedIn) queryClient.clear();
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      queryClient.clear();
+      if (wasSignedIn.current) setPendingPath(null);
+    }
+    wasSignedIn.current = !!isSignedIn;
   }, [isLoaded, isSignedIn]);
 
   return null;

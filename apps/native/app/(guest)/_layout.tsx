@@ -9,7 +9,7 @@ import { useCurrentUser } from "@/src/lib/current-user";
 export default function GuestLayout() {
   const user = useCurrentUser();
 
-  if (user.isSignedIn === false) return <Redirect href="/" />;
+  if (user.isSignedIn === false) return <Redirect href="/sign-in" />;
   if (!user.data) {
     if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;
     return <PendingScreen />;
