@@ -1,37 +1,31 @@
 import { SignedIn, SignedOut, useSignIn, useSSO } from "@clerk/clerk-expo";
 import { Redirect, type Href } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
-import { AppButton, AppInput, Card, Screen } from "@/src/design-system/components";
-import { useAppTheme } from "@/src/design-system/theme";
+import { BrandLogo, Button, Screen, TextField, colors, type } from "@/src/design-system";
 
 export default function WelcomeRoute() {
-  const { colors, isDark } = useAppTheme();
   return (
-    <Screen>
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <SignedIn><Redirect href={"/(guest)" as Href} /></SignedIn>
+    <>
+      <SignedIn>
+        <Redirect href={"/(guest)" as Href} />
+      </SignedIn>
       <SignedOut>
-        <SafeAreaView style={styles.safeArea}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-              <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.primary }]}><Text style={[styles.logoText, { color: colors.primaryForeground }]}>T</Text></View><Text style={[styles.brandName, { color: colors.foreground }]}>Tattwix</Text></View>
-              <View style={styles.hero}><Text style={[styles.kicker, { color: colors.primary }]}>Your stay, simplified</Text><Text style={[styles.title, { color: colors.foreground }]}>Arrive ready. Feel at home.</Text><Text style={[styles.copy, { color: colors.mutedForeground }]}>Keep your guest profile, companions, and privacy choices together for a smoother hotel experience.</Text></View>
-              <SignInForm />
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+          <Screen>
+            <SignInForm />
+          </Screen>
+        </KeyboardAvoidingView>
       </SignedOut>
-    </Screen>
+    </>
   );
 }
 
 function SignInForm() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startSSOFlow } = useSSO();
-  const { colors } = useAppTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,15 +62,37 @@ function SignInForm() {
   }, [isGoogleSubmitting, startSSOFlow]);
 
   return (
-    <Card style={styles.form}>
-      <Text style={[styles.formTitle, { color: colors.foreground }]}>Welcome back</Text>
-      <Text style={[styles.formCopy, { color: colors.mutedForeground }]}>Sign in with the same account you use on the web.</Text>
-      <AppButton label="Continue with Google" onPress={google} variant="outline" loading={isGoogleSubmitting} />
-      <View style={styles.divider}><View style={[styles.line, { backgroundColor: colors.border }]} /><Text style={[styles.or, { color: colors.mutedForeground }]}>or</Text><View style={[styles.line, { backgroundColor: colors.border }]} /></View>
-      <AppInput autoCapitalize="none" autoComplete="email" inputMode="email" onChangeText={setEmail} placeholder="Email address" value={email} />
-      <AppInput autoCapitalize="none" onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
-      <AppButton label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded} />
-    </Card>
+    <View style={styles.page}>
+      <BrandLogo size="md" />
+      <Text style={styles.hero}>Welcome back.</Text>
+      <Text style={styles.lede}>Sign in with the account you use on the web. Your hotel and your own stays are both here.</Text>
+
+      <View style={styles.form}>
+        <Button label="Continue with Google" variant="outline" onPress={google} loading={isGoogleSubmitting} leading={<GoogleMark />} />
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.or}>or</Text>
+          <View style={styles.line} />
+        </View>
+        <TextField autoCapitalize="none" autoComplete="email" inputMode="email" onChangeText={setEmail} placeholder="Email address" value={email} />
+        <TextField autoCapitalize="none" onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
+        <Button label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded} />
+      </View>
+
+      <Text style={styles.footer}>By continuing you agree to the Tattwix terms and privacy policy.</Text>
+    </View>
+  );
+}
+
+// The Google "G" in its brand colours (the only coloured artwork in the app).
+function GoogleMark() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 48 48">
+      <Path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
+      <Path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7.1l7.3 5.7c4.3-4 6.9-9.8 6.9-17.3z" />
+      <Path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.7 24c0-1.6.3-3.1.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z" />
+      <Path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.3-5.7c-2.1 1.4-4.8 2.2-8.3 2.2-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
+    </Svg>
   );
 }
 
@@ -86,8 +102,13 @@ function clerkErrorMessage(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, safeArea: { flex: 1 }, scroll: { flexGrow: 1, justifyContent: "center", gap: 32, padding: 24, paddingVertical: 40 },
-  brand: { flexDirection: "row", alignItems: "center", gap: 11 }, logo: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 13 }, logoText: { fontSize: 18, fontWeight: "800" }, brandName: { fontSize: 19, fontWeight: "700", letterSpacing: -0.4 },
-  hero: { gap: 10 }, kicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1.5, textTransform: "uppercase" }, title: { maxWidth: 440, fontSize: 38, lineHeight: 43, fontWeight: "700", letterSpacing: -1.5 }, copy: { maxWidth: 480, fontSize: 15, lineHeight: 23 },
-  form: { gap: 14 }, formTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.4 }, formCopy: { marginTop: -6, fontSize: 13, lineHeight: 19 }, divider: { flexDirection: "row", alignItems: "center", gap: 10 }, line: { flex: 1, height: StyleSheet.hairlineWidth }, or: { fontSize: 12, fontWeight: "600" },
+  flex: { flex: 1, backgroundColor: colors.background },
+  page: { paddingTop: 24 },
+  hero: { ...type.hero, marginTop: 48, color: colors.foreground },
+  lede: { ...type.body, marginTop: 12, color: colors.mutedForeground },
+  form: { marginTop: 40, gap: 12 },
+  divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4 },
+  line: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  or: { ...type.caption, color: colors.subtleForeground },
+  footer: { ...type.caption, marginTop: 28, color: colors.subtleForeground, textAlign: "center" },
 });
