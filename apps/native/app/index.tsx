@@ -4,13 +4,17 @@ import { useCallback, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { BrandLogo, Button, Screen, TextField, colors, type } from "@/src/design-system";
+import { useCurrentUser } from "@/src/lib/current-user";
+import { readLastPlace } from "@/src/lib/last-place";
+import { getLanding, hotelHref } from "@/src/lib/workspace";
 
 export default function WelcomeRoute() {
   return (
     <>
       <SignedIn>
-        <Redirect href={"/(guest)" as Href} />
+        <Landing />
       </SignedIn>
       <SignedOut>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
@@ -21,6 +25,18 @@ export default function WelcomeRoute() {
       </SignedOut>
     </>
   );
+}
+
+// Signed in: load `me` and go where this person belongs. Members land in the
+// hotel they used last (else their first); everyone else lands in guest mode.
+function Landing() {
+  const user = useCurrentUser();
+  if (!user.data) {
+    if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;
+    return <PendingScreen />;
+  }
+  const landing = getLanding(user.data, user.clerkUserId ? readLastPlace(user.clerkUserId) : null);
+  return <Redirect href={(landing.kind === "hotel" ? hotelHref(landing.place) : "/(guest)") as Href} />;
 }
 
 function SignInForm() {

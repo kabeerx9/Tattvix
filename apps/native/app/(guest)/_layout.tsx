@@ -1,33 +1,52 @@
-import { useAuth } from "@clerk/clerk-expo";
 import { Redirect, Tabs } from "expo-router";
-import { Home, Settings, ShieldCheck, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
-import type { ColorValue } from "react-native";
+import { CalendarDays, Home, Menu, ShieldCheck, UserRound } from "lucide-react-native";
+import { useState } from "react";
 
+import { PlaceSwitcherSheet } from "@/src/components/PlaceSwitcher";
+import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
+import { tabIcon } from "@/src/components/tab-icon";
 import { TabBar, colors } from "@/src/design-system";
+import { useCurrentUser } from "@/src/lib/current-user";
 
-// Neutral line icons, stroke 1.6 idle and 2.1 when active.
-function tabIcon(Icon: LucideIcon) {
-  return ({ color, focused }: { color: ColorValue; focused: boolean }) => <Icon color={color as string} size={24} strokeWidth={focused ? 2.1 : 1.6} />;
-}
-
+/**
+ * Guest mode: Home, Stays, Profile, Privacy and Menu. Companions and Account
+ * are reachable from rows, not tabs. Guards only on being signed in; every
+ * signed-in person may be a guest.
+ */
 export default function GuestLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const user = useCurrentUser();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
 
-  if (isLoaded && !isSignedIn) return <Redirect href="/" />;
+  if (user.isSignedIn === false) return <Redirect href="/" />;
+  if (!user.data) {
+    if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;
+    return <PendingScreen />;
+  }
 
   return (
-    <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: tabIcon(Home) }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon(UserRound) }} />
-      <Tabs.Screen name="companions" options={{ title: "Companions", tabBarIcon: tabIcon(UsersRound) }} />
-      <Tabs.Screen name="privacy" options={{ title: "Privacy", tabBarIcon: tabIcon(ShieldCheck) }} />
-      <Tabs.Screen name="account" options={{ title: "Account", tabBarIcon: tabIcon(Settings) }} />
-    </Tabs>
+    <>
+      <Tabs
+        tabBar={(props) => <TabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
+      >
+        <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: tabIcon(Home) }} />
+        <Tabs.Screen name="stays" options={{ title: "Stays", tabBarIcon: tabIcon(CalendarDays) }} />
+        <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon(UserRound) }} />
+        <Tabs.Screen name="privacy" options={{ title: "Privacy", tabBarIcon: tabIcon(ShieldCheck) }} />
+        <Tabs.Screen
+          name="menu"
+          options={{ title: "Menu", tabBarIcon: tabIcon(Menu) }}
+          listeners={{
+            tabPress: (event) => {
+              event.preventDefault();
+              setSwitcherOpen(true);
+            },
+          }}
+        />
+        <Tabs.Screen name="companions" options={{ href: null }} />
+        <Tabs.Screen name="account" options={{ href: null }} />
+      </Tabs>
+      <PlaceSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} current={{ kind: "guest" }} />
+    </>
   );
 }

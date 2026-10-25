@@ -10,7 +10,8 @@
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
     "web": "expo start --web",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.20.0",
@@ -53,6 +54,7 @@
     "@babel/core": "^7.29.0",
     "@tattvix/config": "workspace:*",
     "@types/react": "~19.3.0",
+    "tsx": "^4.20.5",
     "typescript": "~6.0.3"
   }
 }

@@ -1,6 +1,7 @@
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { env } from "@tattvix/env/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -12,6 +13,8 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Splash } from "@/src/design-system/Splash";
+import { setTokenGetter } from "@/src/lib/api";
+import { queryClient, setAuthHandlers } from "@/src/lib/query";
 
 WebBrowser.maybeCompleteAuthSession();
 // Keep the native splash up until the fonts are in; hidden in the effect below.
@@ -31,17 +34,43 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <ClerkProvider publishableKey={env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(guest)" />
-          <Stack.Screen name="gallery" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        {introDone ? null : <Splash onDone={() => setIntroDone(true)} />}
+        <QueryClientProvider client={queryClient}>
+          <AuthWiring />
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(guest)" />
+            <Stack.Screen name="(hotel)" />
+            <Stack.Screen name="gallery" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          {introDone ? null : <Splash onDone={() => setIntroDone(true)} />}
+        </QueryClientProvider>
       </ClerkProvider>
     </GestureHandlerRootView>
   );
+}
+
+// Hands Clerk's token and sign-out to the module-level api and query layer,
+// and drops every cached query when the session ends: a desk phone changes
+// hands, so the next sign-in must start from nothing.
+function AuthWiring() {
+  const { getToken, signOut, isLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    setTokenGetter(() => getToken());
+    setAuthHandlers({ signOut: () => signOut() });
+    return () => {
+      setTokenGetter(null);
+      setAuthHandlers(null);
+    };
+  }, [getToken, signOut]);
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) queryClient.clear();
+  }, [isLoaded, isSignedIn]);
+
+  return null;
 }
 
 const styles = StyleSheet.create({ root: { flex: 1 } });
