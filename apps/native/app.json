@@ -17,8 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tattwix.app",
-      "deploymentTarget": "17.0",
-      "associatedDomains": ["applinks:tattwix.in"]
+      "deploymentTarget": "17.0"
     },
     "android": {
       "adaptiveIcon": {
