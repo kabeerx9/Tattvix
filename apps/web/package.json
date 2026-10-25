@@ -19,6 +19,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.168.22",
+    "@tattvix/api": "workspace:*",
     "@tattvix/contracts": "workspace:*",
     "@tattvix/env": "workspace:*",
     "@tattvix/ui": "workspace:*",

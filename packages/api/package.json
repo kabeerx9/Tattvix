@@ -1,0 +1,25 @@
+{
+  "name": "@tattvix/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@tattvix/contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.104.5",
+    "@tattvix/config": "workspace:*",
+    "tsx": "^4.20.5",
+    "typescript": "catalog:"
+  }
+}

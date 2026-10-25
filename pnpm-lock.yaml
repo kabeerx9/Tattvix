@@ -68,6 +68,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.5
         version: 5.104.5(@types/react@19.3.0)(react@19.3.0)
+      '@tattvix/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@tattvix/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -188,6 +191,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.168.22
         version: 1.170.15(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tattvix/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@tattvix/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -264,6 +270,25 @@ importers:
       vite:
         specifier: ^8.0.8
         version: 8.0.16(@types/node@22.19.21)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
+
+  packages/api:
+    dependencies:
+      '@tattvix/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@tanstack/react-query':
+        specifier: ^5.104.5
+        version: 5.104.5(@types/react@19.3.0)(react@19.3.0)
+      '@tattvix/config':
+        specifier: workspace:*
+        version: link:../config
+      tsx:
+        specifier: ^4.20.5
+        version: 4.22.4
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/config: {}
 
