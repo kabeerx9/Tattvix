@@ -77,8 +77,8 @@ export default function GalleryRoute() {
                     <Text style={styles.name}>{stay.name}</Text>
                     <Text style={styles.sub}>{stay.sub}</Text>
                   </View>
-                  <StatusPill tone="warning">Checking out</StatusPill>
                 </View>
+                <StatusPill tone="warning">Checking out</StatusPill>
                 <View style={styles.facts}>
                   {stay.facts.map(([k, v]) => (
                     <Text key={k} style={styles.fact}>
