@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import type { GuestStay } from "@tattvix/contracts";
 
-import { describeGuestAccess, getGuestAccessAction, isHotelAccessOpen } from "./access";
+import { describeGuestAccess, getGuestAccessAction, isHotelAccessOpen } from "./guest-access";
 
 const now = new Date("2026-10-22T12:00:00.000Z");
 const hoursFromNow = (hours: number) => new Date(now.getTime() + hours * 3_600_000).toISOString();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { guestStayStatusLabel } from "./status";
+import { guestStayStatusLabel } from "./guest-stay-status";
 test("guest status follows hotel operations independently of consent", () => {
   assert.equal(
     guestStayStatusLabel("PENDING_CHECK_IN"),

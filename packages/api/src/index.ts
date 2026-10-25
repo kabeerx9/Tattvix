@@ -4,10 +4,64 @@
 // ApiClient (web: cookie + bearer; native: Clerk getToken) and re-export.
 export { classifyApiError, shouldRetryQuery, type ApiFailure } from "./errors";
 export { checkInKeys, createCheckInApi, createCheckInQueries, type CheckInApi } from "./check-in";
+export {
+  buildSubmitInput,
+  checkInSteps,
+  initialStep,
+  isCheckInStep,
+  nextStep,
+  resolveStep,
+  stepNumber,
+  stepProfileFields,
+  validateProfileStep,
+  type CheckInSelection,
+  type CheckInStep,
+  type ProfileFieldErrors,
+  type ProfileStep,
+} from "./check-in-steps";
 export { companionKeys, createCompanionQueries, createCompanionsApi, type CompanionsApi } from "./companions";
 export { createCurrentUserApi, createCurrentUserQueries, currentUserKeys, type CurrentUserApi } from "./current-user";
+export {
+  EXPIRING_SOON_DAYS,
+  MAX_UPLOAD_BYTES,
+  documentNumberFieldProps,
+  documentRequirements,
+  documentTypeHint,
+  documentTypes,
+  formatIsoDate,
+  getExpiryStatus,
+  documentTypeLabels as identityDocumentTypeLabels,
+  localIsoDate,
+  maskDocumentNumber,
+  missingFieldLabels,
+  photoSlots,
+  requirementsFor,
+  showsExpiry,
+  sideLabel,
+  summarizeDocument,
+  validateUploadFile,
+  type DocumentRequirements,
+  type DocumentSummary,
+  type ExpiryStatus,
+} from "./document-model";
+export {
+  describeGuestAccess,
+  getGuestAccessAction,
+  isHotelAccessOpen,
+  type GuestAccessAction,
+} from "./guest-access";
+export {
+  companionSummary,
+  documentImagesLabel,
+  documentLabel,
+  documentTypeLabels,
+  formatDate,
+  formatDateTime,
+  personName,
+} from "./guest-format";
 export { createGuestProfileApi, createGuestProfileQueries, guestProfileKeys, type GuestProfileApi } from "./guest-profile";
 export { createGuestStayQueries, createGuestStaysApi, type GuestStaysApi } from "./guest-stays";
+export { guestStayStatusLabel } from "./guest-stay-status";
 export { createHotelDetailsApi, createHotelDetailsQueries, hotelDetailsKeys, type HotelDetailsApi } from "./hotel-details";
 export * from "./hotel-metrics";
 export { createHotelOperationsApi, createHotelOperationsQueries, hotelOperationsKeys, type HotelOperationsApi } from "./hotel-operations";

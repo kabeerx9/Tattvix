@@ -10,7 +10,7 @@ import {
   resolveStep,
   validateProfileStep,
   type CheckInSelection,
-} from "./steps";
+} from "./check-in-steps";
 
 const completeProfile: GuestProfileInput = {
   legalFirstName: "Ananya",
