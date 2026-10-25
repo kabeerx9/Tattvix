@@ -18,10 +18,10 @@ cannot apply to the other, say so in the summary and why.
 - Put shared logic in the packages (`@tattvix/contracts` for schemas and
   types, `@tattvix/api` for query keys, API functions and pure domain
   helpers) and have both apps consume it, rather than duplicating it per app.
-- Installed native builds cannot be updated instantly. Server and contract
-  changes must stay backward compatible with the native versions already in
-  use: add fields, do not rename or remove them, and keep old endpoints
-  working until no installed build calls them.
+- The web app is the primary client. Native builds already on phones lag
+  behind, so when a server or contract change would break an installed
+  native build, say so in the summary and ship the matching native update
+  (over the air where JS-only, otherwise a new build).
 - Verify both: web `check-types`, `test` and `build`; native `tsc --noEmit`
   and `test`, plus an emulator check for anything a user sees.
 
