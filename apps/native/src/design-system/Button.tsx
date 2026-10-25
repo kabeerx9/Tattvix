@@ -1,9 +1,10 @@
 import type { LucideIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { usePressFeedback } from "./press";
+import { Spinner } from "./Spinner";
 import { colors, radii, type } from "./theme";
 
 export type ButtonVariant = "primary" | "outline" | "ghost" | "destructive";
@@ -61,7 +62,7 @@ export function Button({
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={v.label} />
+          <Spinner color={v.label} />
         ) : (
           <View style={styles.inner}>
             {Icon ? <Icon color={v.label} size={18} strokeWidth={2} /> : null}

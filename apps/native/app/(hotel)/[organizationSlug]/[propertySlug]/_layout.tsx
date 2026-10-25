@@ -1,4 +1,4 @@
-import { Redirect, Tabs, useLocalSearchParams } from "expo-router";
+import { Redirect, Tabs, useGlobalSearchParams } from "expo-router";
 import { BedDouble, CalendarDays, Menu, Sun, Users } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -20,7 +20,9 @@ import { findHotelPlace, isReadOnly } from "@/src/lib/workspace";
  * instead of navigating.
  */
 export default function HotelLayout() {
-  const { organizationSlug, propertySlug } = useLocalSearchParams<{ organizationSlug: string; propertySlug: string }>();
+  // Global, not local: replacing /(hotel)/a/x with /(hotel)/a/y keeps this layout
+  // mounted and only the URL params change, so local params would go stale.
+  const { organizationSlug, propertySlug } = useGlobalSearchParams<{ organizationSlug: string; propertySlug: string }>();
   const user = useCurrentUser();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const place = findHotelPlace(user.data ?? null, organizationSlug, propertySlug);
@@ -42,6 +44,7 @@ export default function HotelLayout() {
       <View style={styles.root}>
         {isReadOnly(place) ? <ReadOnlyBanner status={place.subscription.status} /> : null}
         <Tabs
+          key={place.key}
           tabBar={(props) => <TabBar {...props} />}
           screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
         >

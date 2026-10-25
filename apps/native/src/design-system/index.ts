@@ -1,6 +1,7 @@
 export { Screen } from "./Screen";
 export { LargeTitle, PageTitle, SectionTitle, TextLink } from "./Titles";
 export { Button, type ButtonVariant } from "./Button";
+export { Spinner } from "./Spinner";
 export { TextField } from "./TextField";
 export { Card } from "./Card";
 export { Panel } from "./Panel";
