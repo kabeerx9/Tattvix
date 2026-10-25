@@ -1,15 +1,15 @@
 {
   "expo": {
     "name": "Tattwix",
-    "slug": "tattvix",
+    "slug": "tattwix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tattvix",
-    "userInterfaceStyle": "automatic",
+    "scheme": "tattwix",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tattvix.app",
+      "bundleIdentifier": "com.tattwix.app",
       "deploymentTarget": "17.0"
     },
     "android": {
@@ -20,7 +20,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tattvix.app"
+      "package": "com.tattwix.app"
     },
     "web": {
       "output": "static",
