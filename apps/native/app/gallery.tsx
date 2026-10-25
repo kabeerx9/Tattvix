@@ -227,7 +227,7 @@ export default function GalleryRoute() {
       </Screen>
 
       <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Switch place" footer={<Button label="Done" onPress={() => setSheetOpen(false)} />}>
-        <Panel>
+        <Panel flat>
           <ListRow icon={Bed} title="Sun Shine Lodge" detail="Owner · Sunshine Hospitality" trailing={<StatusPill tone="success">Current</StatusPill>} />
           <ListRow icon={Bed} title="Sun Shine Annexe" detail="Owner · Sunshine Hospitality" />
           <ListRow icon={Users} title="Personal" detail="My stays, profile and privacy" />
