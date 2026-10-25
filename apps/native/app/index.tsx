@@ -28,6 +28,10 @@ function SignInForm() {
   const { startSSOFlow } = useSSO();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  // Clerk's Device Trust asks for an emailed code when a password sign-in
+  // comes from a device it has not seen; MFA returns the same shape.
+  const [codeStep, setCodeStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
@@ -40,13 +44,45 @@ function SignInForm() {
         await setActive({ session: result.createdSessionId });
         return;
       }
-      Alert.alert("One more step needed", "This account requires an additional sign-in step.");
+      const emailFactor = (result.supportedSecondFactors ?? []).find((factor) => factor.strategy === "email_code") as
+        | { strategy: "email_code"; emailAddressId: string }
+        | undefined;
+      if ((result.status === "needs_second_factor" || (result.status as string) === "needs_client_trust") && emailFactor) {
+        // The installed @clerk/types predate email_code as a second factor, hence the cast.
+        await (signIn.prepareSecondFactor as (params: { strategy: "email_code"; emailAddressId: string }) => Promise<unknown>)({
+          strategy: "email_code",
+          emailAddressId: emailFactor.emailAddressId,
+        });
+        setCodeStep(true);
+        return;
+      }
+      Alert.alert("One more step needed", "This account requires a sign-in step the app does not support yet. Sign in on the web once, then try again.");
     } catch (error) {
       Alert.alert("Could not sign in", clerkErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   }, [email, isLoaded, isSubmitting, password, setActive, signIn]);
+
+  const verify = useCallback(async () => {
+    if (!isLoaded || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const result = await (signIn.attemptSecondFactor as (params: { strategy: "email_code"; code: string }) => Promise<{ status: string | null; createdSessionId: string | null }>)({
+        strategy: "email_code",
+        code: code.trim(),
+      });
+      if (result.status === "complete" && result.createdSessionId) {
+        await setActive({ session: result.createdSessionId });
+        return;
+      }
+      Alert.alert("Could not verify", "That code did not work. Check the email and try again.");
+    } catch (error) {
+      Alert.alert("Could not verify", clerkErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [code, isLoaded, isSubmitting, setActive, signIn]);
 
   const google = useCallback(async () => {
     if (isGoogleSubmitting) return;
@@ -60,6 +96,21 @@ function SignInForm() {
       setIsGoogleSubmitting(false);
     }
   }, [isGoogleSubmitting, startSSOFlow]);
+
+  if (codeStep) {
+    return (
+      <View style={styles.page}>
+        <BrandLogo size="md" />
+        <Text style={styles.hero}>Check your email.</Text>
+        <Text style={styles.lede}>We sent a six-digit code to {email.trim()} because this phone is new to your account.</Text>
+        <View style={styles.form}>
+          <TextField autoFocus inputMode="numeric" maxLength={6} onChangeText={setCode} placeholder="Six-digit code" value={code} />
+          <Button label="Verify and sign in" onPress={verify} loading={isSubmitting} disabled={code.trim().length < 6} />
+          <Button label="Back" variant="ghost" onPress={() => { setCodeStep(false); setCode(""); }} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.page}>
