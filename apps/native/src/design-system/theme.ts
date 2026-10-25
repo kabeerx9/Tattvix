@@ -1,5 +1,3 @@
-import { useColorScheme } from "react-native";
-
 export const lightColors = {
   background: "#F4F3EF",
   foreground: "#252823",
@@ -33,7 +31,7 @@ export const darkColors = {
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 export const radii = { control: 12, card: 18, hero: 24, pill: 999 } as const;
 
+// Light-only until the design kit ticket lands: the app ignores the system scheme.
 export function useAppTheme() {
-  const scheme = useColorScheme();
-  return { colors: scheme === "dark" ? darkColors : lightColors, isDark: scheme === "dark", spacing, radii };
+  return { colors: lightColors, isDark: false, spacing, radii };
 }
