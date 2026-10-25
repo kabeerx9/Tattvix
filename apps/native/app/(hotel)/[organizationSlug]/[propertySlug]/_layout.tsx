@@ -1,13 +1,10 @@
-import { Redirect, Tabs, useGlobalSearchParams } from "expo-router";
-import { BedDouble, CalendarDays, Menu, Sun, Users } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { Redirect, Stack, useGlobalSearchParams } from "expo-router";
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { PlaceSwitcherSheet } from "@/src/components/PlaceSwitcher";
 import { ReadOnlyBanner } from "@/src/components/ReadOnlyBanner";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { tabIcon } from "@/src/components/tab-icon";
-import { TabBar, colors } from "@/src/design-system";
+import { colors } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { HotelPlaceProvider } from "@/src/lib/hotel-place";
 import { writeLastPlace } from "@/src/lib/last-place";
@@ -16,15 +13,14 @@ import { findHotelPlace, isReadOnly } from "@/src/lib/workspace";
 /**
  * Hotel mode. Guards on `me`: the route's hotel must be one the person can
  * open, otherwise the landing route picks somewhere they can. A failed `me`
- * shows a retry, never a sign-out. The Menu tab opens the place switcher
- * instead of navigating.
+ * shows a retry, never a sign-out. Below this sit the tabs and the full-screen
+ * desk QR, which slides up over them.
  */
 export default function HotelLayout() {
   // Global, not local: replacing /(hotel)/a/x with /(hotel)/a/y keeps this layout
   // mounted and only the URL params change, so local params would go stale.
   const { organizationSlug, propertySlug } = useGlobalSearchParams<{ organizationSlug: string; propertySlug: string }>();
   const user = useCurrentUser();
-  const [switcherOpen, setSwitcherOpen] = useState(false);
   const place = findHotelPlace(user.data ?? null, organizationSlug, propertySlug);
   const placeKey = place?.key ?? null;
 
@@ -43,27 +39,10 @@ export default function HotelLayout() {
     <HotelPlaceProvider value={place}>
       <View style={styles.root}>
         {isReadOnly(place) ? <ReadOnlyBanner status={place.subscription.status} /> : null}
-        <Tabs
-          key={place.key}
-          tabBar={(props) => <TabBar {...props} />}
-          screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
-        >
-          <Tabs.Screen name="index" options={{ title: "Today", tabBarIcon: tabIcon(Sun) }} />
-          <Tabs.Screen name="stays" options={{ title: "Stays", tabBarIcon: tabIcon(CalendarDays) }} />
-          <Tabs.Screen name="rooms" options={{ title: "Rooms", tabBarIcon: tabIcon(BedDouble) }} />
-          <Tabs.Screen name="guests" options={{ title: "Guests", tabBarIcon: tabIcon(Users) }} />
-          <Tabs.Screen
-            name="menu"
-            options={{ title: "Menu", tabBarIcon: tabIcon(Menu) }}
-            listeners={{
-              tabPress: (event) => {
-                event.preventDefault();
-                setSwitcherOpen(true);
-              },
-            }}
-          />
-        </Tabs>
-        <PlaceSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} current={{ kind: "hotel", key: place.key }} />
+        <Stack key={place.key} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="desk-qr" options={{ animation: "slide_from_bottom", gestureEnabled: true }} />
+        </Stack>
       </View>
     </HotelPlaceProvider>
   );

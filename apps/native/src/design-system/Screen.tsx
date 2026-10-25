@@ -1,16 +1,19 @@
 import type { PropsWithChildren } from "react";
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, space } from "./theme";
 
 // The tab bar is part of the Tabs layout, so content never sits under it;
-// the bottom padding only keeps the last row off the edge.
+// the bottom padding only keeps the last row off the edge. Pass `onRefresh`
+// for pull-to-refresh on data screens.
 export function Screen({
   children,
   mode = "scroll",
   style,
-}: PropsWithChildren<{ mode?: "scroll" | "fixed"; style?: StyleProp<ViewStyle> }>) {
+  refreshing = false,
+  onRefresh,
+}: PropsWithChildren<{ mode?: "scroll" | "fixed"; style?: StyleProp<ViewStyle>; refreshing?: boolean; onRefresh?: () => void }>) {
   if (mode === "fixed") {
     return (
       <SafeAreaView edges={["top"]} style={[styles.root, style]}>
@@ -20,7 +23,12 @@ export function Screen({
   }
   return (
     <SafeAreaView edges={["top"]} style={[styles.root, style]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.mutedForeground} colors={[colors.foreground]} /> : undefined}
+      >
         {children}
       </ScrollView>
     </SafeAreaView>

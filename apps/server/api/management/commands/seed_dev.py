@@ -698,8 +698,10 @@ class Command(BaseCommand):
                 return None
 
         # (a) Two SUBMITTED + PENDING_CHECK_IN stays awaiting hotel review.
-        created["guest_1_submitted"] = submit("guest_1", jaipur_token)
-        created["guest_2_submitted"] = submit("guest_2", jaipur_token)
+        # Re-running the seed weeks later must still leave these actionable,
+        # so their submission and ID access are kept fresh relative to now.
+        created["guest_1_submitted"] = self._ensure_fresh_submission(submit("guest_1", jaipur_token), now)
+        created["guest_2_submitted"] = self._ensure_fresh_submission(submit("guest_2", jaipur_token), now)
 
         # (b) CHECKED_IN with an occupied room.
         stay = submit("guest_3", jaipur_token)
@@ -747,6 +749,16 @@ class Command(BaseCommand):
         created["guest_6_udaipur_checked_in"] = stay
 
         return created
+
+    def _ensure_fresh_submission(self, stay, now):
+        if stay is None or stay.operational_status != OperationalStayStatus.PENDING_CHECK_IN:
+            return stay
+        fresh_expiry = now + timedelta(days=7)
+        if stay.hotel_access_expires_at is None or stay.hotel_access_expires_at < now + timedelta(days=1):
+            stay.submitted_at = now - timedelta(minutes=20)
+            stay.hotel_access_expires_at = fresh_expiry
+            stay.save(update_fields=["submitted_at", "hotel_access_expires_at", "updated_at"])
+        return stay
 
     def _ensure_checked_in(
         self, *, property_: Property, stay: Stay, room_id: int, actor: ClerkUser

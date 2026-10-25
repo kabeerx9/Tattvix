@@ -13,6 +13,7 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Splash } from "@/src/design-system/Splash";
+import { Toaster } from "@/src/design-system/Toast";
 import { setTokenGetter } from "@/src/lib/api";
 import { queryClient, setAuthHandlers } from "@/src/lib/query";
 
@@ -44,6 +45,7 @@ export default function RootLayout() {
             <Stack.Screen name="gallery" />
             <Stack.Screen name="+not-found" />
           </Stack>
+          <Toaster />
           {introDone ? null : <Splash onDone={() => setIntroDone(true)} />}
         </QueryClientProvider>
       </ClerkProvider>
