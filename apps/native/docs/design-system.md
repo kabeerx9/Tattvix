@@ -75,6 +75,7 @@ everywhere; **no uppercase eyebrows**.
 
 | Style | Size / line / weight | Tracking | Use |
 |---|---|---|---|
+| `hero` | 34 / 38 / 700 | −1 | Sign-in headline only |
 | `largeTitle` | 30 / 34 / 700 | −0.6 | Hub pages (Today, Guest home) |
 | `pageTitle` | 24 / 28 / 700 | −0.5 | Detail pages |
 | `sectionTitle` | 22 / 26 / 600 | −0.3 | Sections on hub pages |
