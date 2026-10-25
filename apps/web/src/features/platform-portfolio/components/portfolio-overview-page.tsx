@@ -38,10 +38,12 @@ import {
   formatRateRange,
   getOccupancyRecent,
   getOccupancyTonight,
+  getPortfolioAttention,
   getPortfolioTotals,
   type PortfolioSort,
 } from "../metrics";
 import { platformPortfolioQueries } from "../queries";
+import { AttentionPanel } from "./attention-panel";
 import { SetupPill, SubscriptionPill, roomStatusSummary } from "./portfolio-parts";
 
 export function PortfolioOverviewPage() {
@@ -52,6 +54,7 @@ export function PortfolioOverviewPage() {
   const deferredSearch = useDeferredValue(search);
 
   const totals = useMemo(() => getPortfolioTotals(portfolio.properties), [portfolio.properties]);
+  const attention = useMemo(() => getPortfolioAttention(portfolio.properties), [portfolio.properties]);
   const rows = useMemo(
     () => filterAndSortPortfolio(portfolio.properties, { search: deferredSearch, sort }),
     [portfolio.properties, deferredSearch, sort],
@@ -88,6 +91,8 @@ export function PortfolioOverviewPage() {
         <Kpi label="Check-ins" value={totals.checkInsLast7Days} detail="Last 7 days" />
         <Kpi label="Revenue" value={formatMoneyWholeRupees(totals.revenueLast30DaysMinor)} detail="Billed, last 30 days" />
       </KpiStrip>
+
+      {portfolio.properties.length ? <AttentionPanel attention={attention} /> : null}
 
       {portfolio.properties.length ? (
         <Panel>

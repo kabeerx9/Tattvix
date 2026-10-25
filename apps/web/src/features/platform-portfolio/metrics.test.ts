@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { PlatformPortfolioProperty } from "@tattvix/contracts";
+import type { PlatformPortfolioProperty, Subscription } from "@tattvix/contracts";
 
 import {
   filterAndSortPortfolio,
@@ -8,6 +8,7 @@ import {
   formatPercent,
   formatRateRange,
   getMissingSetup,
+  getPortfolioAttention,
   getPortfolioTotals,
   getSetupStatus,
 } from "./metrics";
@@ -127,5 +128,48 @@ describe("portfolio formatting", () => {
     assert.equal(formatLastActivity("2026-10-22T09:59:30+00:00", now), "Just now");
     assert.equal(formatLastActivity("2026-10-22T08:00:00+00:00", now), "2 hours ago");
     assert.equal(formatLastActivity("2026-10-20T10:00:00+00:00", now), "2 days ago");
+  });
+});
+
+describe("portfolio attention", () => {
+  const now = new Date("2026-10-25T10:00:00+00:00");
+  const sub = (overrides: Partial<Subscription>): Subscription => ({ ...TRIAL, ...overrides });
+  const org = (slug: string, subscription: Subscription, isActive = true) => ({
+    name: slug, slug, isActive, activeMemberCount: 1, subscription,
+  });
+
+  it("lists lapsed organizations before ones about to end, once per organization", () => {
+    const ending = org("ending", sub({ daysLeft: 6 }));
+    const rows = [
+      property({ id: 1, name: "A", organization: org("fine", TRIAL) }),
+      property({ id: 2, name: "B", organization: ending }),
+      property({ id: 3, name: "C", organization: ending }),
+      property({ id: 4, name: "D", organization: org("ended", sub({ status: "EXPIRED", entitled: false, daysLeft: 0 })) }),
+      property({ id: 5, name: "E", organization: org("missing", sub({ status: "MISSING", entitled: false, daysLeft: 0, trialEndsAt: null, entitledUntil: null })) }),
+      property({ id: 6, name: "F", organization: org("paid-ending", sub({ status: "PAID", daysLeft: 2 })) }),
+      property({ id: 7, name: "G", organization: org("inactive", sub({ status: "EXPIRED", entitled: false, daysLeft: 0 }), false) }),
+    ];
+    const { billing } = getPortfolioAttention(rows, now);
+    assert.deepEqual(
+      billing.map((row) => [row.organization.slug, row.kind, row.propertyCount]),
+      [["ended", "lapsed", 1], ["missing", "lapsed", 1], ["paid-ending", "ending", 1], ["ending", "ending", 2]],
+    );
+  });
+
+  it("flags entitled hotels onboarded over a week ago with no check-ins, quietest first", () => {
+    const rows = [
+      property({ id: 1, name: "New", onboarding: { source: "ADMIN", onboardedAt: "2026-10-20T00:00:00+00:00" } }),
+      property({ id: 2, name: "Busy", stays: { inHouse: 1, arrivalsPending: 0, checkInsLast7Days: 3 } }),
+      property({ id: 3, name: "Quiet", lastActivityAt: "2026-10-10T00:00:00+00:00" }),
+      property({ id: 4, name: "Silent", lastActivityAt: null }),
+      property({ id: 5, name: "Closed", isActive: false }),
+      property({ id: 6, name: "Lapsed", organization: org("lapsed", sub({ status: "EXPIRED", entitled: false, daysLeft: 0 })) }),
+    ];
+    const { stale } = getPortfolioAttention(rows, now);
+    assert.deepEqual(stale.map((row) => row.name), ["Silent", "Quiet"]);
+  });
+
+  it("is empty for a healthy portfolio", () => {
+    assert.deepEqual(getPortfolioAttention([jaipur], now), { billing: [], stale: [] });
   });
 });

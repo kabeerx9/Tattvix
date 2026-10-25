@@ -187,3 +187,73 @@ export function formatLastActivity(value: string | null, now: Date = new Date())
 export function roomTypeLabel(name: string): string {
   return name || "No room type";
 }
+
+// --- Needs attention -------------------------------------------------------
+// Two admin to-do lists derived from the portfolio payload: who to chase for
+// payment, and who has quietly stopped using the product. Thresholds are a
+// week because trials are chased weekly and a hotel with zero check-ins in a
+// week is either closed or has gone back to the paper register.
+
+export const BILLING_SOON_DAYS = 7;
+export const STALE_AFTER_DAYS = 7;
+
+export type BillingAttention = {
+  organization: PlatformPortfolioProperty["organization"];
+  propertyCount: number;
+  /** `lapsed` covers both an ended trial and a missing subscription row. */
+  kind: "lapsed" | "ending";
+};
+
+export type PortfolioAttention = {
+  /** One row per organization, most urgent first. */
+  billing: BillingAttention[];
+  /** Entitled, active properties onboarded over a week ago with no check-in in the last 7 days. */
+  stale: PlatformPortfolioProperty[];
+};
+
+export function getPortfolioAttention(
+  properties: readonly PlatformPortfolioProperty[],
+  now: Date = new Date(),
+): PortfolioAttention {
+  const byOrganization = new Map<string, BillingAttention>();
+  for (const property of properties) {
+    const { organization } = property;
+    if (!organization.isActive) continue;
+    const existing = byOrganization.get(organization.slug);
+    if (existing) {
+      existing.propertyCount += 1;
+      continue;
+    }
+    const { subscription } = organization;
+    const kind = !subscription.entitled
+      ? "lapsed"
+      : subscription.daysLeft <= BILLING_SOON_DAYS
+        ? "ending"
+        : null;
+    if (kind) byOrganization.set(organization.slug, { organization, propertyCount: 1, kind });
+  }
+  const billing = [...byOrganization.values()].sort(
+    (a, b) =>
+      Number(a.kind === "ending") - Number(b.kind === "ending") ||
+      a.organization.subscription.daysLeft - b.organization.subscription.daysLeft ||
+      a.organization.name.localeCompare(b.organization.name, undefined, { sensitivity: "base" }),
+  );
+
+  const staleCutoff = now.getTime() - STALE_AFTER_DAYS * 86_400_000;
+  const stale = properties
+    .filter(
+      (property) =>
+        property.isActive &&
+        property.organization.isActive &&
+        property.organization.subscription.entitled &&
+        Date.parse(property.onboarding.onboardedAt) <= staleCutoff &&
+        property.stays.checkInsLast7Days === 0,
+    )
+    .sort(
+      (a, b) =>
+        (a.lastActivityAt ? Date.parse(a.lastActivityAt) : -Infinity) -
+          (b.lastActivityAt ? Date.parse(b.lastActivityAt) : -Infinity) || byName(a, b),
+    );
+
+  return { billing, stale };
+}
