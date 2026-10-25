@@ -1,6 +1,16 @@
 // One ApiClient for the app. Clerk's getToken is wired in by the root layout
 // (see AuthWiring) so fetchers can live at module level like the web's.
 import {
+  createCheckInApi,
+  createCheckInQueries,
+  createCompanionQueries,
+  createCompanionsApi,
+  createGuestProfileApi,
+  createGuestProfileQueries,
+  createGuestStayQueries,
+  createGuestStaysApi,
+  createIdentityDocumentQueries,
+  createIdentityDocumentsApi,
   createCurrentUserApi,
   createCurrentUserQueries,
   createHotelOperationsApi,
@@ -39,6 +49,12 @@ export const api = {
   hotelOverview: createHotelOverviewApi(apiClient),
   hotelStays: createHotelStaysApi(apiClient),
   propertyPhotos: createPropertyPhotosApi(apiClient),
+  checkIn: createCheckInApi(apiClient),
+  guestProfile: createGuestProfileApi(apiClient),
+  guestStays: createGuestStaysApi(apiClient),
+  companions: createCompanionsApi(apiClient),
+  /** Identity documents are scoped per person: no id = the signed-in guest, an id = one of their companions. */
+  identityDocuments: (companionId?: number) => createIdentityDocumentsApi(apiClient, companionId),
 };
 
 export const queries = {
@@ -49,4 +65,9 @@ export const queries = {
   hotelOverview: createHotelOverviewQueries(api.hotelOverview),
   hotelStays: createHotelStayQueries(api.hotelStays),
   propertyPhotos: createPropertyPhotoQueries(api.propertyPhotos),
+  checkIn: createCheckInQueries(api.checkIn),
+  guestProfile: createGuestProfileQueries(api.guestProfile),
+  guestStays: createGuestStayQueries(api.guestStays),
+  companions: createCompanionQueries(api.companions),
+  identityDocuments: createIdentityDocumentQueries(api.identityDocuments),
 };

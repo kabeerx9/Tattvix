@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/clerk-expo";
+import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
 import { BarChart3, BedDouble, Building2, LogOut, QrCode, Settings, UserRound } from "lucide-react-native";
 import { useState } from "react";
@@ -8,7 +9,7 @@ import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
 import { describeHotelPlace, getHotelPlaces, hotelHref } from "@/src/lib/workspace";
 import { SectionTitle, space } from "@/src/design-system";
-import { StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 
 export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string };
 
@@ -52,6 +53,17 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
           />
         );
       })}
+      {current.kind === "guest" ? (
+        <ListRow
+          icon={Building2}
+          title="List your hotel"
+          detail="Submit your hotel for approval on the web"
+          onPress={() => {
+            onNavigate?.();
+            void Linking.openURL(`${env.EXPO_PUBLIC_WEB_URL}/register-hotel`);
+          }}
+        />
+      ) : null}
       <ListRow icon={Settings} title="Account" detail={user.data?.email} compact chevron onPress={() => go("/(guest)/account" as Href)} />
       <ListRow icon={LogOut} title="Sign out" compact onPress={onSignOut} />
     </Panel>

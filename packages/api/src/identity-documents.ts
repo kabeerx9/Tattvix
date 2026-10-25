@@ -49,7 +49,7 @@ export function createIdentityDocumentsApi(client: ApiClient, companionId?: numb
     remove(id: number) {
       return client.requestVoid(documentPath(id), { method: "DELETE" });
     },
-    requestUpload(id: number, side: IdentityDocumentImageSide, file: File) {
+    requestUpload(id: number, side: IdentityDocumentImageSide, file: { type: string; size: number }) {
       return client.requestJson(`${documentPath(id)}uploads/`, identityDocumentUploadResponseSchema, {
         method: "POST",
         body: JSON.stringify({

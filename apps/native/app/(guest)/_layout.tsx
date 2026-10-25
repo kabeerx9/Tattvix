@@ -1,21 +1,13 @@
-import { Redirect, Tabs } from "expo-router";
-import { CalendarDays, Home, Menu, ShieldCheck, UserRound } from "lucide-react-native";
-import { useState } from "react";
+import { Redirect, Stack } from "expo-router";
 
-import { PlaceSwitcherSheet } from "@/src/components/PlaceSwitcher";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { tabIcon } from "@/src/components/tab-icon";
-import { TabBar, colors } from "@/src/design-system";
+import { colors } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 
-/**
- * Guest mode: Home, Stays, Profile, Privacy and Menu. Companions and Account
- * are reachable from rows, not tabs. Guards only on being signed in; every
- * signed-in person may be a guest.
- */
+// Guest mode is a stack: the tabs, then Companions and Account pushed on top
+// (a tab hidden with `href: null` cannot be navigated to at all).
 export default function GuestLayout() {
   const user = useCurrentUser();
-  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   if (user.isSignedIn === false) return <Redirect href="/" />;
   if (!user.data) {
@@ -24,29 +16,10 @@ export default function GuestLayout() {
   }
 
   return (
-    <>
-      <Tabs
-        tabBar={(props) => <TabBar {...props} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
-      >
-        <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: tabIcon(Home) }} />
-        <Tabs.Screen name="stays" options={{ title: "Stays", tabBarIcon: tabIcon(CalendarDays) }} />
-        <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: tabIcon(UserRound) }} />
-        <Tabs.Screen name="privacy" options={{ title: "Privacy", tabBarIcon: tabIcon(ShieldCheck) }} />
-        <Tabs.Screen
-          name="menu"
-          options={{ title: "Menu", tabBarIcon: tabIcon(Menu) }}
-          listeners={{
-            tabPress: (event) => {
-              event.preventDefault();
-              setSwitcherOpen(true);
-            },
-          }}
-        />
-        <Tabs.Screen name="companions" options={{ href: null }} />
-        <Tabs.Screen name="account" options={{ href: null }} />
-      </Tabs>
-      <PlaceSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} current={{ kind: "guest" }} />
-    </>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="companions" />
+      <Stack.Screen name="account" />
+    </Stack>
   );
 }

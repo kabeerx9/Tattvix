@@ -8,6 +8,7 @@ import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { BrandLogo, Button, Screen, TextField, colors, type } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { readLastPlace } from "@/src/lib/last-place";
+import { takePendingPath } from "@/src/lib/pending-path";
 import { getLanding, hotelHref } from "@/src/lib/workspace";
 
 export default function WelcomeRoute() {
@@ -31,10 +32,13 @@ export default function WelcomeRoute() {
 // hotel they used last (else their first); everyone else lands in guest mode.
 function Landing() {
   const user = useCurrentUser();
+  // Taken once on mount: a sign-in that began from a check-in QR resumes there.
+  const [resumePath] = useState(() => takePendingPath());
   if (!user.data) {
     if (user.isError) return <RetryScreen onRetry={() => void user.refetch()} retrying={user.isFetching} />;
     return <PendingScreen />;
   }
+  if (resumePath) return <Redirect href={resumePath as Href} />;
   const landing = getLanding(user.data, user.clerkUserId ? readLastPlace(user.clerkUserId) : null);
   return <Redirect href={(landing.kind === "hotel" ? hotelHref(landing.place) : "/(guest)") as Href} />;
 }
