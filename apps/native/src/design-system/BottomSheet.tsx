@@ -1,5 +1,5 @@
 import { useEffect, useState, type PropsWithChildren, type ReactNode } from "react";
-import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Keyboard, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -27,6 +27,22 @@ export function BottomSheet({
   const progress = useSharedValue(0);
   // Finger travel while dragging, in px, always >= 0.
   const drag = useSharedValue(0);
+  // The sheet rides above the keyboard so a field near the footer stays in view
+  // (the Modal is its own window, so the usual resize does not reach it).
+  const keyboard = useSharedValue(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      keyboard.value = withTiming(e.endCoordinates.height, { duration: motion.duration.enter, easing: motion.easeOut });
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      keyboard.value = withTiming(0, { duration: motion.duration.exit, easing: motion.easeOut });
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [keyboard]);
 
   useEffect(() => {
     if (open) {
@@ -45,8 +61,8 @@ export function BottomSheet({
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
 
   const sheetStyle = useAnimatedStyle(() => {
-    if (reduceMotion) return { opacity: progress.value };
-    return { transform: [{ translateY: (1 - progress.value) * height + drag.value }] };
+    if (reduceMotion) return { opacity: progress.value, transform: [{ translateY: -keyboard.value }] };
+    return { transform: [{ translateY: (1 - progress.value) * height + drag.value - keyboard.value }] };
   });
 
   const pan = Gesture.Pan()

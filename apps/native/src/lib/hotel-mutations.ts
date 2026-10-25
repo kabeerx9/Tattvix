@@ -3,7 +3,14 @@
 // invalidates overview, rooms, guests and the stay list for the property;
 // stay-scoped writers also drop that stay's detail and bill.
 import { hotelOperationsKeys, hotelOverviewKeys, hotelStayKeys } from "@tattvix/api";
-import type { HotelRoomListResponse, HotelRoomStatusInput } from "@tattvix/contracts";
+import type {
+  HotelRoomCreateInput,
+  HotelRoomListResponse,
+  HotelRoomRateInput,
+  HotelRoomStatusInput,
+  StayBillChargeInput,
+  StayBillVoidInput,
+} from "@tattvix/contracts";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
@@ -58,6 +65,26 @@ export const hotelMutations = {
       if (context?.previous) queryClient.setQueryData(context.key, context.previous);
     },
     onSettled: (_room: unknown, _error: unknown, variables: PropertyScope) => invalidateOperations(queryClient, variables),
+  }),
+  createRoom: (queryClient: QueryClient) => ({
+    mutationFn: ({ organizationSlug, propertySlug, input }: PropertyScope & { input: HotelRoomCreateInput }) =>
+      api.hotelOperations.createRoom(organizationSlug, propertySlug, input),
+    onSuccess: (_room: unknown, variables: PropertyScope) => invalidateOperations(queryClient, variables),
+  }),
+  updateRoomRate: (queryClient: QueryClient) => ({
+    mutationFn: ({ organizationSlug, propertySlug, roomId, input }: PropertyScope & { roomId: number; input: HotelRoomRateInput }) =>
+      api.hotelOperations.updateRoomRate(organizationSlug, propertySlug, roomId, input),
+    onSuccess: (_room: unknown, variables: PropertyScope) => invalidateOperations(queryClient, variables),
+  }),
+  addBillCharge: (queryClient: QueryClient) => ({
+    mutationFn: ({ organizationSlug, propertySlug, stayId, input }: StayScope & { input: StayBillChargeInput }) =>
+      api.hotelStays.addBillCharge(organizationSlug, propertySlug, stayId, input),
+    onSuccess: (_bill: unknown, variables: StayScope) => invalidateOperations(queryClient, variables, variables.stayId),
+  }),
+  voidBillItem: (queryClient: QueryClient) => ({
+    mutationFn: ({ organizationSlug, propertySlug, stayId, itemId, input }: StayScope & { itemId: string; input: StayBillVoidInput }) =>
+      api.hotelStays.voidBillItem(organizationSlug, propertySlug, stayId, itemId, input),
+    onSuccess: (_bill: unknown, variables: StayScope) => invalidateOperations(queryClient, variables, variables.stayId),
   }),
   generateQr: () => ({
     mutationFn: ({ organizationSlug, propertySlug }: PropertyScope) => api.hotelStays.generateQr(organizationSlug, propertySlug),

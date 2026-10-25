@@ -10,11 +10,12 @@ import { FileKey2, ShieldOff, UserRound, UsersRound } from "lucide-react-native"
 import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { BillSection } from "@/src/components/bill-section";
 import { StaySheet } from "@/src/components/desk-sheets";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { Button, Card, ConfirmSheet, InitialsAvatar, Screen, SecondaryHeader, Spinner, StatusPill, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
-import { getDeskScope } from "@/src/lib/desk-scope";
+import { getManageScope } from "@/src/lib/desk-scope";
 import { documentTypeLabel, errorMessage, formatDate, formatDateTime, formatDay, initialsOf, partyLabel } from "@/src/lib/format";
 import { hotelMutations } from "@/src/lib/hotel-mutations";
 import { useHotelPlace } from "@/src/lib/hotel-place";
@@ -24,7 +25,7 @@ const pillLabel = { PENDING_CHECK_IN: "Waiting for a room", CHECKED_IN: "In hous
 
 export default function StayDetailScreen() {
   const place = useHotelPlace();
-  const scope = getDeskScope(place);
+  const scope = getManageScope(place);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { stayId } = useLocalSearchParams<{ stayId: string }>();
@@ -102,6 +103,8 @@ export default function StayDetailScreen() {
       ) : null}
 
       <Identity stay={stay} scope={scope} />
+
+      <BillSection scope={scope} stayId={stayId} stay={stay} />
 
       <StaySheet scope={scope} stayId={assigning ? stay.id : null} stays={[stay]} rooms={rooms} showOpenLink={false} onClose={() => setAssigning(false)} />
       <ConfirmSheet

@@ -1,7 +1,7 @@
 // Reservation and room sheets shared by Today, Rooms and the stay detail.
 // Every action is a real mutation and is only offered to roles that may
 // perform it; the server still enforces permissions and entitlement.
-import { getReadyRooms, getStayStatus, localDayKey, formatMoneyMinor, formatMoneyWholeRupees } from "@tattvix/api";
+import { getReadyRooms, getStayStatus, localDayKey, formatMoneyMinor, formatMoneyWholeRupees, parseMoneyMinor } from "@tattvix/api";
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
@@ -9,7 +9,7 @@ import { Minus, Plus, ShieldCheck } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, InitialsAvatar, PhotoTile, StatusPill, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, InitialsAvatar, PhotoTile, StatusPill, TextField, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
 import type { DeskScope } from "@/src/lib/desk-scope";
 import { errorMessage, formatDay, formatTime, initialsOf, partyLabel, roomMeta, roomStatusLabel, roomStatusTone } from "@/src/lib/format";
 import { hotelMutations } from "@/src/lib/hotel-mutations";
@@ -339,6 +339,7 @@ export function RoomSheet({
             </Text>
             <StatusPill tone={roomStatusTone[room.status]}>{roomStatusLabel[room.status]}</StatusPill>
           </View>
+          {room && scope.canManageRooms ? <RoomRateEditor key={room.id} scope={scope} room={room} /> : null}
           {offerAssign ? (
             <View style={{ gap: space.sm }}>
               <Text style={styles.label}>
@@ -364,7 +365,78 @@ export function RoomSheet({
   );
 }
 
+/** Rupees with two decimals from paise, e.g. 250050 -> "2500.50". */
+function rupeesText(minor: number) {
+  return `${Math.floor(minor / 100)}.${String(minor % 100).padStart(2, "0")}`;
+}
+
+function RoomRateEditor({ scope, room }: { scope: DeskScope; room: HotelRoom }) {
+  const queryClient = useQueryClient();
+  const updateRate = useMutation(hotelMutations.updateRoomRate(queryClient));
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  function open() {
+    setValue(room.nightlyRateMinor !== null ? rupeesText(room.nightlyRateMinor) : "");
+    setFieldError(null);
+    updateRate.reset();
+    setEditing(true);
+  }
+
+  function save() {
+    const trimmed = value.trim();
+    let nightlyRateMinor: number | null = null;
+    if (trimmed) {
+      nightlyRateMinor = parseMoneyMinor(trimmed);
+      if (nightlyRateMinor === null) {
+        setFieldError("Enter an amount in rupees");
+        return;
+      }
+    }
+    setFieldError(null);
+    updateRate.mutate(
+      { organizationSlug: scope.organizationSlug, propertySlug: scope.propertySlug, roomId: room.id, input: { nightlyRateMinor } },
+      {
+        onSuccess: () => {
+          toast(`Rate saved for room ${room.number}`);
+          setEditing(false);
+        },
+      },
+    );
+  }
+
+  if (!editing) return <TextLink label="Edit rate" onPress={open} />;
+
+  return (
+    <View style={{ gap: space.md }}>
+      <TextField
+        label="Nightly rate (INR)"
+        inputMode="decimal"
+        placeholder="2500.00"
+        value={value}
+        onChangeText={(text) => {
+          setValue(text);
+          setFieldError(null);
+        }}
+        error={fieldError ?? undefined}
+        autoFocus
+      />
+      <ErrorLine message={errorMessage(updateRate.error, "The rate could not be saved.")} />
+      <View style={styles.rateActions}>
+        <View style={{ flex: 1 }}>
+          <Button label="Save" onPress={save} loading={updateRate.isPending} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button label="Cancel" variant="ghost" onPress={() => setEditing(false)} disabled={updateRate.isPending} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  rateActions: { flexDirection: "row", gap: space.sm },
   scroll: { maxHeight: 520 },
   stack: { gap: space.xl, paddingTop: space.sm },
   identity: { flexDirection: "row", alignItems: "center", gap: space.lg },

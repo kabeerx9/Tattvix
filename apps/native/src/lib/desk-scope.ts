@@ -26,3 +26,11 @@ export function getDeskScope(place: HotelPlace): DeskScope {
     canManageRooms: has("rooms:manage") && !readOnly,
   };
 }
+
+/** Management rights beyond the desk: property details/photos (hotel:manage) and reports (hotel:view, analytics locked by 402). */
+export function getManageScope(place: HotelPlace) {
+  const readOnly = isReadOnly(place);
+  const has = (permission: string) => place.permissions.includes(permission as HotelPlace["permissions"][number]);
+  return { ...getDeskScope(place), canManageHotel: has("hotel:manage") && !readOnly, canManageBill: has("stays:update") && !readOnly };
+}
+export type ManageScope = ReturnType<typeof getManageScope>;

@@ -1,12 +1,14 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter, type Href } from "expo-router";
-import { BedDouble, LogOut, Settings, UserRound } from "lucide-react-native";
+import { BarChart3, BedDouble, Building2, LogOut, QrCode, Settings, UserRound } from "lucide-react-native";
 import { useState } from "react";
 
 import { BottomSheet, ConfirmSheet, ListRow, Panel, StatusPill } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
 import { describeHotelPlace, getHotelPlaces, hotelHref } from "@/src/lib/workspace";
+import { SectionTitle, space } from "@/src/design-system";
+import { StyleSheet, View } from "react-native";
 
 export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string };
 
@@ -56,6 +58,35 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
   );
 }
 
+/**
+ * In hotel mode the Menu also carries the management screens that have no
+ * tab: reports, hotel details and the desk QR. Pushed, not replaced: they
+ * are a step forward inside the same place.
+ */
+function HotelMenuRows({ placeKey, onNavigate }: { placeKey: string; onNavigate: () => void }) {
+  const router = useRouter();
+  const user = useCurrentUser();
+  const place = getHotelPlaces(user.data ?? null).find((entry) => entry.key === placeKey);
+  if (!place) return null;
+  const base = hotelHref(place);
+  const go = (path: string) => {
+    onNavigate();
+    router.push(`${base}/${path}` as Href);
+  };
+  return (
+    <View style={menuStyles.section}>
+      <SectionTitle>{place.propertyName}</SectionTitle>
+      <Panel flat>
+        <ListRow icon={BarChart3} title="Reports" detail="Register, in-house and occupancy" chevron onPress={() => go("reports")} />
+        <ListRow icon={Building2} title="Hotel details" detail="Address, times, amenities and photos" chevron onPress={() => go("details")} />
+        <ListRow icon={QrCode} title="Check-in QR" detail="Show the code at the desk" chevron onPress={() => go("desk-qr")} />
+      </Panel>
+    </View>
+  );
+}
+
+const menuStyles = StyleSheet.create({ section: { gap: space.sm, marginBottom: space.lg } });
+
 /** The Menu sheet: the switcher rows plus the sign-out confirmation. */
 export function PlaceSwitcherSheet({ open, onClose, current }: { open: boolean; onClose: () => void; current: SwitcherCurrent }) {
   const { signOut } = useAuth();
@@ -64,7 +95,8 @@ export function PlaceSwitcherSheet({ open, onClose, current }: { open: boolean; 
 
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} title="Switch place">
+      <BottomSheet open={open} onClose={onClose} title={current.kind === "hotel" ? "Menu" : "Switch place"}>
+        {current.kind === "hotel" ? <HotelMenuRows placeKey={current.key} onNavigate={onClose} /> : null}
         <PlaceSwitcherRows
           current={current}
           onNavigate={onClose}

@@ -7,9 +7,10 @@ import { BedDouble } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { AddRoomSheet } from "@/src/components/add-room-sheet";
 import { RoomSheet, StaySheet, roomPhotoUrl } from "@/src/components/desk-sheets";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { EmptyState, Kpi, KpiRow, LargeTitle, PhotoTile, PillTabs, Screen, StatusPill, colors, space, type } from "@/src/design-system";
+import { EmptyState, Kpi, KpiRow, LargeTitle, PhotoTile, PillTabs, Screen, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { getDeskScope } from "@/src/lib/desk-scope";
 import { roomMeta, roomStatusLabel, roomStatusTone } from "@/src/lib/format";
@@ -35,6 +36,7 @@ export default function RoomsScreen() {
   const [roomId, setRoomId] = useState<number | null>(null);
   const [stayId, setStayId] = useState<string | null>(null);
   const [assignRoomId, setAssignRoomId] = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   if (!roomQuery.data) {
     if (roomQuery.isError) return <RetryScreen onRetry={() => void roomQuery.refetch()} retrying={roomQuery.isFetching} />;
@@ -50,7 +52,12 @@ export default function RoomsScreen() {
 
   return (
     <Screen refreshing={roomQuery.isFetching && !roomQuery.isPending} onRefresh={() => void roomQuery.refetch()}>
-      <LargeTitle meta={stats.active ? `${stats.active} rooms · ${stats.occupancyPercent}% occupied tonight` : place.propertyName}>Rooms</LargeTitle>
+      <LargeTitle
+        meta={stats.active ? `${stats.active} rooms · ${stats.occupancyPercent}% occupied tonight` : place.propertyName}
+        action={scope.canManageRooms ? <TextLink label="Add room" onPress={() => setAddOpen(true)} /> : undefined}
+      >
+        Rooms
+      </LargeTitle>
       <View style={styles.kpis}>
         <KpiRow>
           <Kpi label="Ready" value={stats.vacant} />
@@ -76,10 +83,11 @@ export default function RoomsScreen() {
         </View>
       ) : (
         <View style={styles.empty}>
-          <EmptyState icon={BedDouble} text={rooms.length ? `No rooms are ${roomStatusLabel[filter as HotelRoom["status"]]?.toLowerCase() ?? "here"} right now.` : "This property has no rooms yet. Add them on the web."} />
+          <EmptyState icon={BedDouble} text={rooms.length ? `No rooms are ${roomStatusLabel[filter as HotelRoom["status"]]?.toLowerCase() ?? "here"} right now.` : scope.canManageRooms ? "Add the first room to get started." : "This property has no rooms yet. Add them on the web."} />
         </View>
       )}
 
+      {scope.canManageRooms ? <AddRoomSheet scope={scope} open={addOpen} onClose={() => setAddOpen(false)} /> : null}
       <RoomSheet
         scope={scope}
         roomId={roomId}

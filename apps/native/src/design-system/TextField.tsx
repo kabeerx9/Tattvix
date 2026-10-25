@@ -29,15 +29,17 @@ export function TextField({
   const borderColor = error ? colors.destructive : isFocused ? FOCUS_RING : colors.input;
   const ringed = isFocused || !!error;
   const message = error ?? helper;
+  // Multiline grows from a 120 minimum instead of the fixed single-line 50.
+  const multiline = !!input.multiline;
 
   return (
     <View style={styles.wrap}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.frame, { borderColor, borderWidth: ringed ? 2 : 1, paddingHorizontal: ringed ? 13 : 14 }]}>
+      <View style={[multiline ? styles.frameMultiline : styles.frame, { borderColor, borderWidth: ringed ? 2 : 1, paddingHorizontal: ringed ? 13 : 14 }]}>
         <TextInput
           placeholderTextColor={colors.subtleForeground}
           selectionColor={colors.primary}
-          style={styles.input}
+          style={multiline ? styles.inputMultiline : styles.input}
           onFocus={(e) => {
             setInputFocused(true);
             onFocus?.(e);
@@ -58,6 +60,9 @@ const styles = StyleSheet.create({
   wrap: { gap: 6 },
   label: { ...type.label, color: colors.subtleForeground },
   frame: { height: 50, borderRadius: radii.control, justifyContent: "center", backgroundColor: colors.card },
+  frameMultiline: { minHeight: 120, paddingVertical: 12, justifyContent: "flex-start", borderRadius: radii.control, backgroundColor: colors.card },
   input: { ...type.body, color: colors.foreground, padding: 0, height: "100%" },
+  // Fills the frame so a tap anywhere in it focuses the input.
+  inputMultiline: { ...type.body, color: colors.foreground, padding: 0, minHeight: 96, textAlignVertical: "top" },
   message: { ...type.caption },
 });

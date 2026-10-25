@@ -5,6 +5,10 @@ import {
   createCurrentUserQueries,
   createHotelOperationsApi,
   createHotelOperationsQueries,
+  createHotelDetailsApi,
+  createHotelDetailsQueries,
+  createHotelReportsApi,
+  createHotelReportsQueries,
   createHotelOverviewApi,
   createHotelOverviewQueries,
   createHotelStayQueries,
@@ -30,6 +34,8 @@ export const apiClient = createApiClient({
 export const api = {
   currentUser: createCurrentUserApi(apiClient),
   hotelOperations: createHotelOperationsApi(apiClient),
+  hotelDetails: createHotelDetailsApi(apiClient),
+  hotelReports: createHotelReportsApi(apiClient),
   hotelOverview: createHotelOverviewApi(apiClient),
   hotelStays: createHotelStaysApi(apiClient),
   propertyPhotos: createPropertyPhotosApi(apiClient),
@@ -38,6 +44,8 @@ export const api = {
 export const queries = {
   currentUser: createCurrentUserQueries(api.currentUser),
   hotelOperations: createHotelOperationsQueries(api.hotelOperations),
+  hotelDetails: createHotelDetailsQueries(api.hotelDetails),
+  hotelReports: createHotelReportsQueries(api.hotelReports),
   hotelOverview: createHotelOverviewQueries(api.hotelOverview),
   hotelStays: createHotelStayQueries(api.hotelStays),
   propertyPhotos: createPropertyPhotoQueries(api.propertyPhotos),
