@@ -17,7 +17,7 @@ import {
   getNeedsAction,
   getRoomStats,
   localDayKey,
-} from "./metrics";
+} from "./hotel-metrics";
 
 function room(id: number, status: HotelRoom["status"], isActive = true): HotelRoom {
   return { id, number: String(100 + id), floor: "1", roomType: "Deluxe", status, isActive, nightlyRateMinor: 350000 };
