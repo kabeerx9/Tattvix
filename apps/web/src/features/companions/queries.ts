@@ -1,13 +1,5 @@
-import { queryOptions } from "@tanstack/react-query";
+import { createCompanionQueries } from "@tattvix/api";
 
 import { companionsApi } from "./api";
-import { companionKeys } from "./keys";
 
-export const companionQueries = {
-  list: () =>
-    queryOptions({
-      queryKey: companionKeys.list(),
-      queryFn: companionsApi.list,
-      staleTime: 60_000,
-    }),
-};
+export const companionQueries = createCompanionQueries(companionsApi);

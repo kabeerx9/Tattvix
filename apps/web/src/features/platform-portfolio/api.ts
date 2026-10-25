@@ -1,15 +1,5 @@
-import { platformPortfolioResponseSchema } from "@tattvix/contracts";
+import { createPlatformPortfolioApi } from "@tattvix/api";
 
 import { apiClient } from "@/lib/api";
 
-export const platformPortfolioApi = {
-  list(organizationSlug?: string) {
-    const query = organizationSlug
-      ? `?${new URLSearchParams({ organization: organizationSlug })}`
-      : "";
-    return apiClient.requestJson(
-      `/api/platform/portfolio/${query}`,
-      platformPortfolioResponseSchema,
-    );
-  },
-};
+export const platformPortfolioApi = createPlatformPortfolioApi(apiClient);

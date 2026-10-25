@@ -1,22 +1,5 @@
-import {
-  guestProfileResponseSchema,
-  type GuestProfileInput,
-} from "@tattvix/contracts";
+import { createGuestProfileApi } from "@tattvix/api";
 
 import { apiClient } from "@/lib/api";
 
-export const guestProfileApi = {
-  get() {
-    return apiClient.requestJson(
-      "/api/guest/profile/",
-      guestProfileResponseSchema,
-    );
-  },
-  update(input: GuestProfileInput) {
-    return apiClient.requestJson(
-      "/api/guest/profile/",
-      guestProfileResponseSchema,
-      { method: "PUT", body: JSON.stringify(input) },
-    );
-  },
-};
+export const guestProfileApi = createGuestProfileApi(apiClient);
