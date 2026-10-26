@@ -138,12 +138,16 @@ Every signed-in workspace (personal, hotel staff, platform admin) uses `AppShell
 
 The mark is **Threshold**: an open, offset doorway in near-black `#222222`, never in the accent.
 `BrandLogo` and `BrandMark` (`apps/web/src/components/brand.tsx`) are the only React source of the
-logo; every shell, login, sign-up and check-in screen uses them, drawn in `currentColor`. Three
+logo; every shell, login, sign-up and check-in screen uses them, drawn in `currentColor`. These
 non-React copies must stay in sync with its paths:
 
 1. `apps/web/public/favicon.svg` (32-unit version; flips to white in dark browser chrome) and `favicon.ico` (32px, for browsers that only ask for `/favicon.ico`). Both are linked statically in `index.html`.
 2. `apps/web/public/apple-touch-icon.png` (180px, white background).
 3. The boot splash mark in `apps/web/index.html`, which paints before React loads.
+4. `apps/native/assets/images/brand-mark.svg` and the native `BrandMark`. Regenerate Expo
+   launcher, adaptive/themed, splash and favicon PNGs with `bash scripts/generate-native-brand.sh`
+   (ImageMagick 7). Android layers use a 1024px canvas with the mark inside the adaptive safe
+   circle; the launcher background is opaque white. Launcher changes require a new native build.
 
 ## Page anatomy
 

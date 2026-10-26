@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#222222">
+  <!-- Threshold: mirrors BrandMark in apps/web/src/components/brand.tsx. -->
+  <path d="M12 56V8h40v20H40V20H24v36Z"/>
+  <path d="M40 36h12v20H40Z"/>
+</svg>
