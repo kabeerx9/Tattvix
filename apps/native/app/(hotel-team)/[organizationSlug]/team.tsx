@@ -1,4 +1,4 @@
-import { classifyApiError, createTeamMutations, teamMemberName } from "@tattvix/api";
+import { classifyApiError, createTeamMutations, refreshLostTeamAccess, teamMemberName } from "@tattvix/api";
 import type { TeamMember } from "@tattvix/contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
@@ -11,7 +11,7 @@ import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { Button, ConfirmSheet, EmptyState, ListRow, Panel, Screen, SecondaryHeader, SectionTitle, StatusPill, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { useCurrentUser } from "@/src/lib/current-user";
-import { isLostTeamAccess, propertyScopeLabel } from "@/src/lib/team-member-form";
+import { buildTeamMemberPatch, isLostTeamAccess, propertyScopeLabel } from "@/src/lib/team-member-form";
 import { queryClient } from "@/src/lib/query";
 
 type Change = { memberId: number; input: { role?: TeamMember["role"]; propertyIds?: number[]; isActive?: boolean }; title: string; description: string; tone?: "primary" | "destructive"; self?: boolean } | { memberId?: never; input: { userId: number; role: TeamMember["role"]; propertyIds: number[] }; title: string; description: string; tone?: "primary" | "destructive"; self?: boolean };
@@ -39,6 +39,7 @@ export default function TeamScreen() {
     ...mutations.add,
     onSuccess: async () => {
       await mutations.add.onSuccess();
+      setChange(null);
       setFormMember(undefined);
       toast("Team member added");
     },
@@ -51,7 +52,7 @@ export default function TeamScreen() {
 
   useEffect(() => {
     if (isLostTeamAccess(team.error) || isLostTeamAccess(saveError)) {
-      void queryClient.invalidateQueries({ queryKey: ["current-user"] });
+      void refreshLostTeamAccess(queryClient, organizationSlug);
     }
   }, [saveError, team.error]);
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function TeamScreen() {
   if (!team.data) return team.isError ? <RetryScreen onRetry={() => void team.refetch()} retrying={team.isFetching} /> : <PendingScreen />;
   const user = currentUser.data;
 
-  function saveForm(input: { role: TeamMember["role"]; propertyIds: number[]; userId?: number }) {
+  function saveForm(input: { role: TeamMember["role"]; propertyIds: number[]; userId?: number; roleChanged: boolean; propertyScopeChanged: boolean }) {
     if (!formMember) {
       if (!input.userId) return;
       if (input.role === "OWNER") {
@@ -78,10 +79,10 @@ export default function TeamScreen() {
       void team.refetch();
       return;
     }
-    const scopeChanged = refreshedMember.role !== input.role || (input.role !== "OWNER" && JSON.stringify([...refreshedMember.propertyIds].sort()) !== JSON.stringify([...input.propertyIds].sort()));
-    const inputChange = scopeChanged ? { role: input.role, propertyIds: input.propertyIds } : {};
+    const scopeChanged = input.roleChanged || input.propertyScopeChanged;
+    const inputChange = buildTeamMemberPatch(input);
     const self = refreshedMember.user.id === user.id;
-    if (input.role === "OWNER" && refreshedMember.role !== "OWNER") {
+    if (input.roleChanged && input.role === "OWNER" && refreshedMember.role !== "OWNER") {
       setChange({ memberId: refreshedMember.id, input: inputChange, title: "Grant owner access?", description: "Owners can manage every person and property in this organization.", self });
     } else if (self && scopeChanged) {
       setChange({ memberId: refreshedMember.id, input: inputChange, title: "Change your own access?", description: "You will return to your account after this change.", self });

@@ -34,7 +34,7 @@ export function TeamMemberForm({
   open: boolean;
   readOnly: boolean;
   onClose: () => void;
-  onSubmit: (input: { role: TeamRole; propertyIds: number[]; userId?: number }) => void;
+  onSubmit: (input: { role: TeamRole; propertyIds: number[]; userId?: number; roleChanged: boolean; propertyScopeChanged: boolean }) => void;
   onToggleAccess?: (member: TeamMember) => void;
   saving: boolean;
   error?: string;
@@ -43,6 +43,8 @@ export function TeamMemberForm({
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
   const [role, setRole] = useState<TeamRole>(member?.role ?? "MANAGER");
   const [propertyIds, setPropertyIds] = useState<number[]>(member?.propertyIds ?? []);
+  const [baselineRole, setBaselineRole] = useState<TeamRole>(member?.role ?? "MANAGER");
+  const [baselinePropertyIds, setBaselinePropertyIds] = useState<number[]>(member?.propertyIds ?? []);
   const [debouncedEmail, setDebouncedEmail] = useState("");
 
   useEffect(() => {
@@ -51,6 +53,8 @@ export function TeamMemberForm({
     setSelectedUser(member?.user ?? null);
     setRole(member?.role ?? "MANAGER");
     setPropertyIds(member?.propertyIds ?? []);
+    setBaselineRole(member?.role ?? "MANAGER");
+    setBaselinePropertyIds(member?.propertyIds ?? []);
     setDebouncedEmail("");
   }, [member, open]);
 
@@ -61,7 +65,9 @@ export function TeamMemberForm({
 
   const search = useQuery({ ...queries.team.search(organizationSlug, debouncedEmail), enabled: !member && debouncedEmail.length >= 3 });
   const searchIsCurrent = debouncedEmail === email.trim();
-  const changed = !member || member.role !== role || (role !== "OWNER" && JSON.stringify([...member.propertyIds].sort()) !== JSON.stringify([...propertyIds].sort()));
+  const roleChanged = !member || baselineRole !== role;
+  const propertyScopeChanged = !member || (role !== "OWNER" && JSON.stringify([...baselinePropertyIds].sort()) !== JSON.stringify([...propertyIds].sort()));
+  const changed = roleChanged || propertyScopeChanged;
   const canSave = changed && canSaveTeamMember(role, propertiesForRole(role, propertyIds), Boolean(member || selectedUser)) && !readOnly;
   const selectedPropertyIds = useMemo(() => new Set(propertyIds), [propertyIds]);
 
@@ -74,7 +80,7 @@ export function TeamMemberForm({
   }
   function submit() {
     if (!canSave) return;
-    onSubmit({ role, propertyIds: propertiesForRole(role, propertyIds), userId: member ? undefined : selectedUser?.id });
+    onSubmit({ role, propertyIds: propertiesForRole(role, propertyIds), userId: member ? undefined : selectedUser?.id, roleChanged, propertyScopeChanged });
   }
 
   return (

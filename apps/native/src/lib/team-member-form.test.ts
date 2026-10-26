@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ApiError } from "@tattvix/contracts";
 
-import { canSaveTeamMember, isLostTeamAccess, propertiesForRole, propertyScopeLabel } from "./team-member-form";
+import { buildTeamMemberPatch, canSaveTeamMember, isLostTeamAccess, propertiesForRole, propertyScopeLabel } from "./team-member-form";
 
 test("owners always submit an empty property scope", () => {
   assert.deepEqual(propertiesForRole("OWNER", [4, 9]), []);
@@ -26,4 +26,12 @@ test("team routes refresh access for masked or explicit owner denial", () => {
   assert.equal(isLostTeamAccess(new ApiError(403, "Forbidden")), true);
   assert.equal(isLostTeamAccess(new ApiError(404, "Not found")), true);
   assert.equal(isLostTeamAccess(new ApiError(409, "Last owner")), false);
+});
+
+test("property-only team edits never resend a stale role", () => {
+  assert.deepEqual(buildTeamMemberPatch({ role: "RECEPTION", propertyIds: [4, 9], roleChanged: false, propertyScopeChanged: true }), { propertyIds: [4, 9] });
+});
+
+test("role changes include an explicit scope in the same patch", () => {
+  assert.deepEqual(buildTeamMemberPatch({ role: "MANAGER", propertyIds: [4], roleChanged: true, propertyScopeChanged: false }), { role: "MANAGER", propertyIds: [4] });
 });
