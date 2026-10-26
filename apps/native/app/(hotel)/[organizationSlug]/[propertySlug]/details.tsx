@@ -10,6 +10,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { Button, ConfirmSheet, LargeTitle, Screen, SecondaryHeader, SectionTitle, Spinner, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { PhotoSlot, SavingPhoto, useRemovePhoto, useUploadPhoto } from "@/src/components/photo-slots";
+import { PropertyNameForm } from "@/src/components/property-name-form";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { api, queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
@@ -112,6 +113,7 @@ export default function HotelDetailsScreen() {
     <Screen refreshing={details.isFetching && !details.isPending} onRefresh={() => void details.refetch()}>
       <SecondaryHeader title="Hotel details" onBack={() => router.back()} />
       <LargeTitle meta="Property information and photos">{place.propertyName}</LargeTitle>
+      <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManageHotel} />
 
       <View style={styles.section}>
         <SectionTitle>Property information</SectionTitle>

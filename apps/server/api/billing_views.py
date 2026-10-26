@@ -8,6 +8,7 @@ from .billing import add_extra_charge, read_stay_bill, void_extra_charge
 from .billing_serializers import (
     ExtraChargeSerializer,
     PropertyDetailsSerializer,
+    PropertyNameSerializer,
     RoomRateSerializer,
     VoidChargeSerializer,
 )
@@ -50,6 +51,24 @@ def hotel_room_rate(request, organization_slug, property_slug, room_id):
         room.nightly_rate_minor = serializer.validated_data["nightly_rate_minor"]
         room.save(update_fields=["nightly_rate_minor", "updated_at"])
         return Response(build_room_payload(room))
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def hotel_property_name(request, organization_slug, property_slug):
+    # Separate from details: installed native clients strictly parse that response.
+    property_ = _property(
+        request, organization_slug, property_slug,
+        Permission.HOTEL_MANAGE if request.method == "PATCH" else Permission.HOTEL_VIEW,
+    )
+    if request.method == "PATCH":
+        serializer = PropertyNameSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            property_ = Property.objects.select_for_update().get(pk=property_.pk)
+            property_.name = serializer.validated_data["name"]
+            property_.save(update_fields=["name", "updated_at"])
+    return Response({"name": property_.name})
 
 
 @api_view(["GET", "PATCH"])

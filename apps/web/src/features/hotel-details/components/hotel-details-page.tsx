@@ -18,6 +18,7 @@ import { ApiError } from "@/lib/api";
 
 import { hotelDetailsMutations } from "../mutations";
 import { hotelDetailsQueries } from "../queries";
+import { PropertyNameForm } from "./property-name-form";
 
 function toInput(details: PropertyDetails): PropertyDetailsInput {
   return {
@@ -83,6 +84,7 @@ export function HotelDetailsPage({
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader title="Property settings" />
+      <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManage} />
       <form className="grid gap-6" onSubmit={save}>
         <Panel>
           <PanelHeader title="Property information" icon={Building2} />

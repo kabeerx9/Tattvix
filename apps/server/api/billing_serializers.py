@@ -27,6 +27,10 @@ class VoidChargeSerializer(StrictSerializer):
     reason = serializers.CharField(max_length=500)
 
 
+class PropertyNameSerializer(StrictSerializer):
+    name = serializers.CharField(max_length=255)
+
+
 class PropertyDetailsSerializer(StrictSerializer):
     address = serializers.CharField(max_length=1000, allow_blank=True, required=False)
     contactPhone = serializers.CharField(

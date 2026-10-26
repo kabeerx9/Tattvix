@@ -94,3 +94,4 @@ export { createPlatformOversightApi, createPlatformOversightQueries, platformOve
 export { createPlatformPortfolioApi, createPlatformPortfolioQueries, platformPortfolioKeys, type PlatformPortfolioApi } from "./platform-portfolio";
 export { createPlatformUserQueries, createPlatformUsersApi, platformUserKeys, type PlatformUsersApi } from "./platform-users";
 export { createPropertyPhotoQueries, createPropertyPhotosApi, propertyPhotosKeys, type PropertyPhotosApi } from "./property-photos";
+export { createPropertyNameApi, propertyNameQuery, propertyNameMutation, propertyNameKeys } from "./property-name";

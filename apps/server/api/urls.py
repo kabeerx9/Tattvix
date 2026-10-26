@@ -57,7 +57,7 @@ from .platform_views import (
 )
 from .views import clerk_webhook, cron_purge_identity_images, health, me
 
-from .billing_views import (hotel_room_rate, hotel_property_details, hotel_stay_bill,
+from .billing_views import (hotel_property_name, hotel_room_rate, hotel_property_details, hotel_stay_bill,
     hotel_stay_charge_void, guest_stay_detail, guest_stay_bill)
 
 from .property_photo_views import (
@@ -66,6 +66,11 @@ from .property_photo_views import (
 )
 
 urlpatterns = [
+    path(
+        "api/hotel/<slug:organization_slug>/<slug:property_slug>/name/",
+        hotel_property_name,
+        name="hotel-property-name",
+    ),
     path("api/hotel/<slug:organization_slug>/<slug:property_slug>/photos/", hotel_property_photos, name="hotel-property-photos"),
     path("api/hotel/<slug:organization_slug>/<slug:property_slug>/photos/upload/", hotel_property_photo_upload, name="hotel-property-photo-upload"),
     path("api/hotel/<slug:organization_slug>/<slug:property_slug>/photos/upload/complete/", hotel_property_photo_upload_complete, name="hotel-property-photo-upload-complete"),
