@@ -171,6 +171,23 @@ class PlatformPropertyCreateTests(PlatformAdminApiTestCase):
 
 
 class PlatformMemberTests(PlatformAdminApiTestCase):
+    def test_admin_can_mutate_members_for_an_inactive_organization(self):
+        self.organization.is_active = False
+        self.organization.save(update_fields=["is_active"])
+
+        added = self.client.post(
+            self.members_url(),
+            {"email": self.staff.email, "role": "RECEPTION"},
+            format="json",
+        )
+        self.assertEqual(added.status_code, 201, added.data)
+        changed = self.client.patch(
+            self.member_url(added.data["id"]),
+            {"isActive": False},
+            format="json",
+        )
+        self.assertEqual(changed.status_code, 200, changed.data)
+
     def test_member_add_role_change_and_deactivation_lifecycle(self):
         added = self.client.post(
             self.members_url(),

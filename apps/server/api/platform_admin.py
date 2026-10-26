@@ -155,7 +155,7 @@ def add_organization_member(
 
     try:
         with transaction.atomic():
-            organization = _locked_organization(organization)
+            organization = _locked_organization(organization, require_active=False)
             membership = Membership.objects.create(
                 user=user,
                 organization=organization,
@@ -185,7 +185,7 @@ def update_organization_member(
     is_active: bool | None = None,
 ) -> Membership:
     with transaction.atomic():
-        organization = _locked_organization(organization)
+        organization = _locked_organization(organization, require_active=False)
         locked = Membership.objects.select_for_update().get(
             id=membership.id,
             organization=organization,

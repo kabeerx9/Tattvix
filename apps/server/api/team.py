@@ -15,8 +15,13 @@ class TeamError(Exception):
     status_code: int = 400
 
 
-def _locked_organization(organization: Organization) -> Organization:
-    return Organization.objects.select_for_update().get(pk=organization.pk, is_active=True)
+def _locked_organization(
+    organization: Organization, *, require_active: bool = True
+) -> Organization:
+    query = Organization.objects.select_for_update().filter(pk=organization.pk)
+    if require_active:
+        query = query.filter(is_active=True)
+    return query.get()
 
 
 def _actor_membership(*, organization: Organization, actor: ClerkUser) -> Membership:
