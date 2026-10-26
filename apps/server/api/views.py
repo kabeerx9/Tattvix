@@ -16,7 +16,16 @@ from rest_framework.throttling import ScopedRateThrottle
 from .check_in import purge_expired_shared_identity_images
 from .current_user import build_current_user_payload
 from .object_storage import PrivateObjectStorage
+from .support import build_support_contacts
 from .webhooks import ClerkWebhookError, verify_clerk_webhook
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def support_contacts(_request):
+    # Public, non-personal configuration; usable even with an expired session.
+    return Response(build_support_contacts(), headers={"Cache-Control": "no-store"})
 
 
 @api_view(["GET"])

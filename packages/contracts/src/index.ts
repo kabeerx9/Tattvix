@@ -265,3 +265,4 @@ export {
   type PropertyPhotoUploadRequest, type PropertyPhotoUploadResponse,
 } from "./hotel-operations";
 export { propertyNameSchema, type PropertyName } from "./property-name";
+export { supportContactsSchema, type SupportContacts } from "./support";

@@ -55,7 +55,7 @@ from .platform_views import (
     platform_portfolio,
     platform_user_list,
 )
-from .views import clerk_webhook, cron_purge_identity_images, health, me
+from .views import clerk_webhook, cron_purge_identity_images, health, me, support_contacts
 
 from .billing_views import (hotel_property_name, hotel_room_rate, hotel_property_details, hotel_stay_bill,
     hotel_stay_charge_void, guest_stay_detail, guest_stay_bill)
@@ -66,6 +66,7 @@ from .property_photo_views import (
 )
 
 urlpatterns = [
+    path("api/support/", support_contacts, name="support-contacts"),
     path(
         "api/hotel/<slug:organization_slug>/<slug:property_slug>/name/",
         hotel_property_name,

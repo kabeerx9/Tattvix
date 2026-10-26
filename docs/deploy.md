@@ -1,5 +1,18 @@
 # Production Deploy
 
+## Help desk contacts
+
+Set `SUPPORT_CALL_PHONE` and `SUPPORT_WHATSAPP_PHONE` on the Django API service
+to the real international-format numbers (for India, `+91` followed by ten
+digits). They can differ. Redeploy/restart the API after changing the environment.
+Both apps read `/api/support/`; no web rebuild or native OTA is needed to change
+the contacts once the help desk screens have shipped. They refresh when opened.
+The default `+910000000000` is a placeholder: both actions remain disabled until
+real numbers are configured. Blank or malformed values disable the corresponding
+action. No guest details are included in call or WhatsApp links.
+
+## Production stack
+
 India-resident pilot stack on free tiers. Everything that stores or
 processes guest data runs in Mumbai; only the static SPA is served from a
 global CDN.

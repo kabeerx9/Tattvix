@@ -2,6 +2,7 @@ import { useAuth, useUser } from "@clerk/clerk-expo";
 import { env } from "@tattvix/env/native";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
+import { useRouter } from "expo-router";
 import { UserRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -19,6 +20,7 @@ function buildFooter() {
 // Real account data from Clerk only. Sign out is the one working action here.
 export default function AccountScreen() {
   const { signOut } = useAuth();
+  const router = useRouter();
   const { user } = useUser();
 
   return (
@@ -29,6 +31,7 @@ export default function AccountScreen() {
           <ListRow icon={UserRound} title={user?.fullName || "Tattwix guest"} detail={user?.primaryEmailAddress?.emailAddress} />
         </Panel>
         <Button label="Sign out" variant="outline" onPress={() => signOut()} />
+        <Button label="Help desk" variant="outline" onPress={() => router.push("/support")} />
       </View>
       <Text style={styles.footer} selectable>
         {buildFooter()}

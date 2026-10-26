@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
-import { BarChart3, BedDouble, Building2, LogOut, QrCode, Settings, ShieldCheck, UserRound } from "lucide-react-native";
+import { BarChart3, BedDouble, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, UserRound } from "lucide-react-native";
 import { useState } from "react";
 
 import { BottomSheet, ConfirmSheet, ListRow, Panel, StatusPill } from "@/src/design-system";
@@ -74,6 +74,7 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
         />
       ) : null}
       <ListRow icon={Settings} title="Account" detail={user.data?.email} compact chevron onPress={() => go("/(guest)/account" as Href)} />
+      <ListRow icon={LifeBuoy} title="Help desk" compact chevron onPress={() => { onNavigate?.(); router.push("/support"); }} />
       <ListRow icon={LogOut} title="Sign out" compact onPress={onSignOut} />
     </Panel>
   );

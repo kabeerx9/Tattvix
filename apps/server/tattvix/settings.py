@@ -224,6 +224,10 @@ SUBSCRIPTION_PRICE_PER_PROPERTY_MINOR = env_positive_int(
     "SUBSCRIPTION_PRICE_PER_PROPERTY_MINOR", 50000
 )
 
+# Replace the placeholder on the server; neither client needs a rebuild.
+SUPPORT_CALL_PHONE = os.environ.get("SUPPORT_CALL_PHONE", "+910000000000").strip()
+SUPPORT_WHATSAPP_PHONE = os.environ.get("SUPPORT_WHATSAPP_PHONE", "+910000000000").strip()
+
 COMPANION_MINOR_AGE_YEARS =env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 HOTEL_QR_TOKEN_TTL_DAYS = env_positive_int("HOTEL_QR_TOKEN_TTL_DAYS", 365)
 HOTEL_IDENTITY_MAX_ACCESS_DAYS = env_positive_int(

@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Contact,
   IdCard,
+  LifeBuoy,
   LogOut,
   Menu,
   Settings,
@@ -439,6 +440,12 @@ function AccountPanel({
           <Link to="/settings" onClick={onNavigate} className={cn(panelRowClass, shell.accountActive && "font-semibold")}>
             <Settings className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="truncate">Account settings</span>
+          </Link>
+        </li>
+        <li>
+          <Link to="/help" onClick={onNavigate} className={panelRowClass}>
+            <LifeBuoy className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="truncate">Help desk</span>
           </Link>
         </li>
         <li>

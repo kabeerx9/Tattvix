@@ -47,6 +47,7 @@ export default function RootLayout() {
             <Stack.Screen name="(admin)" />
             <Stack.Screen name="check-in/[token]" />
             <Stack.Screen name="gallery" />
+            <Stack.Screen name="support" />
             <Stack.Screen name="+not-found" />
           </Stack>
           <Toaster />
