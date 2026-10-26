@@ -139,3 +139,30 @@ class TeamApiTests(APITestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual([item["id"] for item in response.data["properties"]], [self.property.id])
         self.assertNotEqual(extra.id, self.property.id)
+
+    def test_unknown_or_boolean_identifier_fields_are_rejected_without_writing(self):
+        response = self.client.post(
+            self.url(),
+            {"userId": self.manager.id, "role": "RECEPTION", "propertyIds": [self.property.id], "actorId": self.owner.id, "isActive": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("actorId", response.data)
+        self.assertIn("isActive", response.data)
+        self.assertFalse(Membership.objects.filter(user=self.manager, organization=self.org).exists())
+        response = self.client.post(
+            self.url(), {"userId": True, "role": "RECEPTION", "propertyIds": [self.property.id]}, format="json"
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(Membership.objects.filter(user=self.manager, organization=self.org).exists())
+
+    def test_unknown_search_and_update_fields_are_rejected_without_mutation(self):
+        users_url = reverse("hotel-team-users", kwargs={"organization_slug": self.org.slug})
+        self.assertEqual(self.client.get(users_url, {"email": "man", "actorId": self.owner.id}).status_code, 400)
+        response = self.client.patch(
+            reverse("hotel-team-member", kwargs={"organization_slug": self.org.slug, "membership_id": self.owner_membership.id}),
+            {"isActive": False, "organizationId": 999}, format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.owner_membership.refresh_from_db()
+        self.assertTrue(self.owner_membership.is_active)
