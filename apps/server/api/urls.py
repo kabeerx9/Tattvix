@@ -64,8 +64,12 @@ from .property_photo_views import (
     hotel_property_photos, hotel_property_photo_upload,
     hotel_property_photo_upload_complete,
 )
+from .team_views import hotel_team, hotel_team_member, hotel_team_users
 
 urlpatterns = [
+    path("api/hotel/<slug:organization_slug>/team/", hotel_team, name="hotel-team"),
+    path("api/hotel/<slug:organization_slug>/team/users/", hotel_team_users, name="hotel-team-users"),
+    path("api/hotel/<slug:organization_slug>/team/<int:membership_id>/", hotel_team_member, name="hotel-team-member"),
     path("api/support/", support_contacts, name="support-contacts"),
     path(
         "api/hotel/<slug:organization_slug>/<slug:property_slug>/name/",

@@ -343,5 +343,6 @@ REST_FRAMEWORK = {
         "public-check-in": f"{THROTTLE_PUBLIC_CHECK_IN_PER_MINUTE}/min",
         "public-webhook": f"{THROTTLE_PUBLIC_WEBHOOK_PER_MINUTE}/min",
         "identity-upload": f"{THROTTLE_IDENTITY_UPLOAD_PER_MINUTE}/min",
+        "team-user-search": "60/min",
     },
 }

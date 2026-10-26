@@ -700,6 +700,7 @@ class PlatformAuditAction(models.TextChoices):
     MEMBER_ROLE_CHANGED = "MEMBER_ROLE_CHANGED", "Member role changed"
     MEMBER_DEACTIVATED = "MEMBER_DEACTIVATED", "Member deactivated"
     MEMBER_REACTIVATED = "MEMBER_REACTIVATED", "Member reactivated"
+    MEMBER_PROPERTY_SCOPE_CHANGED = "MEMBER_PROPERTY_SCOPE_CHANGED", "Member property scope changed"
 
 
 class PlatformAuditLog(models.Model):

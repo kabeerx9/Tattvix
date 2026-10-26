@@ -25,6 +25,7 @@ from .user_lookup import (
     ExistingUserNotFound,
     get_unique_existing_user_by_email,
 )
+from .team import _locked_organization
 
 
 def build_member_payload(membership: Membership) -> dict:
@@ -154,6 +155,7 @@ def add_organization_member(
 
     try:
         with transaction.atomic():
+            organization = _locked_organization(organization)
             membership = Membership.objects.create(
                 user=user,
                 organization=organization,
@@ -183,6 +185,7 @@ def update_organization_member(
     is_active: bool | None = None,
 ) -> Membership:
     with transaction.atomic():
+        organization = _locked_organization(organization)
         locked = Membership.objects.select_for_update().get(
             id=membership.id,
             organization=organization,
