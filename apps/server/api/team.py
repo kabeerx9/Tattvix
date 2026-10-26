@@ -95,6 +95,10 @@ def add_team_member(*, organization: Organization, actor: ClerkUser, user_id: in
         if user is None:
             raise TeamError("user_not_found", "That Tattwix account no longer exists.")
         if role == MembershipRole.OWNER:
+            # A legacy restricted owner may manage members, but cannot turn a
+            # user into an all-properties owner beyond their own scope.
+            if not actor_membership.has_all_properties:
+                raise Http404
             properties = []
         else:
             if not property_ids:
@@ -122,6 +126,8 @@ def update_team_member(*, organization: Organization, actor: ClerkUser, membersh
         if membership.role == MembershipRole.OWNER and new_role != MembershipRole.OWNER and property_ids is None:
             raise TeamError("property_scope_required", "Select properties when changing an owner to staff.")
         if new_role == MembershipRole.OWNER:
+            if not actor_membership.has_all_properties:
+                raise Http404
             if property_ids:
                 raise TeamError("invalid_property_scope", "Owners have access to all properties.")
             properties = []

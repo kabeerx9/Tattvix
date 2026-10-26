@@ -1,7 +1,11 @@
 from types import SimpleNamespace
+from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
 
 from api.models import ClerkUser, Membership, MembershipPropertyAccess, MembershipRole, Organization, Property
 
@@ -52,3 +56,49 @@ class TeamApiTests(APITestCase):
         foreign = Property.objects.create(organization=other, name="Foreign", slug="foreign")
         response = self.client.post(self.url(), {"userId": self.manager.id, "role": "RECEPTION", "propertyIds": [foreign.id]}, format="json")
         self.assertEqual(response.status_code, 404)
+
+    def test_restricted_owner_cannot_promote_someone_to_all_properties(self):
+        MembershipPropertyAccess.objects.create(
+            membership=self.owner_membership, property=self.property
+        )
+        self.owner_membership.has_all_properties = False
+        self.owner_membership.save(update_fields=["has_all_properties"])
+        response = self.client.post(
+            self.url(),
+            {"userId": self.manager.id, "role": "OWNER", "propertyIds": []},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 404, response.data)
+
+    def test_expired_subscription_allows_read_but_blocks_writes_without_partial_membership(self):
+        subscription = self.org.subscription
+        subscription.trial_ends_at = timezone.now() - timedelta(seconds=1)
+        subscription.save(update_fields=["trial_ends_at"])
+        self.assertEqual(self.client.get(self.url()).status_code, 200)
+        response = self.client.post(
+            self.url(),
+            {"userId": self.manager.id, "role": "RECEPTION", "propertyIds": [self.property.id]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 402, response.data)
+        self.assertFalse(Membership.objects.filter(user=self.manager, organization=self.org).exists())
+
+    def test_user_search_throttles_per_authenticated_database_user(self):
+        url = reverse("hotel-team-users", kwargs={"organization_slug": self.org.slug})
+        with patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"team-user-search": "2/min"}):
+            self.assertEqual(self.client.get(url, {"email": "man"}).status_code, 200)
+            self.assertEqual(self.client.get(url, {"email": "man"}).status_code, 200)
+            self.assertEqual(self.client.get(url, {"email": "man"}).status_code, 429)
+
+    def test_inactive_actor_or_organization_cannot_mutate(self):
+        self.owner_membership.is_active = False
+        self.owner_membership.save(update_fields=["is_active"])
+        response = self.client.post(
+            self.url(), {"userId": self.manager.id, "role": "RECEPTION", "propertyIds": [self.property.id]}, format="json"
+        )
+        self.assertEqual(response.status_code, 404)
+        self.owner_membership.is_active = True
+        self.owner_membership.save(update_fields=["is_active"])
+        self.org.is_active = False
+        self.org.save(update_fields=["is_active"])
+        self.assertEqual(self.client.get(self.url()).status_code, 404)

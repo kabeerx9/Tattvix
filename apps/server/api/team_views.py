@@ -50,6 +50,9 @@ def hotel_team_users(request, organization_slug: str):
     return Response({"users": [{"id": u.id, "email": u.email, "firstName": u.first_name, "lastName": u.last_name} for u in users]}, headers={"Cache-Control": "no-store"})
 
 
+hotel_team_users.cls.throttle_scope = "team-user-search"
+
+
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def hotel_team_member(request, organization_slug: str, membership_id: int):
