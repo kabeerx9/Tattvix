@@ -22,6 +22,7 @@ function SettingsPage() {
             <div>
               <h2 className="text-sm font-semibold wrap-anywhere">{hotel.organization.name}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{hotel.subscriptionLabel}</p>
+              <Button className="mt-3" variant="outline" render={<Link to="/hotel/$organizationSlug/team" params={{ organizationSlug: hotel.organization.slug }} />}>Manage team<span className="sr-only"> for {hotel.organization.name}</span></Button>
             </div>
             {hotel.properties.length ? hotel.properties.map((property) => (
               <div key={property.id} className="flex min-w-0 flex-wrap items-center justify-between gap-3">
