@@ -29,7 +29,7 @@ def _error(exc):
 def hotel_team(request, organization_slug: str):
     organization = require_owner(organization_slug=organization_slug, actor=request.user.db_user)
     if request.method == "GET":
-        return Response(build_team_payload(organization=organization))
+        return Response(build_team_payload(organization=organization, actor=request.user.db_user))
     serializer = TeamMemberAddSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     try:

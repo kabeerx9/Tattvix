@@ -57,6 +57,18 @@ def _properties_for_scope(*, organization: Organization, actor_membership: Membe
     return properties
 
 
+def _assert_existing_scope_within_actor(*, actor_membership: Membership, membership: Membership) -> None:
+    """A reactivation must not restore access the actor could not grant today."""
+    if actor_membership.has_all_properties:
+        return
+    if membership.has_all_properties:
+        raise Http404
+    target_ids = set(MembershipPropertyAccess.objects.filter(membership=membership).values_list("property_id", flat=True))
+    actor_ids = set(MembershipPropertyAccess.objects.filter(membership=actor_membership).values_list("property_id", flat=True))
+    if not target_ids.issubset(actor_ids):
+        raise Http404
+
+
 def _write_scope(*, membership: Membership, role: str, properties: list[Property] | None) -> bool:
     changed = False
     if role == MembershipRole.OWNER:
@@ -137,9 +149,14 @@ def update_team_member(*, organization: Organization, actor: ClerkUser, membersh
             properties = _properties_for_scope(organization=organization, actor_membership=actor_membership, property_ids=property_ids)
         else:
             properties = None
+        if is_active is True and not membership.is_active and property_ids is None:
+            _assert_existing_scope_within_actor(
+                actor_membership=actor_membership, membership=membership
+            )
         _assert_owner_survives(organization=organization, membership=membership, role=role, is_active=is_active)
+        role_changed = role is not None and role != membership.role
         fields = ["updated_at"]
-        if role is not None and role != membership.role:
+        if role_changed:
             PlatformAuditLog.objects.create(actor=actor, organization=organization, action=PlatformAuditAction.MEMBER_ROLE_CHANGED, target=f"{membership.user.email}:{membership.role}->{role}")
             membership.role = role
             fields.append("role")
@@ -147,7 +164,10 @@ def update_team_member(*, organization: Organization, actor: ClerkUser, membersh
             PlatformAuditLog.objects.create(actor=actor, organization=organization, action=PlatformAuditAction.MEMBER_REACTIVATED if is_active else PlatformAuditAction.MEMBER_DEACTIVATED, target=membership.user.email)
             membership.is_active = is_active
             fields.append("is_active")
-        if _write_scope(membership=membership, role=new_role, properties=properties):
+        scope_was_edited = property_ids is not None or (
+            role_changed
+        )
+        if scope_was_edited and _write_scope(membership=membership, role=new_role, properties=properties):
             fields.append("has_all_properties")
             PlatformAuditLog.objects.create(actor=actor, organization=organization, action=PlatformAuditAction.MEMBER_PROPERTY_SCOPE_CHANGED, target=membership.user.email)
         if len(fields) > 1:
@@ -159,7 +179,13 @@ def team_member_payload(membership: Membership) -> dict:
     return {"id": membership.id, "role": membership.role, "isActive": membership.is_active, "hasAllProperties": membership.has_all_properties, "propertyIds": list(membership.property_accesses.values_list("property_id", flat=True)), "user": {"id": membership.user_id, "email": membership.user.email, "firstName": membership.user.first_name, "lastName": membership.user.last_name}}
 
 
-def build_team_payload(*, organization: Organization) -> dict:
-    properties = list(organization.properties.filter(is_active=True).order_by("name", "id"))
+def build_team_payload(*, organization: Organization, actor: ClerkUser) -> dict:
+    actor_membership = Membership.objects.filter(
+        organization=organization, user=actor, is_active=True
+    ).first()
+    properties = organization.properties.filter(is_active=True)
+    if actor_membership is not None and not actor_membership.has_all_properties:
+        properties = properties.filter(membership_accesses__membership=actor_membership)
+    properties = list(properties.order_by("name", "id"))
     members = organization.memberships.select_related("user").prefetch_related("property_accesses").order_by("user__email", "id")
     return {"organization": {"id": organization.id, "name": organization.name, "slug": organization.slug}, "properties": [{"id": p.id, "name": p.name, "slug": p.slug} for p in properties], "subscription": build_subscription_payload(getattr(organization, "subscription", None)), "members": [team_member_payload(m) for m in members]}

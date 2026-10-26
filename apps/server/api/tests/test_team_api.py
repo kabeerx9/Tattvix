@@ -102,3 +102,40 @@ class TeamApiTests(APITestCase):
         self.org.is_active = False
         self.org.save(update_fields=["is_active"])
         self.assertEqual(self.client.get(self.url()).status_code, 404)
+
+    def test_is_active_only_update_preserves_legacy_restricted_owner_scope(self):
+        MembershipPropertyAccess.objects.create(membership=self.owner_membership, property=self.property)
+        self.owner_membership.has_all_properties = False
+        self.owner_membership.is_active = False
+        self.owner_membership.save(update_fields=["has_all_properties", "is_active"])
+        # A second full owner performs the status-only reactivation.
+        other = ClerkUser.objects.create(clerk_id="other-owner", email="other@example.com")
+        Membership.objects.create(user=other, organization=self.org, role=MembershipRole.OWNER, has_all_properties=True)
+        self.auth(other)
+        response = self.client.patch(reverse("hotel-team-member", kwargs={"organization_slug": self.org.slug, "membership_id": self.owner_membership.id}), {"isActive": True}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.owner_membership.refresh_from_db()
+        self.assertFalse(self.owner_membership.has_all_properties)
+
+    def test_restricted_owner_cannot_reactivate_broader_legacy_staff_scope(self):
+        restricted = ClerkUser.objects.create(clerk_id="restricted-owner", email="restricted@example.com")
+        restricted_membership = Membership.objects.create(user=restricted, organization=self.org, role=MembershipRole.OWNER, has_all_properties=False)
+        MembershipPropertyAccess.objects.create(membership=restricted_membership, property=self.property)
+        extra = Property.objects.create(organization=self.org, name="Extra", slug="extra")
+        target = Membership.objects.create(user=self.manager, organization=self.org, role=MembershipRole.MANAGER, is_active=False, has_all_properties=False)
+        MembershipPropertyAccess.objects.create(membership=target, property=extra)
+        self.auth(restricted)
+        response = self.client.patch(reverse("hotel-team-member", kwargs={"organization_slug": self.org.slug, "membership_id": target.id}), {"isActive": True}, format="json")
+        self.assertEqual(response.status_code, 404, response.data)
+        target.refresh_from_db()
+        self.assertFalse(target.is_active)
+
+    def test_restricted_owner_only_receives_manageable_property_options(self):
+        extra = Property.objects.create(organization=self.org, name="Extra", slug="extra")
+        MembershipPropertyAccess.objects.create(membership=self.owner_membership, property=self.property)
+        self.owner_membership.has_all_properties = False
+        self.owner_membership.save(update_fields=["has_all_properties"])
+        response = self.client.get(self.url())
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual([item["id"] for item in response.data["properties"]], [self.property.id])
+        self.assertNotEqual(extra.id, self.property.id)
