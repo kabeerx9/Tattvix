@@ -1,7 +1,7 @@
 import { getAccountSettings } from "@tattvix/api";
 import type { MeResponse } from "@tattvix/contracts";
 import { useRouter, type Href } from "expo-router";
-import { BedDouble, ShieldCheck, UserRound } from "lucide-react-native";
+import { BedDouble, ShieldCheck, UserRound, UsersRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { ListRow, Panel, SectionTitle, colors, space, type } from "@/src/design-system";
@@ -16,6 +16,15 @@ export function AccountSettingsSections({ user }: { user: Pick<MeResponse, "memb
       {settings.hotels.map((hotel) => <View style={styles.group} key={hotel.id}>
         <Text style={styles.organization}>{hotel.organization.name}</Text>
         <Text style={styles.muted}>{hotel.subscriptionLabel}</Text>
+        <Panel>
+          <ListRow
+            icon={UsersRound}
+            title="Manage team"
+            detail="People, roles and property access"
+            chevron
+            onPress={() => router.push(`/(hotel-team)/${hotel.organization.slug}/team` as Href)}
+          />
+        </Panel>
         {hotel.properties.length ? <Panel>
           {hotel.properties.map((property) => <ListRow
             key={property.id}

@@ -44,6 +44,7 @@ export default function RootLayout() {
             <Stack.Screen name="sign-in" />
             <Stack.Screen name="(guest)" />
             <Stack.Screen name="(hotel)" />
+            <Stack.Screen name="(hotel-team)" />
             <Stack.Screen name="(admin)" />
             <Stack.Screen name="check-in/[token]" />
             <Stack.Screen name="gallery" />

@@ -29,6 +29,8 @@ import {
   createPlatformPortfolioQueries,
   createPropertyPhotoQueries,
   createPropertyPhotosApi,
+  createTeamApi,
+  createTeamQueries,
 } from "@tattvix/api";
 import { createApiClient } from "@tattvix/contracts";
 import { env } from "@tattvix/env/native";
@@ -59,6 +61,7 @@ export const api = {
   guestProfile: createGuestProfileApi(apiClient),
   guestStays: createGuestStaysApi(apiClient),
   companions: createCompanionsApi(apiClient),
+  team: createTeamApi(apiClient),
   /** Identity documents are scoped per person: no id = the signed-in guest, an id = one of their companions. */
   identityDocuments: (companionId?: number) => createIdentityDocumentsApi(apiClient, companionId),
 };
@@ -77,5 +80,6 @@ export const queries = {
   guestProfile: createGuestProfileQueries(api.guestProfile),
   guestStays: createGuestStayQueries(api.guestStays),
   companions: createCompanionQueries(api.companions),
+  team: createTeamQueries(api.team),
   identityDocuments: createIdentityDocumentQueries(api.identityDocuments),
 };
