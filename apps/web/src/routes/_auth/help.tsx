@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { createSupportApi, getSupportContacts, supportContactsQuery, SUPPORT_PHONE_PLACEHOLDER } from "@tattvix/api";
 import { createApiClient } from "@tattvix/contracts";
 import { env } from "@tattvix/env/web";
@@ -16,12 +16,22 @@ const supportApi = createSupportApi(createApiClient({
 }));
 
 function HelpDeskPage() {
+  const { auth } = Route.useRouteContext();
   const query = useQuery(supportContactsQuery(supportApi));
   const contacts = query.data ? getSupportContacts(query.data) : null;
 
   return (
     <div className="mx-auto grid w-full max-w-[1400px] gap-6">
       <PageHeader title="Help desk" />
+      <Panel>
+        <PanelHeader title="Getting started" />
+        <PanelSection>
+          <div className="flex flex-wrap gap-2">
+            <Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Personal setup</Button>
+            {auth.currentUser?.memberships.flatMap((membership) => membership.properties.filter(() => membership.permissions.includes("hotel:manage") || membership.permissions.includes("rooms:manage")).map((property) => <Button key={`${membership.organization.slug}:${property.slug}`} nativeButton={false} variant="outline" render={<Link to="/hotel/$organizationSlug/$propertySlug/getting-started" params={{ organizationSlug: membership.organization.slug, propertySlug: property.slug }} />}>{property.name} setup</Button>)) ?? null}
+          </div>
+        </PanelSection>
+      </Panel>
       <Panel>
         <PanelHeader title="Contact Tattwix" />
         <PanelSection>

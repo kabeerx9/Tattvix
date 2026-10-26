@@ -5,6 +5,7 @@ import type { HotelRoom } from "@tattvix/contracts";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { BedDouble } from "lucide-react-native";
 import { useState } from "react";
+import { useRouter, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AddRoomSheet } from "@/src/components/add-room-sheet";
@@ -28,6 +29,7 @@ const order = new Intl.Collator("en", { numeric: true });
 
 export default function RoomsScreen() {
   const place = useHotelPlace();
+  const router = useRouter();
   const scope = getDeskScope(place);
   const { organizationSlug, propertySlug } = scope;
   const [roomQuery, stayQuery] = useQueries({ queries: [queries.hotelOperations.rooms(organizationSlug, propertySlug), queries.hotelStays.list(organizationSlug, propertySlug)] });
@@ -58,6 +60,7 @@ export default function RoomsScreen() {
       >
         Rooms
       </LargeTitle>
+      {scope.canManageRooms ? <View style={styles.resume}><TextLink label="Getting started" onPress={() => router.push(`/(hotel)/${organizationSlug}/${propertySlug}/getting-started` as Href)} /></View> : null}
       <View style={styles.kpis}>
         <KpiRow>
           <Kpi label="Ready" value={stats.vacant} />
@@ -83,7 +86,7 @@ export default function RoomsScreen() {
         </View>
       ) : (
         <View style={styles.empty}>
-          <EmptyState icon={BedDouble} text={rooms.length ? `No rooms are ${roomStatusLabel[filter as HotelRoom["status"]]?.toLowerCase() ?? "here"} right now.` : scope.canManageRooms ? "Add the first room to get started." : "This property has no rooms yet. Add them on the web."} />
+          <EmptyState icon={BedDouble} text={rooms.length ? `No rooms are ${roomStatusLabel[filter as HotelRoom["status"]]?.toLowerCase() ?? "here"} right now.` : scope.canManageRooms ? "Add the first room to get started." : "This property has no rooms yet. Your owner can add them to get started."} />
         </View>
       )}
 
@@ -108,6 +111,7 @@ export default function RoomsScreen() {
 
 const styles = StyleSheet.create({
   kpis: { marginTop: space.xl },
+  resume: { alignItems: "flex-start", marginTop: space.sm },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginTop: space.xl },
   cell: { width: "48%", flexGrow: 1, maxWidth: "49%" },
   cellMeta: { marginTop: space.sm, gap: 6 },

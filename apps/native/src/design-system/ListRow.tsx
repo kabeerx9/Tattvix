@@ -17,6 +17,8 @@ export function ListRow({
   trailing,
   chevron = false,
   compact = false,
+  titleLines = 1,
+  detailLines = 2,
   onPress,
 }: {
   title: string;
@@ -29,6 +31,9 @@ export function ListRow({
   trailing?: ReactNode;
   chevron?: boolean;
   compact?: boolean;
+  /** Zero lets guidance copy wrap fully instead of truncating instructions. */
+  titleLines?: number;
+  detailLines?: number;
   onPress?: () => void;
 }) {
   const press = usePressFeedback();
@@ -37,11 +42,11 @@ export function ListRow({
       {Icon ? <Icon color={colors.foreground} size={22} strokeWidth={1.6} /> : null}
       {leading}
       <View style={styles.copy}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={titleLines}>
           {title}
         </Text>
         {detail ? (
-          <Text style={styles.detail} numberOfLines={2}>
+          <Text style={styles.detail} numberOfLines={detailLines}>
             {detail}
           </Text>
         ) : null}
@@ -53,7 +58,7 @@ export function ListRow({
 
   if (!onPress) return body;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+    <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityHint={detail} onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
       <Animated.View style={press.style}>{body}</Animated.View>
     </Pressable>
   );

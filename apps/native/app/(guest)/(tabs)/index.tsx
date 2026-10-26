@@ -1,21 +1,39 @@
 // Guest home: a greeting, the four guest destinations, and the path to list a
 // hotel on the web. Text-first; the web's photo tiles have no bundled source.
 import { useUser } from "@clerk/clerk-expo";
+import { getGuestOnboarding, onboardingStorageKey } from "@tattvix/api";
+import { useQuery } from "@tanstack/react-query";
 import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
 import { CalendarDays, ShieldCheck, UserRound, UsersRound } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 
 import { Button, LargeTitle, ListRow, Panel, Screen, SectionTitle, colors, space, type } from "@/src/design-system";
+import { OnboardingPrompt } from "@/src/components/onboarding";
+import { queries } from "@/src/lib/api";
+import { dismissOnboarding, readOnboardingDismissal } from "@/src/lib/onboarding";
+import { useCurrentUser } from "@/src/lib/current-user";
 
 export default function GuestHome() {
   const { user } = useUser();
+  const currentUser = useCurrentUser();
+  const profile = useQuery(queries.guestProfile.detail());
   const router = useRouter();
   const name = user?.firstName || user?.username || "Guest";
+  const dismissalKey = currentUser.clerkUserId ? onboardingStorageKey(currentUser.clerkUserId, "guest") : null;
+  const [dismissed, setDismissed] = useState(() => dismissalKey ? readOnboardingDismissal(dismissalKey) : false);
+  useEffect(() => setDismissed(dismissalKey ? readOnboardingDismissal(dismissalKey) : false), [dismissalKey]);
+  const guide = profile.data && !profile.isError ? getGuestOnboarding(profile.data) : null;
 
   return (
     <Screen>
       <LargeTitle meta="Your travel identity, ready before you arrive.">{`Hello, ${name}`}</LargeTitle>
+
+      {guide ? <View style={styles.section}><OnboardingPrompt guide={guide} dismissed={dismissed} onOpen={() => router.push("/(guest)/getting-started" as Href)} onDismiss={() => {
+        if (dismissalKey) dismissOnboarding(dismissalKey);
+        setDismissed(true);
+      }} /></View> : null}
 
       <View style={styles.section}>
         <Panel>

@@ -98,3 +98,4 @@ export { createPropertyNameApi, propertyNameQuery, propertyNameMutation, propert
 export { createSupportApi, supportContactsQuery, getSupportContacts, SUPPORT_PHONE_PLACEHOLDER } from "./support";
 export { getAccountSettings } from "./account-settings";
 export * from "./team";
+export * from "./onboarding";

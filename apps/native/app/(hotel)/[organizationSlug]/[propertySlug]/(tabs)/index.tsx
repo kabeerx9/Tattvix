@@ -1,13 +1,14 @@
 // Today: reservation pill tabs over guest cards, a rail of rooms ready for
 // check-in, housekeeping and tonight's occupancy. Actions open in sheets.
-import { getDefaultReservationTab, getOccupancyTrend, getReadyRooms, getReservationGroups, localDayKey, type ReservationTab } from "@tattvix/api";
+import { getDefaultReservationTab, getHotelOnboarding, getOccupancyTrend, getReadyRooms, getReservationGroups, localDayKey, onboardingStorageKey, type ReservationTab } from "@tattvix/api";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { BedDouble, DoorOpen, QrCode, Sparkles } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { RoomSheet, StaySheet } from "@/src/components/desk-sheets";
+import { OnboardingPrompt } from "@/src/components/onboarding";
 import { Housekeeping, ReadyRoomCard, ReservationCard, Tonight } from "@/src/components/today-cards";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { EmptyState, LargeTitle, PillTabs, Rail, Screen, SectionTitle, TextLink, colors, radii, space, type } from "@/src/design-system";
@@ -16,6 +17,7 @@ import { useCurrentUser } from "@/src/lib/current-user";
 import { getDeskScope } from "@/src/lib/desk-scope";
 import { formatLongDate } from "@/src/lib/format";
 import { useHotelPlace } from "@/src/lib/hotel-place";
+import { dismissOnboarding, readOnboardingDismissal } from "@/src/lib/onboarding";
 
 const tabLabels: Record<ReservationTab, string> = {
   checkingOut: "Checking out",
@@ -38,17 +40,22 @@ export default function TodayScreen() {
   const router = useRouter();
   const user = useCurrentUser();
   const { organizationSlug, propertySlug } = scope;
+  const canManageSetup = place.permissions.includes("hotel:manage") || place.permissions.includes("rooms:manage");
   const [stayQuery, roomQuery, summaryQuery] = useQueries({
     queries: [queries.hotelStays.list(organizationSlug, propertySlug), queries.hotelOperations.rooms(organizationSlug, propertySlug), queries.hotelOverview.summary(organizationSlug, propertySlug)],
   });
+  const details = useQuery({ ...queries.hotelDetails.property(organizationSlug, propertySlug), enabled: canManageSetup });
   const photos = useQuery(queries.propertyPhotos.list(organizationSlug, propertySlug));
   const [tab, setTab] = useState<ReservationTab | null>(null);
   const [stayId, setStayId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<number | null>(null);
   const [assignRoomId, setAssignRoomId] = useState<number | null>(null);
+  const dismissalKey = user.clerkUserId ? onboardingStorageKey(user.clerkUserId, place.key) : null;
+  const [dismissed, setDismissed] = useState(() => dismissalKey ? readOnboardingDismissal(dismissalKey) : false);
+  useEffect(() => setDismissed(dismissalKey ? readOnboardingDismissal(dismissalKey) : false), [dismissalKey]);
 
   const core = [stayQuery, roomQuery, summaryQuery];
-  const refetchAll = () => core.forEach((query) => void query.refetch());
+  const refetchAll = () => { core.forEach((query) => void query.refetch()); if (canManageSetup) void details.refetch(); };
   const base = `/(hotel)/${organizationSlug}/${propertySlug}`;
 
   if (!stayQuery.data || !roomQuery.data || !summaryQuery.data) {
@@ -68,12 +75,23 @@ export default function TodayScreen() {
   const averagePercent = trend.length ? Math.round(trend.reduce((sum, value) => sum + value, 0) / trend.length) : null;
   const firstName = user.data?.firstName?.trim();
   const empty = emptyCopy[activeTab];
+  const guide = canManageSetup && details.data && !details.isError ? getHotelOnboarding({
+    details: details.data,
+    rooms,
+    canManageHotel: place.permissions.includes("hotel:manage"),
+    canManageRooms: place.permissions.includes("rooms:manage"),
+  }) : null;
 
   return (
     <Screen refreshing={core.some((query) => query.isFetching && !query.isPending)} onRefresh={refetchAll}>
       <LargeTitle meta={`${formatLongDate(today)} · ${place.propertyName}`} action={<TextLink label="Check-in QR" onPress={() => router.push(`${base}/desk-qr` as Href)} />}>
         {firstName ? `Welcome back, ${firstName}` : "Today"}
       </LargeTitle>
+
+      {guide ? <View style={styles.section}><OnboardingPrompt guide={guide} dismissed={dismissed} readOnly={scope.readOnly} onOpen={() => router.push(`${base}/getting-started` as Href)} onDismiss={() => {
+        if (dismissalKey) dismissOnboarding(dismissalKey);
+        setDismissed(true);
+      }} /></View> : null}
 
       <View style={styles.section}>
         <SectionTitle meta={summaryLine(groups.arriving.length, groups.checkingOut.length)}>Your reservations</SectionTitle>
@@ -97,7 +115,7 @@ export default function TodayScreen() {
 
       <View style={styles.section}>
         <SectionTitle
-          meta={readyRooms.length ? `${readyRooms.length} ${readyRooms.length === 1 ? "room is" : "rooms are"} clean and free tonight` : rooms.length ? "No room is ready right now" : "Add rooms on the web to start checking guests in"}
+          meta={readyRooms.length ? `${readyRooms.length} ${readyRooms.length === 1 ? "room is" : "rooms are"} clean and free tonight` : rooms.length ? "No room is ready right now" : scope.canManageRooms ? "Add rooms to start checking guests in" : "Your owner can add rooms to get started"}
           action={<TextLink label="All rooms" onPress={() => router.push(`${base}/rooms` as Href)} />}
         >
           Ready to check in

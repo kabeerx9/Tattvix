@@ -50,6 +50,7 @@ export default function HotelLayout() {
           <Stack.Screen name="desk-qr" options={{ animation: "slide_from_bottom", gestureEnabled: true }} />
           <Stack.Screen name="reports" />
           <Stack.Screen name="details" />
+          <Stack.Screen name="getting-started" />
         </Stack>
       </View>
     </HotelPlaceProvider>

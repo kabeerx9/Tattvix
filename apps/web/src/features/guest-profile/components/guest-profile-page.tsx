@@ -7,6 +7,7 @@ import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CheckCircle2, ContactRound, HeartHandshake, MapPin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -91,6 +92,7 @@ export function GuestProfilePage() {
     <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
         title="Your travel profile"
+        actions={<Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Getting started</Button>}
       />
       <PageCover src={travelImages.profile} />
 
@@ -179,7 +181,7 @@ export function GuestProfilePage() {
             </PanelSection></Panel>
           </form>
 
-          <IdentityDocumentsSection />
+          <div id="identity-documents"><IdentityDocumentsSection /></div>
         </div>
 
         <Panel className="sticky top-28 grid gap-5 p-5 sm:p-6">

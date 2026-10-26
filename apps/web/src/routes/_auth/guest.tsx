@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@tattvix/ui/components/button";
 import { Panel } from "@/components/design-system";
+import { GuestOnboardingPrompt } from "@/features/onboarding/components/guest-onboarding";
 import { travelImages } from "@/lib/travel-images";
 
 export const Route = createFileRoute("/_auth/guest")({
@@ -40,6 +41,8 @@ function GuestHomePage() {
           </p>
         </div>
       </section>
+
+      <GuestOnboardingPrompt />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {destinations.map((destination) => (

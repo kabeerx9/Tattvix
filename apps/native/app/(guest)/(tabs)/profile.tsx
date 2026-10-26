@@ -4,12 +4,13 @@
 import { guestProfileKeys } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput, type GuestProfileMissingField } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useEffect, useState, type ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { Button, Card, LargeTitle, Screen, SectionTitle, StatusPill, TextField, colors, space, toast, type } from "@/src/design-system";
+import { Button, Card, LargeTitle, Screen, SectionTitle, StatusPill, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -38,6 +39,8 @@ function toForm(profile: GuestProfileInput): Form {
 
 export default function ProfileScreen() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { onboarding } = useLocalSearchParams<{ onboarding?: string }>();
   const profile = useQuery(queries.guestProfile.detail());
   const [form, setForm] = useState<Form | null>(null);
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
@@ -95,7 +98,9 @@ export default function ProfileScreen() {
 
   return (
     <Screen refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}>
-      <LargeTitle meta="Keep the essentials ready and choose what is shared at check-in.">Profile</LargeTitle>
+      <LargeTitle meta="Keep the essentials ready and choose what is shared at check-in." action={<TextLink label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}>Profile</LargeTitle>
+
+      {onboarding === "identity" ? <View style={styles.identityNote}><Text style={styles.meta}>Your next task is in Identity documents below. Add a government ID and its required photos.</Text></View> : null}
 
       <View style={styles.readiness}>
         <Card>
@@ -180,6 +185,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   readiness: { marginTop: space.xl },
+  identityNote: { marginTop: space.lg },
   readinessValue: { ...type.kpiValue, color: colors.foreground, fontVariant: ["tabular-nums"] },
   meta: { ...type.meta, color: colors.mutedForeground },
   label: { ...type.label, color: colors.subtleForeground },

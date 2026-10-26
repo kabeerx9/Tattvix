@@ -4,7 +4,7 @@
 import type { PropertyDetails, PropertyDetailsInput, PropertyPhotoSlot } from "@tattvix/contracts";
 import { hotelDetailsKeys } from "@tattvix/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -112,7 +112,7 @@ export default function HotelDetailsScreen() {
   return (
     <Screen refreshing={details.isFetching && !details.isPending} onRefresh={() => void details.refetch()}>
       <SecondaryHeader title="Hotel details" onBack={() => router.back()} />
-      <LargeTitle meta="Property information and photos">{place.propertyName}</LargeTitle>
+      <LargeTitle meta="Property information and photos" action={<TextLink label="Getting started" onPress={() => router.push(`/(hotel)/${organizationSlug}/${propertySlug}/getting-started` as Href)} />}>{place.propertyName}</LargeTitle>
       <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManageHotel} />
 
       <View style={styles.section}>

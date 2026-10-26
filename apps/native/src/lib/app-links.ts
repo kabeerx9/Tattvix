@@ -23,6 +23,9 @@ export function resolveAppLinkPath(url: string): string | null {
   if (root === "check-in") {
     return rest.length === 1 ? `/check-in/${rest[0]}` : "/";
   }
+  if (root === "getting-started") {
+    return rest.length === 0 ? "/(guest)/getting-started" : "/";
+  }
   if (root === "hotel") {
     return resolveHotelPath(rest);
   }
@@ -43,7 +46,7 @@ function resolveHotelPath(rest: string[]): string {
   }
 
   // Pages with no sub-route. Anything else (dashboard, reservations, ...) lands on the dashboard.
-  if (id === undefined && ["guests", "rooms", "reports", "details"].includes(page)) {
+  if (id === undefined && ["guests", "rooms", "reports", "details", "getting-started"].includes(page)) {
     return `${base}/${page}`;
   }
   return base;

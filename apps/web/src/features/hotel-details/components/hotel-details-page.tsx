@@ -8,6 +8,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Building2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -83,7 +84,7 @@ export function HotelDetailsPage({
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
-      <PageHeader title="Property settings" />
+      <PageHeader title="Property settings" actions={<Button nativeButton={false} variant="outline" render={<Link to="/hotel/$organizationSlug/$propertySlug/getting-started" params={{ organizationSlug, propertySlug }} />}>Getting started</Button>} />
       <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManage} />
       <form className="grid gap-6" onSubmit={save}>
         <Panel>

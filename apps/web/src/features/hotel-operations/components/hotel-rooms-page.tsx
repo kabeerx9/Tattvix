@@ -3,6 +3,7 @@ import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
 import { useMutation, useQueryClient, useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { BedDouble, CircleCheck, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +37,7 @@ export function HotelRoomsPage({ organizationSlug, propertySlug, canManage }: { 
   const errorMessage = error instanceof ApiError ? error.message : error ? "The room inventory could not be updated." : null;
   const actionProps = (room: HotelRoom) => ({ room, editing: editingRoomId === room.id, onEdit: () => setEditingRoomId(room.id), onCancel: () => setEditingRoomId(null), canManage, isUpdating: statusMutation.isPending || rateMutation.isPending, onMarkReady: () => markReady(room), onUpdateRate: (nightlyRateMinor: number | null) => updateRate(room, nightlyRateMinor) });
   return <div className="mx-auto grid max-w-[1400px] gap-6">
-    <PageHeader title="Rooms" actions={canManage ? <Button onClick={() => setShowForm((value) => !value)}><Plus />Add room</Button> : undefined} />
+    <PageHeader title="Rooms" actions={<><Button nativeButton={false} variant="outline" render={<Link to="/hotel/$organizationSlug/$propertySlug/getting-started" params={{ organizationSlug, propertySlug }} />}>Getting started</Button>{canManage ? <Button onClick={() => setShowForm((value) => !value)}><Plus />Add room</Button> : null}</>} />
     {showForm ? <Panel><PanelHeader title="Add room" icon={Plus} /><PanelSection><form className="grid gap-4 md:grid-cols-[1fr_1fr_1.5fr_1.5fr_auto] md:items-end" onSubmit={createRoom}>
       <Field label="Room number"><Input required autoFocus value={roomInput.number} onChange={(event) => setRoomInput((current) => ({ ...current, number: event.target.value }))} placeholder="101" /></Field><Field label="Floor"><Input value={roomInput.floor} onChange={(event) => setRoomInput((current) => ({ ...current, floor: event.target.value }))} placeholder="1" /></Field><Field label="Room type"><Input value={roomInput.roomType} onChange={(event) => setRoomInput((current) => ({ ...current, roomType: event.target.value }))} placeholder="Deluxe" /></Field><Field label="Nightly rate (INR)"><Input value={newRoomRate} onChange={(event) => setNewRoomRate(event.target.value)} placeholder="₹2,500.00" inputMode="decimal" aria-invalid={Boolean(newRoomRate.trim()) && parseMoneyMinor(newRoomRate) === null} /></Field><Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Adding..." : "Save room"}</Button>
     </form></PanelSection></Panel> : null}
