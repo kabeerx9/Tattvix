@@ -1,17 +1,9 @@
-import type { TeamMember } from "@tattvix/contracts";
+import { classifyApiError } from "@tattvix/api";
 
-export type TeamRole = TeamMember["role"];
+export { canSaveTeamMember, propertiesForRole, propertyScopeLabel, type TeamRole } from "@tattvix/api";
 
-export function propertiesForRole(role: TeamRole, propertyIds: number[]) {
-  return role === "OWNER" ? [] : propertyIds;
-}
-
-export function canSaveTeamMember(role: TeamRole, propertyIds: number[], hasSelectedUser = true) {
-  return hasSelectedUser && (role === "OWNER" || propertyIds.length > 0);
-}
-
-export function propertyScopeLabel(member: Pick<TeamMember, "role" | "hasAllProperties" | "propertyIds">, namesById: Map<number, string>) {
-  if (member.hasAllProperties) return "All properties, including future properties";
-  const names = member.propertyIds.map((id) => namesById.get(id)).filter((name): name is string => Boolean(name));
-  return names.length ? names.join(", ") : "No properties selected";
+/** Team authorization is intentionally masked as 404 by the owner API. */
+export function isLostTeamAccess(error: unknown) {
+  const failure = classifyApiError(error);
+  return failure.kind === "forbidden" || failure.kind === "missing";
 }

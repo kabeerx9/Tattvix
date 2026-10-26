@@ -26,6 +26,7 @@ export function TeamMemberForm({
   onSubmit,
   onToggleAccess,
   saving,
+  error,
 }: {
   organizationSlug: string;
   properties: Property[];
@@ -36,6 +37,7 @@ export function TeamMemberForm({
   onSubmit: (input: { role: TeamRole; propertyIds: number[]; userId?: number }) => void;
   onToggleAccess?: (member: TeamMember) => void;
   saving: boolean;
+  error?: string;
 }) {
   const [email, setEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
@@ -104,6 +106,7 @@ export function TeamMemberForm({
           {!propertyIds.length ? <Text style={styles.error}>Select at least one property for staff.</Text> : null}
         </View>}
         {readOnly ? <Text accessibilityRole="alert" style={styles.error}>The subscription has expired. You can review the team, but changes are unavailable.</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </View>
     </BottomSheet>
   );

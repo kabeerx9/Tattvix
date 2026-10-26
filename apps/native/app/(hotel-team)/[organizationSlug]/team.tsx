@@ -3,7 +3,7 @@ import type { TeamMember } from "@tattvix/contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
 import { UserPlus, UsersRound } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { TeamMemberForm } from "@/src/components/team-member-form";
@@ -11,7 +11,7 @@ import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { Button, ConfirmSheet, EmptyState, ListRow, Panel, Screen, SecondaryHeader, SectionTitle, StatusPill, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { useCurrentUser } from "@/src/lib/current-user";
-import { propertyScopeLabel } from "@/src/lib/team-member-form";
+import { isLostTeamAccess, propertyScopeLabel } from "@/src/lib/team-member-form";
 import { queryClient } from "@/src/lib/query";
 
 type Change = { memberId: number; input: { role?: TeamMember["role"]; propertyIds?: number[]; isActive?: boolean }; title: string; description: string; tone?: "primary" | "destructive"; self?: boolean } | { memberId?: never; input: { userId: number; role: TeamMember["role"]; propertyIds: number[] }; title: string; description: string; tone?: "primary" | "destructive"; self?: boolean };
@@ -49,6 +49,17 @@ export default function TeamScreen() {
   const readOnly = !team.data?.subscription.entitled;
   const saveError = add.error ?? mutation.error;
 
+  useEffect(() => {
+    if (isLostTeamAccess(team.error) || isLostTeamAccess(saveError)) {
+      void queryClient.invalidateQueries({ queryKey: ["current-user"] });
+    }
+  }, [saveError, team.error]);
+  useEffect(() => {
+    if (formMember && team.data && !team.data.members.some((member) => member.id === formMember.id)) {
+      setFormMember(undefined);
+    }
+  }, [formMember, team.data]);
+
   if (!currentUser.data) return currentUser.isError ? <RetryScreen onRetry={() => void currentUser.refetch()} retrying={currentUser.isFetching} /> : <PendingScreen />;
   if (!team.data) return team.isError ? <RetryScreen onRetry={() => void team.refetch()} retrying={team.isFetching} /> : <PendingScreen />;
   const user = currentUser.data;
@@ -61,14 +72,20 @@ export default function TeamScreen() {
       } else add.mutate({ userId: input.userId, role: input.role, propertyIds: input.propertyIds });
       return;
     }
-    const scopeChanged = formMember.role !== input.role || (input.role !== "OWNER" && JSON.stringify([...formMember.propertyIds].sort()) !== JSON.stringify([...input.propertyIds].sort()));
+    const refreshedMember = team.data?.members.find((member) => member.id === formMember.id);
+    if (!refreshedMember) {
+      setFormMember(undefined);
+      void team.refetch();
+      return;
+    }
+    const scopeChanged = refreshedMember.role !== input.role || (input.role !== "OWNER" && JSON.stringify([...refreshedMember.propertyIds].sort()) !== JSON.stringify([...input.propertyIds].sort()));
     const inputChange = scopeChanged ? { role: input.role, propertyIds: input.propertyIds } : {};
-    const self = formMember.user.id === user.id;
-    if (input.role === "OWNER" && formMember.role !== "OWNER") {
-      setChange({ memberId: formMember.id, input: inputChange, title: "Grant owner access?", description: "Owners can manage every person and property in this organization.", self });
+    const self = refreshedMember.user.id === user.id;
+    if (input.role === "OWNER" && refreshedMember.role !== "OWNER") {
+      setChange({ memberId: refreshedMember.id, input: inputChange, title: "Grant owner access?", description: "Owners can manage every person and property in this organization.", self });
     } else if (self && scopeChanged) {
-      setChange({ memberId: formMember.id, input: inputChange, title: "Change your own access?", description: "You will return to your account after this change.", self });
-    } else mutation.mutate({ memberId: formMember.id, input: inputChange });
+      setChange({ memberId: refreshedMember.id, input: inputChange, title: "Change your own access?", description: "You will return to your account after this change.", self });
+    } else mutation.mutate({ memberId: refreshedMember.id, input: inputChange });
   }
   function toggleAccess(member: TeamMember) {
     const self = member.user.id === user.id;
@@ -88,11 +105,11 @@ export default function TeamScreen() {
       {readOnly ? <Text accessibilityRole="alert" style={styles.warning}>Subscription expired. You can review team access, but changes are unavailable.</Text> : <Button label="Add team member" icon={UserPlus} onPress={() => setFormMember(null)} />}
       {saveError ? <Text accessibilityRole="alert" style={styles.error}>{classifyApiError(saveError).message}</Text> : null}
       <SectionTitle>Active members</SectionTitle>
-      {activeMembers.length ? <Panel>{activeMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.user.email}\n${member.role[0] + member.role.slice(1).toLowerCase()} · ${propertyScopeLabel(member, namesById)}`} trailing={<StatusPill tone="success">Active</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel> : <EmptyState icon={UsersRound} text="No one has access to this organization yet." />}
-      {inactiveMembers.length ? <><SectionTitle>Inactive members</SectionTitle><Panel>{inactiveMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.user.email}\n${propertyScopeLabel(member, namesById)}`} trailing={<StatusPill tone="neutral">Inactive</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel></> : null}
+      {activeMembers.length ? <Panel>{activeMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.role[0] + member.role.slice(1).toLowerCase()} · ${propertyScopeLabel(member, namesById)}\n${member.user.email}`} trailing={<StatusPill tone="success">Active</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel> : <EmptyState icon={UsersRound} text="No one has access to this organization yet." />}
+      {inactiveMembers.length ? <><SectionTitle>Inactive members</SectionTitle><Panel>{inactiveMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.role[0] + member.role.slice(1).toLowerCase()} · ${propertyScopeLabel(member, namesById)}\n${member.user.email}`} trailing={<StatusPill tone="neutral">Inactive</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel></> : null}
     </View>
-    <TeamMemberForm organizationSlug={organizationSlug} properties={team.data.properties} member={formMember ?? undefined} open={formMember !== undefined} readOnly={readOnly} onClose={() => setFormMember(undefined)} saving={add.isPending || mutation.isPending} onToggleAccess={toggleAccess} onSubmit={saveForm} />
-    <ConfirmSheet open={Boolean(change)} onClose={() => setChange(null)} title={change?.title ?? "Confirm"} description={change?.description ?? ""} confirmLabel={change?.tone === "destructive" ? "Remove access" : "Confirm"} tone={change?.tone} loading={add.isPending || mutation.isPending} onConfirm={confirmChange} />
+    <TeamMemberForm organizationSlug={organizationSlug} properties={team.data.properties} member={formMember ? team.data.members.find((member) => member.id === formMember.id) : undefined} open={formMember === null || Boolean(formMember && team.data.members.some((member) => member.id === formMember.id))} readOnly={readOnly} onClose={() => setFormMember(undefined)} saving={add.isPending || mutation.isPending} error={!change && saveError ? classifyApiError(saveError).message : undefined} onToggleAccess={toggleAccess} onSubmit={saveForm} />
+    <ConfirmSheet open={Boolean(change)} onClose={() => setChange(null)} title={change?.title ?? "Confirm"} description={change?.description ?? ""} confirmLabel={change?.tone === "destructive" ? "Remove access" : "Confirm"} tone={change?.tone} loading={add.isPending || mutation.isPending} error={change && saveError ? classifyApiError(saveError).message : undefined} onConfirm={confirmChange} />
   </Screen>;
 }
 

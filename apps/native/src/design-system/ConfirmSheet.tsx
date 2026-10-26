@@ -15,6 +15,7 @@ export function ConfirmSheet({
   onConfirm,
   tone = "primary",
   loading = false,
+  error,
 }: {
   open: boolean;
   onClose: () => void;
@@ -24,6 +25,7 @@ export function ConfirmSheet({
   onConfirm: () => void;
   tone?: "primary" | "destructive";
   loading?: boolean;
+  error?: string;
 }) {
   return (
     <BottomSheet
@@ -38,10 +40,12 @@ export function ConfirmSheet({
       }
     >
       <Text style={styles.description}>{description}</Text>
+      {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
   description: { ...type.body, color: colors.mutedForeground, marginBottom: space.xs },
+  error: { ...type.caption, color: colors.destructive, marginTop: space.sm },
 });

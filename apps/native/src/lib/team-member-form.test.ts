@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ApiError } from "@tattvix/contracts";
 
-import { canSaveTeamMember, propertiesForRole, propertyScopeLabel } from "./team-member-form";
+import { canSaveTeamMember, isLostTeamAccess, propertiesForRole, propertyScopeLabel } from "./team-member-form";
 
 test("owners always submit an empty property scope", () => {
   assert.deepEqual(propertiesForRole("OWNER", [4, 9]), []);
@@ -19,4 +20,10 @@ test("adding a member requires an explicitly selected user", () => {
 
 test("legacy restricted owners keep their displayed selected-property scope", () => {
   assert.equal(propertyScopeLabel({ role: "OWNER", hasAllProperties: false, propertyIds: [4] }, new Map([[4, "Main hotel"]])), "Main hotel");
+});
+
+test("team routes refresh access for masked or explicit owner denial", () => {
+  assert.equal(isLostTeamAccess(new ApiError(403, "Forbidden")), true);
+  assert.equal(isLostTeamAccess(new ApiError(404, "Not found")), true);
+  assert.equal(isLostTeamAccess(new ApiError(409, "Last owner")), false);
 });
