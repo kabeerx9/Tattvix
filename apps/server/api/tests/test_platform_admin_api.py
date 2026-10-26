@@ -171,6 +171,37 @@ class PlatformPropertyCreateTests(PlatformAdminApiTestCase):
 
 
 class PlatformMemberTests(PlatformAdminApiTestCase):
+    def test_platform_promotion_converts_scoped_staff_to_all_properties(self):
+        self.authenticate(self.owner)
+        added = self.client.post(
+            reverse("hotel-team", kwargs={"organization_slug": self.organization.slug}),
+            {
+                "userId": self.staff.id,
+                "role": MembershipRole.MANAGER,
+                "propertyIds": [self.property.id],
+            },
+            format="json",
+        )
+        self.assertEqual(added.status_code, 201, added.data)
+        membership_id = added.data["id"]
+        self.authenticate(self.admin)
+
+        response = self.client.patch(
+            self.member_url(membership_id), {"role": MembershipRole.OWNER}, format="json"
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(response.data["hasAllProperties"])
+        membership = Membership.objects.get(pk=membership_id)
+        self.assertTrue(membership.has_all_properties)
+        self.assertFalse(membership.property_accesses.exists())
+        self.assertTrue(
+            PlatformAuditLog.objects.filter(
+                organization=self.organization,
+                action=PlatformAuditAction.MEMBER_PROPERTY_SCOPE_CHANGED,
+                target=self.staff.email,
+            ).exists()
+        )
+
     def test_admin_can_mutate_members_for_an_inactive_organization(self):
         self.organization.is_active = False
         self.organization.save(update_fields=["is_active"])

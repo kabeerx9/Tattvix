@@ -9,6 +9,7 @@ from .models import (
     ClerkUser,
     IdentityAccessAudit,
     Membership,
+    MembershipPropertyAccess,
     MembershipRole,
     OperationalStayStatus,
     Organization,
@@ -225,6 +226,23 @@ def update_organization_member(
             )
             locked.role = role
             update_fields.append("role")
+            if role == MembershipRole.OWNER:
+                # A newly promoted owner is always organization-wide.  This
+                # mirrors the owner endpoint while retaining the legacy
+                # platform request/response shape.
+                scope_changed = not locked.has_all_properties or MembershipPropertyAccess.objects.filter(
+                    membership=locked
+                ).exists()
+                if scope_changed:
+                    MembershipPropertyAccess.objects.filter(membership=locked).delete()
+                    locked.has_all_properties = True
+                    update_fields.append("has_all_properties")
+                    PlatformAuditLog.objects.create(
+                        actor=actor,
+                        organization=organization,
+                        action=PlatformAuditAction.MEMBER_PROPERTY_SCOPE_CHANGED,
+                        target=locked.user.email,
+                    )
         if is_active is not None and is_active != locked.is_active:
             PlatformAuditLog.objects.create(
                 actor=actor,
