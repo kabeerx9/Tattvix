@@ -4,9 +4,13 @@ import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import { useRouter } from "expo-router";
 import { UserRound } from "lucide-react-native";
+import { getAccountSettings } from "@tattvix/api";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, LargeTitle, ListRow, Panel, Screen, colors, space, type } from "@/src/design-system";
+import { AccountSettingsSections } from "@/src/components/account-settings-sections";
+import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
+import { useCurrentUser } from "@/src/lib/current-user";
 
 // Which build and which backend this phone is talking to: the first thing to
 // read out when a hotel reports "it does not work".
@@ -17,21 +21,27 @@ function buildFooter() {
   return `Tattwix ${version} · ${channel}${update}\n${new URL(env.EXPO_PUBLIC_SERVER_URL).host}`;
 }
 
-// Real account data from Clerk only. Sign out is the one working action here.
 export default function AccountScreen() {
   const { signOut } = useAuth();
   const router = useRouter();
   const { user } = useUser();
+  const currentUser = useCurrentUser();
+  if (!currentUser.data) {
+    if (currentUser.isError) return <RetryScreen onRetry={() => void currentUser.refetch()} retrying={currentUser.isFetching} />;
+    return <PendingScreen />;
+  }
+  const settings = getAccountSettings(currentUser.data);
 
   return (
     <Screen>
-      <LargeTitle meta="Manage your Tattwix account and mobile preferences.">Account</LargeTitle>
+      <LargeTitle meta={settings.isOwner ? "Your hotels and personal account." : "Your account and personal preferences."}>{settings.isOwner ? "Hotel owner account" : "Account"}</LargeTitle>
       <View style={styles.section}>
         <Panel>
-          <ListRow icon={UserRound} title={user?.fullName || "Tattwix guest"} detail={user?.primaryEmailAddress?.emailAddress} />
+          <ListRow icon={UserRound} title={user?.fullName || "Tattwix account"} detail={user?.primaryEmailAddress?.emailAddress} />
         </Panel>
-        <Button label="Sign out" variant="outline" onPress={() => signOut()} />
+        <AccountSettingsSections user={currentUser.data} />
         <Button label="Help desk" variant="outline" onPress={() => router.push("/support")} />
+        <Button label="Sign out" variant="outline" onPress={() => signOut()} />
       </View>
       <Text style={styles.footer} selectable>
         {buildFooter()}

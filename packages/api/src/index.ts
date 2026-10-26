@@ -96,3 +96,4 @@ export { createPlatformUserQueries, createPlatformUsersApi, platformUserKeys, ty
 export { createPropertyPhotoQueries, createPropertyPhotosApi, propertyPhotosKeys, type PropertyPhotosApi } from "./property-photos";
 export { createPropertyNameApi, propertyNameQuery, propertyNameMutation, propertyNameKeys } from "./property-name";
 export { createSupportApi, supportContactsQuery, getSupportContacts, SUPPORT_PHONE_PLACEHOLDER } from "./support";
+export { getAccountSettings } from "./account-settings";
