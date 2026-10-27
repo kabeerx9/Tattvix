@@ -100,3 +100,18 @@ live role-revocation during a guide were not manually induced; relevant guards
 were reviewed and storage failure behavior is covered on web. Native guide/action
 changes are JavaScript-only; no OTA or store update was published. The separate
 launcher-icon update still requires a new native binary.
+
+## 2026-10-27 follow-up: explicit skip
+
+Incomplete guides now show **Skip for now** on web and native, alongside a note
+that setup is optional. Loading/error states also retain an exit, independent of
+readiness. Guest copy clarifies that scanning starts a real hotel check-in.
+Skipping navigates to the guest home or property Today without marking tasks
+complete or changing saved progress.
+
+Verified skip with a 1/2 guest profile and a 0/3 property on both localhost web
+and the Android emulator. The temporary guest city-field change used to exercise
+incomplete readiness was restored to Jaipur afterward. Required web types/tests/
+build and native types/tests passed; the shared API suite passed (241 tests total).
+Loading/error exits were inspected and typechecked, not manually network-fault
+injected. No API/auth/consent contract changed, and no OTA/store release was made.

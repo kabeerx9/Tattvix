@@ -32,8 +32,8 @@ export function OnboardingGuidePage({
   onRetry: () => void;
   readOnly?: boolean;
 }) {
-  if (isLoading && !guide) return <GuideStatus title="Loading your setup" description="Checking the latest saved progress…" />;
-  if (isError || !guide) return <GuideStatus title="Setup could not load" description="Your saved progress is still safe. Check your connection and try again." action={<Button onClick={onRetry}><RefreshCw />Try again</Button>} />;
+  if (isLoading && !guide) return <GuideStatus title="Loading your setup" description="Checking the latest saved progress…" action={<GuideExit scope={scope} />} />;
+  if (isError || !guide) return <GuideStatus title="Setup could not load" description="Your saved progress is still safe. Check your connection and try again." action={<div className="flex flex-wrap justify-center gap-3"><Button onClick={onRetry}><RefreshCw />Try again</Button><GuideExit scope={scope} /></div>} />;
 
   const next = guide.steps.find((step) => step.id === guide.nextStepId) ?? guide.steps.find((step) => !step.isComplete);
   return (
@@ -43,13 +43,12 @@ export function OnboardingGuidePage({
         <PanelHeader title={guide.isComplete ? guide.completeTitle : guide.title} />
         <PanelSection>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{guide.isComplete ? guide.completeDescription : guide.description}</p>
+          {!guide.isComplete ? <p className="mt-2 text-sm leading-6 text-muted-foreground">Setup is optional. Explore now and finish these tasks later from Help.</p> : null}
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Setup progress" aria-valuemin={0} aria-valuemax={guide.totalCount} aria-valuenow={guide.completedCount} aria-valuetext={`${guide.completedCount} of ${guide.totalCount} tasks complete`}>
             <div className="h-full origin-left bg-foreground transition-transform duration-(--duration-move) ease-out motion-reduce:transition-none" style={{ transform: `scaleX(${guide.totalCount ? guide.completedCount / guide.totalCount : 0})` }} />
           </div>
           {next && !readOnly ? <div className="mt-5"><GuideAction step={next} scope={scope ?? {}} primary /></div> : null}
-          {guide.isComplete ? <div className="mt-5">{scope?.organizationSlug && scope.propertySlug
-            ? <Button nativeButton={false} render={<Link to="/hotel/$organizationSlug/$propertySlug/dashboard" params={{ organizationSlug: scope.organizationSlug, propertySlug: scope.propertySlug }} />}>Go to Today</Button>
-            : <Button nativeButton={false} render={<Link to="/guest" />}>Back to your travels</Button>}</div> : null}
+          <div className="mt-5"><GuideExit scope={scope} complete={guide.isComplete} /></div>
           {readOnly && !guide.isComplete ? <p className="mt-5 text-sm leading-6 text-muted-foreground">Your subscription is not active, so setup changes are unavailable. You can still review these steps.</p> : null}
         </PanelSection>
       </Panel>
@@ -60,6 +59,12 @@ export function OnboardingGuidePage({
       {guide.tips.length ? <Panel><PanelHeader title="Helpful to know" icon={Lightbulb} /><div>{guide.tips.map((tip) => <details key={tip.id} className="group border-t border-border-soft first:border-t-0"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"><span>{tip.title}</span><ChevronDown className="size-4 text-muted-foreground group-open:rotate-180 motion-reduce:transition-none" style={{ transition: "transform var(--duration-press) var(--ease-out)" }} /></summary><p className="border-t border-border-soft px-5 py-4 text-sm leading-6 text-muted-foreground">{tip.body}</p></details>)}</div></Panel> : null}
     </div>
   );
+}
+
+function GuideExit({ scope, complete = false }: { scope?: Scope; complete?: boolean }) {
+  const variant = complete ? "default" : "outline";
+  if (scope?.organizationSlug && scope.propertySlug) return <Button nativeButton={false} variant={variant} render={<Link to="/hotel/$organizationSlug/$propertySlug/dashboard" params={{ organizationSlug: scope.organizationSlug, propertySlug: scope.propertySlug }} />}>{complete ? "Go to Today" : "Skip for now"}</Button>;
+  return <Button nativeButton={false} variant={variant} render={<Link to="/guest" />}>{complete ? "Back to your travels" : "Skip for now"}</Button>;
 }
 
 function GuideStatus({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {

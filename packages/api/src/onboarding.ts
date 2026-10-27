@@ -39,7 +39,7 @@ export function getGuestOnboarding(profile: GuestProfileResponse): OnboardingGui
     title: "Arrive with less to do.",
     description: "A little preparation now. A smoother check-in when you arrive.",
     completeTitle: "You're ready for check-in.",
-    completeDescription: "Your profile and ID are prepared. At the hotel, scan its check-in QR and review what you share.",
+    completeDescription: "Your profile and ID are prepared. Explore Tattwix anytime. Scan a hotel's QR when you're ready to start a real check-in.",
     steps: [
       { id: "profile", title: "Make yourself at home", description: "Save your legal name, contact details and address so you don't have to start from scratch at reception.",
         action: "profile", actionLabel: "Complete your profile", isComplete: !missing.some((field) => field !== "identityDocuments") },

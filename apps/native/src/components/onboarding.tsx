@@ -3,8 +3,20 @@ import type { OnboardingAction, OnboardingGuide } from "@tattvix/api";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, ListRow, Panel, SectionTitle, colors, radii, space, type } from "@/src/design-system";
+import { Button, Card, ListRow, Panel, Screen, SecondaryHeader, SectionTitle, Spinner, colors, radii, space, type } from "@/src/design-system";
 import { shouldShowOnboardingPrompt } from "@/src/lib/onboarding-paths";
+
+export function OnboardingStatus({ failed, onRetry, onExit }: { failed: boolean; onRetry: () => void; onExit: () => void }) {
+  return <Screen>
+    <SecondaryHeader title="Getting started" onBack={onExit} />
+    <View style={styles.progress}>
+      <Text style={styles.guideTitle}>{failed ? "Setup could not load" : "Loading your setup"}</Text>
+      <Text style={styles.guideDescription}>{failed ? "Your saved progress is still safe. Try again, or explore and return later." : "Checking your saved progress. You can explore while setup loads."}</Text>
+      {failed ? <Button label="Try again" onPress={onRetry} /> : <Spinner color={colors.mutedForeground} />}
+      <Button label="Skip for now" variant="outline" onPress={onExit} />
+    </View>
+  </Screen>;
+}
 
 export function OnboardingPrompt({ guide, dismissed, onOpen, onDismiss, readOnly = false }: { guide: OnboardingGuide; dismissed: boolean; onOpen: () => void; onDismiss: () => void; readOnly?: boolean }) {
   if (readOnly || !shouldShowOnboardingPrompt({ isComplete: guide.isComplete, dismissed })) return null;
@@ -26,7 +38,7 @@ export function OnboardingPrompt({ guide, dismissed, onOpen, onDismiss, readOnly
   );
 }
 
-export function OnboardingGuide({ guide, onStep, onFinish, readOnly = false }: { guide: OnboardingGuide; onStep: (action: OnboardingAction) => void; onFinish: () => void; readOnly?: boolean }) {
+export function OnboardingGuide({ guide, onStep, onExit, readOnly = false }: { guide: OnboardingGuide; onStep: (action: OnboardingAction) => void; onExit: () => void; readOnly?: boolean }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const next = guide.steps.find((step) => step.id === guide.nextStepId);
   const heading = guide.isComplete ? guide.completeTitle : guide.title;
@@ -38,12 +50,13 @@ export function OnboardingGuide({ guide, onStep, onFinish, readOnly = false }: {
         <Text style={styles.eyebrow}>{guide.isComplete ? "Ready" : "Getting started"}</Text>
         <Text style={styles.guideTitle}>{heading}</Text>
         <Text style={styles.guideDescription}>{description}</Text>
+        {!guide.isComplete ? <Text style={styles.guideDescription}>Setup is optional. Explore now and finish these tasks later from Help.</Text> : null}
         <Text style={styles.progressText}>{guide.completedCount} of {guide.totalCount} tasks complete</Text>
         <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityLabel="Setup progress" accessibilityValue={{ min: 0, max: guide.totalCount, now: guide.completedCount, text: `${guide.completedCount} of ${guide.totalCount} tasks complete` }}>
           <View style={[styles.progressFill, { width: `${guide.totalCount ? guide.completedCount / guide.totalCount * 100 : 0}%` }]} />
         </View>
         {readOnly ? <Text style={styles.readOnly}>Your subscription is not active, so setup changes are unavailable.</Text> : !guide.isComplete && next ? <Button label={next.actionLabel} onPress={() => onStep(next.action)} /> : null}
-        {guide.isComplete ? <Button label={guide.kind === "hotel" ? "Go to Today" : "Back to your travels"} onPress={onFinish} /> : null}
+        <Button variant={guide.isComplete ? "primary" : "outline"} label={guide.isComplete ? (guide.kind === "hotel" ? "Go to Today" : "Back to your travels") : "Skip for now"} onPress={onExit} />
       </Card>
 
       <View style={styles.section}>

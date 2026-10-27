@@ -4,8 +4,7 @@ import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { CircleDashed } from "lucide-react-native";
 import { useCallback } from "react";
 
-import { OnboardingGuide } from "@/src/components/onboarding";
-import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
+import { OnboardingGuide, OnboardingStatus } from "@/src/components/onboarding";
 import { EmptyState, Screen, SecondaryHeader } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { onboardingActionHref } from "@/src/lib/onboarding-paths";
@@ -42,15 +41,14 @@ export default function HotelGettingStartedScreen() {
   }
 
   if (details.isError || (canManageRooms && rooms.isError) || !details.data || (canManageRooms && !rooms.data)) {
-    if (details.isError || (canManageRooms && rooms.isError)) return <RetryScreen onRetry={refetch} retrying={details.isFetching || rooms.isFetching} />;
-    return <PendingScreen />;
+    return <OnboardingStatus failed={details.isError || (canManageRooms && rooms.isError)} onRetry={refetch} onExit={() => router.replace(base as Href)} />;
   }
   const guide = getHotelOnboarding({ details: details.data, rooms: rooms.data?.rooms ?? [], canManageHotel, canManageRooms });
 
   return (
     <Screen refreshing={!details.isPending && (details.isFetching || (canManageRooms && rooms.isFetching))} onRefresh={refetch}>
       <SecondaryHeader title="Getting started" onBack={() => router.canGoBack() ? router.back() : router.replace(base as Href)} />
-      {guide ? <OnboardingGuide guide={guide} readOnly={isReadOnly(place)} onFinish={() => router.replace(base as Href)} onStep={(action) => router.push(onboardingActionHref(action, place) as Href)} /> : <EmptyState icon={CircleDashed} text="Your role does not include property setup." />}
+      {guide ? <OnboardingGuide guide={guide} readOnly={isReadOnly(place)} onExit={() => router.replace(base as Href)} onStep={(action) => router.push(onboardingActionHref(action, place) as Href)} /> : <EmptyState icon={CircleDashed} text="Your role does not include property setup." />}
     </Screen>
   );
 }
