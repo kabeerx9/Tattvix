@@ -88,6 +88,7 @@ class PlatformOversightWeeklyCheckInsQuerySerializer(serializers.Serializer):
 
 class PlatformPortfolioQuerySerializer(serializers.Serializer):
     organization = serializers.RegexField(regex=SLUG_PATTERN, required=False)
+    includeContacts = serializers.BooleanField(required=False, default=False)
 
 
 class GuestProfileSerializer(serializers.ModelSerializer):

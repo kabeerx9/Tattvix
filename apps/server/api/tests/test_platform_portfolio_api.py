@@ -313,3 +313,52 @@ class PlatformPortfolioDataTests(PlatformPortfolioApiTestCase):
             response = self.client.get(self.url())
         self.assertEqual(len(response.json()["properties"]), 6)
         self.assertEqual(len(grown), len(baseline))
+
+class PlatformPortfolioContactTests(PlatformPortfolioApiTestCase):
+    def test_multiple_owners_have_names_and_do_not_leak_across_organizations(self):
+        user = ClerkUser.objects.create(clerk_id="second-owner", email="second@example.com", first_name="Second", last_name="Owner")
+        Membership.objects.create(user=user, organization=self.org1, role=MembershipRole.OWNER)
+        self.authenticate(self.admin)
+        response = self.client.get(self.url(includeContacts="true", organization=self.org1.slug))
+        contacts = self.property_payload(response, "jaipur")["contacts"]
+        self.assertEqual(contacts["owners"], [
+            {"name": "", "email": "owner1@example.com"},
+            {"name": "Second Owner", "email": "second@example.com"},
+        ])
+        self.assertEqual(len(response.json()["properties"]), 1)
+        legacy = self.client.get(self.url(includeContacts="false"))
+        self.assertNotIn("contacts", self.property_payload(legacy, "jaipur"))
+
+    def test_contacts_are_opt_in_and_only_include_active_owners(self):
+        self.jaipur.contact_phone = "+919876543210"
+        self.jaipur.save(update_fields=["contact_phone"])
+        for role, active in [(MembershipRole.OWNER, False), (MembershipRole.MANAGER, True)]:
+            user = ClerkUser.objects.create(clerk_id=f"extra-{role}", email=f"{role}@example.com")
+            Membership.objects.create(user=user, organization=self.org1, role=role, is_active=active)
+        self.authenticate(self.admin)
+        legacy = self.property_payload(self.client.get(self.url()), "jaipur")
+        self.assertNotIn("contacts", legacy)
+        response = self.client.get(self.url(includeContacts="true"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.property_payload(response, "jaipur")["contacts"], {
+            "phone": "+919876543210",
+            "owners": [{"name": "", "email": "owner1@example.com"}],
+        })
+        self.assertEqual(self.property_payload(response, "goa")["contacts"], {"phone": "", "owners": []})
+        self.assertNotIn(self.guest.email, json.dumps(response.json()))
+
+    def test_contacts_still_require_platform_admin(self):
+        self.authenticate(self.owner1)
+        self.assertEqual(self.client.get(self.url(includeContacts="true")).status_code, 403)
+
+    def test_contacts_query_count_is_constant(self):
+        self.authenticate(self.admin)
+        with CaptureQueriesContext(connection) as baseline:
+            self.client.get(self.url(includeContacts="true"))
+        for i in range(3):
+            org = Organization.objects.create(name=f"Contact {i}", slug=f"contact-{i}")
+            Property.objects.create(organization=org, name="Hotel", slug="hotel")
+            Membership.objects.create(user=self.owner1, organization=org, role=MembershipRole.OWNER)
+        with CaptureQueriesContext(connection) as grown:
+            self.client.get(self.url(includeContacts="true"))
+        self.assertEqual(len(grown), len(baseline))

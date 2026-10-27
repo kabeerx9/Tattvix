@@ -312,7 +312,8 @@ export type PlatformMemberUpdateInput = z.infer<
 // --- Platform portfolio ---
 //
 // Every property with room inventory, nightly rates and activity counts.
-// Aggregates only: no guest names, emails, stay ids or identity data.
+// Operational aggregates and optional owner contacts: no guest names, emails,
+// stay ids or identity data. Contacts are opt-in to preserve installed clients.
 // Occupancy is sent as raw room-night counts so the client can weight
 // portfolio totals correctly instead of averaging percentages.
 
@@ -345,6 +346,10 @@ export const platformPortfolioPropertySchema = z.object({
   slug: z.string(),
   isActive: z.boolean(),
   address: z.string(),
+  contacts: z.object({
+    phone: z.string(),
+    owners: z.array(z.object({ name: z.string(), email: z.string() }).strict()),
+  }).strict().optional(),
   coverPhotoUrl: z.string().nullable(),
   organization: z.object({
     name: z.string(),
@@ -387,6 +392,7 @@ export const platformPortfolioResponseSchema = z.object({
 
 export const platformPortfolioQuerySchema = z.object({
   organization: z.string().trim().min(1).max(255).optional(),
+  includeContacts: z.boolean().optional(),
 }).strict();
 
 export type PlatformPortfolioRoomCounts = z.infer<typeof platformPortfolioRoomCountsSchema>;

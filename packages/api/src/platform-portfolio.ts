@@ -3,25 +3,28 @@ import { platformPortfolioResponseSchema, type ApiClient } from "@tattvix/contra
 
 export const platformPortfolioKeys = {
   all: ["platform-portfolio"] as const,
-  list: (organizationSlug?: string) => [...platformPortfolioKeys.all, organizationSlug ?? "all"] as const,
+  list: (organizationSlug?: string, includeContacts = false) => [...platformPortfolioKeys.all, organizationSlug ?? "all", includeContacts] as const,
 };
 
 export function createPlatformPortfolioApi(client: ApiClient) {
   return {
-    list(organizationSlug?: string) {
-      const query = organizationSlug ? `?${new URLSearchParams({ organization: organizationSlug })}` : "";
+    list(organizationSlug?: string, includeContacts = false) {
+      const params = new URLSearchParams();
+      if (organizationSlug) params.set("organization", organizationSlug);
+      if (includeContacts) params.set("includeContacts", "true");
+      const query = params.size ? `?${params}` : "";
       return client.requestJson(`/api/platform/portfolio/${query}`, platformPortfolioResponseSchema);
     },
   };
 }
 export type PlatformPortfolioApi = ReturnType<typeof createPlatformPortfolioApi>;
 
-export function createPlatformPortfolioQueries(api: PlatformPortfolioApi) {
+export function createPlatformPortfolioQueries(api: PlatformPortfolioApi, { includeContacts = false } = {}) {
   return {
     list: (organizationSlug?: string) =>
       queryOptions({
-        queryKey: platformPortfolioKeys.list(organizationSlug),
-        queryFn: () => api.list(organizationSlug),
+        queryKey: platformPortfolioKeys.list(organizationSlug, includeContacts),
+        queryFn: () => api.list(organizationSlug, includeContacts),
         // Photo URLs are presigned; refetching well inside their TTL keeps them valid.
         staleTime: 30_000,
       }),

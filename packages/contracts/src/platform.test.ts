@@ -238,6 +238,12 @@ describe("platform portfolio contracts", () => {
     lastActivityAt: null,
   };
 
+  it("accepts optional property contacts without weakening privacy validation", () => {
+    const contacts = { phone: "+919876543210", owners: [{ name: "Owner", email: "owner@example.com" }] };
+    assert.deepEqual(platformPortfolioPropertySchema.parse({ ...property, contacts }).contacts, contacts);
+    assert.throws(() => platformPortfolioPropertySchema.parse({ ...property, contacts: { ...contacts, guestPhone: "secret" } }));
+  });
+
   it("accepts an aggregate-only portfolio", () => {
     const response = { generatedAt: "2026-10-22T10:00:00+05:30", properties: [property] };
     assert.deepEqual(platformPortfolioResponseSchema.parse(response), response);

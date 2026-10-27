@@ -1,13 +1,14 @@
 """Platform-admin portfolio: every property with rooms, rates and activity.
 
-Privacy constraint: like platform oversight, this module returns counts and
-money totals only. It never reads guest profiles, identity snapshots,
-document images or guest emails. Stay rows are touched only through
+Privacy constraint: this module returns operational aggregates, with active
+owner account contacts only when explicitly requested by an admin client.
+It never reads guest profiles, identity snapshots, document images or guest
+emails. Stay rows are touched only through
 aggregates (Count/Max) or their timestamps.
 
 Query budget: a fixed number of grouped queries regardless of how many
 properties exist (properties, rooms, stays, recent stays, charges, photos,
-registration requests, memberships). Each relation is grouped on its own
+registration requests, memberships, optional owner contacts). Each relation is grouped on its own
 instead of joined into one annotate, which would multiply rows across the
 rooms x stays x charges joins and inflate the counts.
 """
@@ -22,6 +23,7 @@ from django.utils import timezone
 from .models import (
     HotelRegistrationRequest,
     Membership,
+    MembershipRole,
     OperationalStayStatus,
     Property,
     PropertyPhoto,
@@ -214,7 +216,7 @@ def _latest(*values):
     return max(present) if present else None
 
 
-def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
+def build_platform_portfolio(*, organization_slug: str | None = None, include_contacts: bool = False) -> dict:
     now = timezone.now()
     today = timezone.localdate()
 
@@ -238,6 +240,15 @@ def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
         .values_list("property_id", flat=True)
     )
     organization_ids = {property_.organization_id for property_ in properties}
+    owners = defaultdict(list)
+    if include_contacts:
+        for member in Membership.objects.filter(
+            organization_id__in=organization_ids, is_active=True, role=MembershipRole.OWNER,
+        ).select_related("user").order_by("user__email", "id"):
+            owners[member.organization_id].append({
+                "name": f"{member.user.first_name} {member.user.last_name}".strip(),
+                "email": member.user.email,
+            })
     members = dict(
         Membership.objects.filter(
             organization_id__in=organization_ids,
@@ -287,6 +298,7 @@ def build_platform_portfolio(*, organization_slug: str | None = None) -> dict:
                 "slug": property_.slug,
                 "isActive": property_.is_active,
                 "address": property_.address,
+                **({"contacts": {"phone": property_.contact_phone, "owners": owners[organization.id]}} if include_contacts else {}),
                 "coverPhotoUrl": property_photos["cover"],
                 "organization": {
                     "name": organization.name,

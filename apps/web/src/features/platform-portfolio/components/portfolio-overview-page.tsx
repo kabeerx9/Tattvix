@@ -105,8 +105,8 @@ export function PortfolioOverviewPage() {
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Jaipur, Tattwix Hotels"
-                  aria-label="Search hotels by name, organization or address"
+                  placeholder="Hotel, owner, email or phone"
+                  aria-label="Search hotels by name, organization, address, owner, email or phone"
                   className="pl-9"
                 />
               </div>
@@ -134,7 +134,7 @@ export function PortfolioOverviewPage() {
             <EmptyState
               icon={Search}
               title="No hotels match"
-              description="Try a property, organization or city name."
+              description="Try a hotel, owner, email, phone or city."
               action={<Button variant="outline" onClick={() => setSearch("")}>Clear search</Button>}
             />
           )}
@@ -164,6 +164,18 @@ function PropertyThumb({ property }: { property: PlatformPortfolioProperty }) {
   return <PhotoTile url={property.coverPhotoUrl} className="size-11 shrink-0 rounded-xl" />;
 }
 
+function PropertyContacts({ property }: { property: PlatformPortfolioProperty }) {
+  if (!property.contacts) return null;
+  return <span className="block text-xs text-subtle-foreground">
+    {property.contacts.owners.length ? property.contacts.owners.map((owner) => (
+      <span key={owner.email} className="block wrap-anywhere">
+        Owner: {owner.name ? `${owner.name} · ` : ""}{owner.email || "No email"}
+      </span>
+    )) : <span className="block">No active owner</span>}
+    <span className="block tabular-nums">{property.contacts.phone || "No contact phone"}</span>
+  </span>;
+}
+
 function PortfolioTable({ rows }: { rows: PlatformPortfolioProperty[] }) {
   return (
     <ResponsiveTable
@@ -189,6 +201,7 @@ function PortfolioTable({ rows }: { rows: PlatformPortfolioProperty[] }) {
                   {property.organization.name}
                   {property.address ? ` · ${property.address}` : ""}
                 </span>
+                <PropertyContacts property={property} />
               </span>
             </>
           ),
@@ -267,6 +280,7 @@ function PortfolioTable({ rows }: { rows: PlatformPortfolioProperty[] }) {
           meta={
             <>
               <span className="line-clamp-2">{property.organization.name}{property.address ? ` · ${property.address}` : ""}</span>
+              <PropertyContacts property={property} />
               <span className="block">
                 {property.rooms.total} rooms · {formatRateRange(property.rates)} · {property.stays.inHouse} in house
               </span>

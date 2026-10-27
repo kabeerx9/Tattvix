@@ -56,7 +56,8 @@ export function filterAndSortPortfolio(
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   const matches = properties.filter((property) => {
     if (!terms.length) return true;
-    const haystack = [property.name, property.organization.name, property.address, property.slug]
+    const haystack = [property.name, property.organization.name, property.address, property.slug,
+      property.contacts?.phone, ...(property.contacts?.owners.flatMap((owner) => [owner.name, owner.email]) ?? [])]
       .join(" ")
       .toLocaleLowerCase();
     return terms.every((term) => haystack.includes(term));

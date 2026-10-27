@@ -219,6 +219,7 @@ def platform_portfolio(request):
     query_serializer.is_valid(raise_exception=True)
     return Response(
         build_platform_portfolio(
-            organization_slug=query_serializer.validated_data.get("organization")
+            organization_slug=query_serializer.validated_data.get("organization"),
+            include_contacts=query_serializer.validated_data["includeContacts"],
         )
     )

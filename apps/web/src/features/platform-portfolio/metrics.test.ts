@@ -137,3 +137,11 @@ describe("portfolio attention", () => {
     assert.deepEqual(getPortfolioAttention([jaipur], now), { billing: [], stale: [] });
   });
 });
+
+it("searches owner names, emails and property contact numbers", () => {
+  const hotel = property({ id: 99, name: "Contact hotel", contacts: { phone: "+919876543210", owners: [{ name: "Shubham Tiwari", email: "shubham@example.com" }] } });
+  for (const search of ["tiwari", "SHUBHAM@EXAMPLE.COM", "9876543210"]) {
+    assert.deepEqual(filterAndSortPortfolio([hotel], { search, sort: "name" }).map((p) => p.id), [99]);
+  }
+  assert.deepEqual(filterAndSortPortfolio([hotel], { search: "unknown@example.com", sort: "name" }), []);
+});
