@@ -658,6 +658,17 @@ class SharedIdentityDocumentImage(models.Model):
         return f"{self.snapshot} — {self.get_side_display()}"
 
 
+class PendingIdentityImageCleanup(models.Model):
+    """Durable key tracking until a prepared copy is committed or deleted.
+
+    Deliberately independent of guest/stay cascades so a failed preparation can
+    still be purged after related records disappear. Contains no image content.
+    """
+
+    object_key = models.CharField(max_length=1024, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+
 class IdentityAccessAction(models.TextChoices):
     DETAILS_VIEWED = "DETAILS_VIEWED", "Identity details viewed"
     DOCUMENT_VIEWED = "DOCUMENT_VIEWED", "Document image viewed"

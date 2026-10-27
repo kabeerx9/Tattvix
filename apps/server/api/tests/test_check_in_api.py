@@ -37,6 +37,9 @@ from api.models import (
 
 class CheckInApiTests(APITestCase):
     def setUp(self):
+        self.watermark_patch = patch("api.shared_identity_images.watermark_identity_image", return_value=b"watermarked-jpeg")
+        self.watermark = self.watermark_patch.start()
+        self.addCleanup(self.watermark_patch.stop)
         self.organization = Organization.objects.create(
             name="Tattvix Hotels",
             slug="tattvix-hotels",
@@ -219,7 +222,7 @@ class CheckInApiTests(APITestCase):
                 }, format="json")
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.data["code"], "invalid_companion_documents")
-        storage_class.return_value.copy_object.assert_not_called()
+        storage_class.return_value.put_image_bytes.assert_not_called()
 
     @patch("api.check_in_views.PrivateObjectStorage")
     def test_companion_document_is_only_shared_when_explicitly_selected(self, storage_class):
@@ -236,7 +239,7 @@ class CheckInApiTests(APITestCase):
         response = self.submit_with_companion(companion, self.document.id)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["code"], "invalid_companion_documents")
-        storage_class.return_value.copy_object.assert_not_called()
+        storage_class.return_value.put_image_bytes.assert_not_called()
 
     @patch("api.check_in_views.PrivateObjectStorage")
     def test_incomplete_companion_document_is_rejected(self, storage_class):
@@ -245,7 +248,7 @@ class CheckInApiTests(APITestCase):
         response = self.submit_with_companion(companion, document.id)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["code"], "companion_document_not_ready")
-        storage_class.return_value.copy_object.assert_not_called()
+        storage_class.return_value.put_image_bytes.assert_not_called()
 
     @patch("api.check_in_views.PrivateObjectStorage")
     def test_companion_document_cannot_replace_primary_document(self, storage_class):
@@ -255,17 +258,17 @@ class CheckInApiTests(APITestCase):
             "identityDocumentId": document.id, "companionIds": [], "consentAccepted": True,
         }, format="json")
         self.assertEqual(response.status_code, 400)
-        storage_class.return_value.copy_object.assert_not_called()
+        storage_class.return_value.put_image_bytes.assert_not_called()
 
     @patch("api.check_in_views.PrivateObjectStorage")
     def test_failed_companion_copy_cleans_primary_copies_without_consent(self, storage_class):
         companion, document = self.make_companion_document()
-        storage_class.return_value.copy_object.side_effect = [None, None, RuntimeError("storage unavailable")]
+        storage_class.return_value.put_image_bytes.side_effect = [None, None, RuntimeError("storage unavailable")]
         response = self.submit_with_companion(companion, document.id)
         self.assertEqual(response.status_code, 503)
         self.assertFalse(ConsentGrant.objects.exists())
         self.assertFalse(SharedIdentitySnapshot.objects.exists())
-        self.assertEqual(storage_class.return_value.delete_object.call_count, 2)
+        self.assertEqual(storage_class.return_value.delete_object.call_count, 3)
 
     def test_public_context_exposes_property_but_not_private_identity(self):
         self.client.force_authenticate(user=None)
@@ -341,10 +344,10 @@ class CheckInApiTests(APITestCase):
             "XXXX XXXX 9012",
         )
         self.assertEqual(snapshot.document_images.count(), 2)
-        self.assertEqual(storage_class.return_value.copy_object.call_count, 2)
+        self.assertEqual(storage_class.return_value.put_image_bytes.call_count, 2)
         copied_keys = {
-            call.kwargs["destination_key"]
-            for call in storage_class.return_value.copy_object.call_args_list
+            call.kwargs["object_key"]
+            for call in storage_class.return_value.put_image_bytes.call_args_list
         }
         self.assertTrue(
             all(key.startswith(f"stays/{stay.public_id}/") for key in copied_keys)
@@ -380,7 +383,7 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["code"], "profile_not_ready")
         self.assertFalse(Stay.objects.exists())
-        storage_class.return_value.copy_object.assert_not_called()
+        storage_class.return_value.put_image_bytes.assert_not_called()
 
     def test_property_staff_can_view_snapshot_and_each_view_is_audited(self):
         response, _storage_class = self.submit_identity()

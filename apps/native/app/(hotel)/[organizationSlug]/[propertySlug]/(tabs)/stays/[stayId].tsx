@@ -179,6 +179,7 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
           Issued by {document.issuingCountry.toUpperCase()}
           {document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}
         </Text>
+        <Text style={[styles.meta, { marginTop: 4 }]}>Images shared with this property are watermarked for hotel check-in only.</Text>
         {stay.identityAccess.expiresAt ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access ends {formatDateTime(stay.identityAccess.expiresAt)}</Text> : null}
         {anyImages && stay.identityAccess.isActive ? (
           <View style={{ marginTop: space.md, alignSelf: "flex-start" }}>
@@ -238,7 +239,7 @@ function DocumentImage({ side, scope, stayId, companionId }: { side: IdentityDoc
     <View style={styles.imageBox}>
       <View style={styles.imageHead}>
         <Text style={styles.body}>{label}</Text>
-        <Text style={styles.meta}>Private</Text>
+        <Text style={styles.meta}>Private · hotel watermarked</Text>
       </View>
       <View style={styles.imageBody}>
         {access.data ? (

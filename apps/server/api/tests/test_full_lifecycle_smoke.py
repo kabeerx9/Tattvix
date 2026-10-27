@@ -340,7 +340,7 @@ class FullLifecycleSmokeTest(APITestCase):
     def _step5_guest_submits_consent(self):
         self.authenticate(self.guest)
 
-        with patch("api.check_in_views.PrivateObjectStorage"):
+        with patch("api.check_in_views.PrivateObjectStorage"), patch("api.shared_identity_images.watermark_identity_image", return_value=b"synthetic-watermarked-image"):
             submit_response = self.client.post(
                 reverse("guest-check-in-submit", args=[self.raw_token]),
                 {

@@ -5,6 +5,7 @@ from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, override_settings
 
 from api.object_storage import (
+    ObjectMetadata,
     ObjectStorageValidationError,
     PrivateObjectStorage,
 )
@@ -141,6 +142,7 @@ class PrivateObjectStorageTests(SimpleTestCase):
 
         self.assertEqual(metadata.content_type, "image/jpeg")
         self.assertEqual(metadata.content_length, 2048)
+        self.assertEqual(metadata.metadata, {})
         self.client.delete_object.assert_called_once_with(
             Bucket="private-documents",
             Key=key,
@@ -150,6 +152,89 @@ class PrivateObjectStorageTests(SimpleTestCase):
             Key=key,
         )
         self.client.head_bucket.assert_called_once_with(Bucket="private-documents")
+
+    def test_reads_a_bounded_supported_image_and_closes_the_stream(self):
+        key = "stays/stay-123/shared-identity/front.jpg"
+        body = Mock()
+        body.read.return_value = b"jpeg-bytes"
+        self.client.get_object.return_value = {
+            "ContentType": "image/jpeg",
+            "ContentLength": len(b"jpeg-bytes"),
+            "Body": body,
+        }
+
+        result = self.storage.read_image_bytes(object_key=key)
+
+        self.assertEqual(result, b"jpeg-bytes")
+        body.read.assert_called_once_with(8_388_609)
+        body.close.assert_called_once_with()
+
+    def test_rejects_oversized_or_unsupported_image_reads_and_closes_stream(self):
+        key = "stays/stay-123/shared-identity/front.jpg"
+        body = Mock()
+        body.read.return_value = b"x" * 8_388_609
+        self.client.get_object.return_value = {
+            "ContentType": "application/pdf",
+            "ContentLength": 8_388_609,
+            "Body": body,
+        }
+
+        with self.assertRaises(ObjectStorageValidationError):
+            self.storage.read_image_bytes(object_key=key)
+
+        body.close.assert_called_once_with()
+
+    def test_writes_private_jpeg_bytes_with_metadata(self):
+        key = "stays/stay-123/shared-identity/front.jpg"
+
+        self.storage.put_image_bytes(
+            object_key=key,
+            data=b"watermarked-jpeg",
+            metadata={"tattwix-watermark-version": "1"},
+        )
+
+        self.client.put_object.assert_called_once_with(
+            Bucket="private-documents",
+            Key=key,
+            Body=b"watermarked-jpeg",
+            ContentType="image/jpeg",
+            CacheControl="private, no-store",
+            ContentDisposition="inline",
+            Metadata={"tattwix-watermark-version": "1"},
+        )
+
+    def test_rejects_unsafe_metadata_and_oversized_image_writes(self):
+        for metadata, data in (
+            ({"Bad Key": "1"}, b"jpeg"),
+            ({"safe": "x" * 2049}, b"jpeg"),
+            ({"safe": "1"}, b"x" * 8_388_609),
+        ):
+            with self.subTest(metadata=metadata, size=len(data)):
+                with self.assertRaises(ObjectStorageValidationError):
+                    self.storage.put_image_bytes(
+                        object_key="stays/stay-123/shared-identity/front.jpg",
+                        data=data,
+                        metadata=metadata,
+                    )
+
+        self.client.put_object.assert_not_called()
+
+    def test_reads_s3_metadata(self):
+        self.client.head_object.return_value = {
+            "ContentType": "image/jpeg",
+            "ContentLength": 2048,
+            "Metadata": {"tattwix-watermark-version": "1"},
+        }
+
+        metadata = self.storage.get_object_metadata(
+            object_key="stays/stay-123/shared-identity/front.jpg"
+        )
+
+        self.assertEqual(metadata, ObjectMetadata(
+            content_type="image/jpeg",
+            content_length=2048,
+            metadata={"tattwix-watermark-version": "1"},
+        ))
 
 
 class CheckObjectStorageCommandTests(SimpleTestCase):

@@ -23,12 +23,14 @@ from .models import (
     IdentityAccessAction,
     IdentityAccessAudit,
     IdentityDocument,
+    PendingIdentityImageCleanup,
     SharedIdentityDocumentImage,
     SharedIdentitySnapshot,
     Stay,
     StayStatus,
 )
 from .object_storage import PrivateObjectStorage
+from .shared_identity_images import cleanup_prepared_images, prepare_shared_image
 
 
 CONSENT_VERSION = "2026-10-22"
@@ -255,37 +257,52 @@ def submit_guest_identity(
         if image.object_key and image.content_type and image.content_length
     ]
     copied_images = []
+    preparations = []
     copy_batch_id = uuid4().hex
+    shared_at = timezone.now()
     try:
         for participant_id, image in source_images:
-            extension = CONTENT_TYPE_EXTENSIONS.get(image.content_type, "bin")
             participant_path = f"companions/{participant_id}/" if participant_id else ""
             destination_key = (
                 f"stays/{stay.public_id}/shared-identity/"
-                f"{copy_batch_id}/{participant_path}{image.side.lower()}.{extension}"
+                f"{copy_batch_id}/{participant_path}{image.side.lower()}.jpg"
             )
-            storage.copy_object(
-                source_key=image.object_key,
-                destination_key=destination_key,
-                content_type=image.content_type,
-            )
+            preparations.append(PendingIdentityImageCleanup.objects.create(object_key=destination_key))
+            # Include the current target before PUT: a timeout can mean the
+            # object was stored even though the response never arrived.
             copied_images.append(
                 {
                     "side": image.side,
                     "companion_id": participant_id,
                     "object_key": destination_key,
-                    "content_type": image.content_type,
-                    "content_length": image.content_length,
+                    "content_type": "image/jpeg",
+                    "content_length": 0,
                 }
             )
+            copied_images[-1]["content_length"] = prepare_shared_image(
+                storage=storage,
+                source_key=image.object_key,
+                destination_key=destination_key,
+                property_name=qr_token.property.name,
+                shared_at=shared_at,
+            )
 
-        now = timezone.now()
+        now = shared_at
         already_submitted_stay = None
         with transaction.atomic():
             locked_stay = Stay.objects.select_for_update().get(id=stay.id)
             if locked_stay.status != StayStatus.DRAFT:
                 already_submitted_stay = locked_stay
             else:
+                locked_preparations = list(PendingIdentityImageCleanup.objects.select_for_update().filter(id__in=[item.id for item in preparations]))
+                if len(locked_preparations) != len(preparations):
+                    raise RuntimeError("Identity image preparation expired; please retry.")
+                if not HotelQrToken.objects.filter(
+                    id=qr_token.id, revoked_at__isnull=True,
+                    expires_at__gt=timezone.now(), property__is_active=True,
+                    property__organization__is_active=True,
+                ).exists():
+                    raise CheckInError("invalid_qr", "This check-in code is invalid, expired, or no longer active.")
                 consent = ConsentGrant.objects.create(
                     stay=locked_stay,
                     granted_by=guest,
@@ -319,6 +336,7 @@ def submit_guest_identity(
                         for image in copied_images
                     ]
                 )
+                PendingIdentityImageCleanup.objects.filter(id__in=[item.id for item in preparations]).delete()
                 locked_stay.status = StayStatus.SUBMITTED
                 locked_stay.submitted_at = consent.granted_at
                 locked_stay.hotel_access_expires_at = now + timedelta(
@@ -334,19 +352,11 @@ def submit_guest_identity(
                 )
 
         if already_submitted_stay is not None:
-            for image in copied_images:
-                try:
-                    storage.delete_object(object_key=image["object_key"])
-                except Exception:
-                    pass
+            cleanup_prepared_images(storage=storage, preparations=preparations)
             return already_submitted_stay
         return locked_stay
     except Exception:
-        for image in copied_images:
-            try:
-                storage.delete_object(object_key=image["object_key"])
-            except Exception:
-                pass
+        cleanup_prepared_images(storage=storage, preparations=preparations)
         raise
 
 
@@ -540,22 +550,44 @@ def purge_expired_shared_identity_images(
     storage: PrivateObjectStorage,
     batch_size: int,
 ) -> tuple[int, int]:
+    # Reserve part of each bounded batch for abandoned preparations, so a
+    # persistently failing expired copy cannot starve failed-PUT cleanup.
+    pending_ids = list(PendingIdentityImageCleanup.objects.filter(
+        created_at__lte=timezone.now() - timedelta(hours=1),
+    ).order_by("created_at").values_list("id", flat=True)[:max(1, batch_size // 2)])
     images = list(
         SharedIdentityDocumentImage.objects.filter(
             snapshot__stay__hotel_access_expires_at__lte=timezone.now(),
         )
-        .order_by("id")[:batch_size]
+        .order_by("id").values_list("id", "snapshot__stay_id")[:max(0, batch_size - len(pending_ids))]
     )
     deleted_count = 0
     failed_count = 0
-    for image in images:
+    for image_id, stay_id in images:
         try:
-            storage.delete_object(object_key=image.object_key)
+            # Same lock order as image access/conversion and consent revocation.
+            with transaction.atomic():
+                stay = Stay.objects.select_for_update().get(id=stay_id)
+                image = SharedIdentityDocumentImage.objects.select_for_update().filter(id=image_id).first()
+                if image is None or stay.hotel_access_expires_at is None or stay.hotel_access_expires_at > timezone.now():
+                    continue
+                storage.delete_object(object_key=image.object_key)
+                image.delete()
         except Exception:
             failed_count += 1
             continue
-        image.delete()
         deleted_count += 1
+    for pending_id in pending_ids:
+        try:
+            with transaction.atomic():
+                pending = PendingIdentityImageCleanup.objects.select_for_update().filter(id=pending_id).first()
+                if pending is None:
+                    continue
+                storage.delete_object(object_key=pending.object_key)
+                pending.delete()
+                deleted_count += 1
+        except Exception:
+            failed_count += 1
     return deleted_count, failed_count
 
 

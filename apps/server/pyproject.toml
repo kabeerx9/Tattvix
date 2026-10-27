@@ -16,6 +16,7 @@ dependencies = [
   "python-dotenv>=1.1,<2.0",
   "svix>=1.96,<2.0",
   "sentry-sdk[django]>=2.40,<3.0",
+  "pillow>=13,<14",
 ]
 
 [tool.uv]

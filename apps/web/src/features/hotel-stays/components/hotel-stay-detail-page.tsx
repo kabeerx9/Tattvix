@@ -567,6 +567,9 @@ function DocumentIdentity({
       <h2 className="flex items-center gap-2 text-sm font-semibold"><FileKey2 className="size-4 text-muted-foreground" />Identity</h2>
       <p className="mt-4 text-sm">{documentTypeLabel(document.documentType)} · {document.documentNumber}</p>
       <p className="mt-1 text-xs text-subtle-foreground">Issued by {document.issuingCountry}{document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}</p>
+      <p className="mt-3 text-xs text-subtle-foreground">
+        Images shared with this property are watermarked for hotel check-in only.
+      </p>
       <Button className="stay-print-screen-only mt-2 px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>
         {imagesVisible ? "Hide images" : "View images"}
       </Button>
@@ -599,7 +602,7 @@ function DocumentImage({
     <div className="stay-print-image overflow-hidden rounded-md bg-muted/30">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <p className="text-sm font-medium">{label}</p>
-        <span className="text-xs text-muted-foreground">Private</span>
+        <span className="text-xs text-muted-foreground">Private · hotel watermarked</span>
       </div>
       {query?.data ? (
         <div className="grid min-h-56 place-items-center bg-background/60 p-3">

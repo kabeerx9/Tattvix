@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import re
 
 import boto3
 from botocore.client import BaseClient
@@ -23,6 +24,7 @@ class PresignedUpload:
 class ObjectMetadata:
     content_type: str
     content_length: int
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 class PrivateObjectStorage:
@@ -48,6 +50,9 @@ class PrivateObjectStorage:
             config=Config(
                 signature_version="s3v4",
                 s3={"addressing_style": "path"},
+                connect_timeout=2,
+                read_timeout=5,
+                retries={"max_attempts": 2, "mode": "standard"},
             ),
         )
 
@@ -135,6 +140,47 @@ class PrivateObjectStorage:
         return ObjectMetadata(
             content_type=response.get("ContentType", ""),
             content_length=response.get("ContentLength", 0),
+            metadata=dict(response.get("Metadata", {})),
+        )
+
+    def read_image_bytes(self, *, object_key: str) -> bytes:
+        self._validate_object_key(object_key)
+        response = self.client.get_object(Bucket=self.bucket_name, Key=object_key)
+        body = response["Body"]
+        try:
+            self._validate_upload(
+                content_type=response.get("ContentType", ""),
+                content_length=response.get("ContentLength", 0),
+            )
+            data = body.read(self.max_upload_bytes + 1)
+            if len(data) > self.max_upload_bytes:
+                raise ObjectStorageValidationError(
+                    f"Image exceeds the {self.max_upload_bytes}-byte limit."
+                )
+            return data
+        finally:
+            body.close()
+
+    def put_image_bytes(
+        self,
+        *,
+        object_key: str,
+        data: bytes,
+        metadata: dict[str, str],
+    ) -> None:
+        self._validate_object_key(object_key)
+        if not isinstance(data, bytes):
+            raise ObjectStorageValidationError("Image data must be bytes.")
+        self._validate_upload(content_type="image/jpeg", content_length=len(data))
+        self._validate_metadata(metadata)
+        self.client.put_object(
+            Bucket=self.bucket_name,
+            Key=object_key,
+            Body=data,
+            ContentType="image/jpeg",
+            CacheControl="private, no-store",
+            ContentDisposition="inline",
+            Metadata=metadata,
         )
 
     def check_bucket_access(self) -> None:
@@ -168,3 +214,18 @@ class PrivateObjectStorage:
             raise ObjectStorageValidationError(
                 "Object key contains control characters."
             )
+
+    @staticmethod
+    def _validate_metadata(metadata: dict[str, str]) -> None:
+        if not isinstance(metadata, dict):
+            raise ObjectStorageValidationError("Object metadata must be a dictionary.")
+        for key, value in metadata.items():
+            if (
+                not isinstance(key, str)
+                or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", key)
+                or not isinstance(value, str)
+                or not value
+                or len(value.encode("utf-8")) > 1024
+                or any(ord(character) < 32 or ord(character) == 127 for character in value)
+            ):
+                raise ObjectStorageValidationError("Object metadata contains an unsafe key or value.")

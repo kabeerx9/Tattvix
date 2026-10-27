@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -30,6 +31,7 @@ from .models import (
     StayStatus,
 )
 from .object_storage import PrivateObjectStorage
+from .shared_identity_images import ensure_shared_image_watermarked
 from .rbac import Permission
 from .throttling import ClerkPrincipalScopedThrottle
 from .serializers import (
@@ -246,59 +248,57 @@ def hotel_stay_image_access(
     property_slug: str,
     stay_id,
 ):
-    property_ = get_accessible_property(
-        user=request.user.db_user,
-        organization_slug=organization_slug,
-        property_slug=property_slug,
-        permission=Permission.STAYS_VIEW,
-    )
-    stay = get_object_or_404(
-        Stay.objects.select_related("identity_snapshot"),
-        public_id=stay_id,
-        property=property_,
-    )
-    access = hotel_identity_access_state(stay)
-    if not access["isActive"]:
-        return Response(
-            {"error": "Hotel access to this identity package has ended."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
     serializer = HotelStayImageAccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    image = get_object_or_404(
-        SharedIdentityDocumentImage,
-        snapshot=stay.identity_snapshot,
-        side=serializer.validated_data["side"],
-        companion_id=serializer.validated_data.get("companion_id", 0),
-    )
-    try:
-        url = PrivateObjectStorage().create_download_url(
-            object_key=image.object_key
+    with transaction.atomic():
+        property_ = get_accessible_property(
+            user=request.user.db_user,
+            organization_slug=organization_slug,
+            property_slug=property_slug,
+            permission=Permission.STAYS_VIEW,
         )
-    except Exception:
-        logger.exception(
-            "Could not create shared identity image URL for stay id=%s.",
-            stay.id,
+        stay = get_object_or_404(
+            Stay.objects.select_for_update(of=("self",)).select_related("identity_snapshot", "consent_grant"),
+            public_id=stay_id,
+            property=property_,
         )
-        return Response(
-            {"error": "Private document storage is temporarily unavailable."},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        if not hotel_identity_access_state(stay)["isActive"]:
+            return Response({"error": "Hotel access to this identity package has ended."}, status=status.HTTP_403_FORBIDDEN)
+        image = get_object_or_404(
+            SharedIdentityDocumentImage.objects.select_for_update(),
+            snapshot=stay.identity_snapshot,
+            side=serializer.validated_data["side"],
+            companion_id=serializer.validated_data.get("companion_id", 0),
         )
+        storage = PrivateObjectStorage()
+        try:
+            consent = getattr(stay, "consent_grant", None)
+            ensure_shared_image_watermarked(
+                storage=storage, image=image, property_name=property_.name,
+                shared_at=consent.granted_at if consent else stay.identity_snapshot.created_at,
+            )
+        except Exception:
+            logger.exception("Could not prepare shared identity image for stay id=%s.", stay.id)
+            return Response({"error": "Private document storage is temporarily unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    IdentityAccessAudit.objects.create(
-        stay=stay,
-        actor=request.user.db_user,
-        action=IdentityAccessAction.DOCUMENT_VIEWED,
-        image_side=image.side,
-        companion_id=image.companion_id,
-    )
-    return Response(
-        {
-            "url": url,
-            "expiresInSeconds": settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS,
-        }
-    )
+        # Image work can take time. Recheck the actor and expiry before handing
+        # out a URL; the stay lock serializes revocation and purge until issuance.
+        get_accessible_property(
+            user=request.user.db_user, organization_slug=organization_slug,
+            property_slug=property_slug, permission=Permission.STAYS_VIEW,
+        )
+        if not hotel_identity_access_state(stay)["isActive"]:
+            return Response({"error": "Hotel access to this identity package has ended."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            url = storage.create_download_url(object_key=image.object_key)
+        except Exception:
+            logger.exception("Could not create shared identity image URL for stay id=%s.", stay.id)
+            return Response({"error": "Private document storage is temporarily unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        IdentityAccessAudit.objects.create(
+            stay=stay, actor=request.user.db_user, action=IdentityAccessAction.DOCUMENT_VIEWED,
+            image_side=image.side, companion_id=image.companion_id,
+        )
+        return Response({"url": url, "expiresInSeconds": settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS})
 
 
 @api_view(["POST"])

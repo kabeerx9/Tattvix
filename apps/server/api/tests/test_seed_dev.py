@@ -42,11 +42,11 @@ class SeedDevCommandTests(TestCase):
     def _run_seed(self) -> str:
         output = StringIO()
         # PrivateObjectStorage is fully mocked so the command never touches
-        # the network: check_bucket_access/put_object/copy_object all
+        # the network: storage I/O and rendering all
         # resolve as no-op Mock calls instead of real S3/MinIO requests.
         with patch(
             "api.management.commands.seed_dev.PrivateObjectStorage"
-        ) as mock_storage_cls:
+        ) as mock_storage_cls, patch("api.shared_identity_images.watermark_identity_image", return_value=b"synthetic-watermarked-image"):
             mock_storage = MagicMock()
             mock_storage.bucket_name = "seed-test-bucket"
             mock_storage_cls.return_value = mock_storage
