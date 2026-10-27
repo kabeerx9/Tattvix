@@ -451,7 +451,7 @@ class FullLifecycleSmokeTest(APITestCase):
             self.stay.hotel_access_expires_at,
             before_checkout
             + timedelta(
-                hours=settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS,
+                days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS,
                 seconds=5,
             ),
         )
@@ -465,8 +465,9 @@ class FullLifecycleSmokeTest(APITestCase):
     # -- 8. After the post-checkout grace window expires, access refuses --
 
     def _step8_access_refuses_after_simulated_expiry(self):
+        self.stay.checked_out_at = timezone.now() - timedelta(days=60, seconds=1)
         self.stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
-        self.stay.save(update_fields=["hotel_access_expires_at"])
+        self.stay.save(update_fields=["checked_out_at", "hotel_access_expires_at"])
         self.authenticate(self.owner)
 
         detail_response = self.client.get(

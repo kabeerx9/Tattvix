@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from api.models import ConsentGrant, IdentityAccessAudit, SharedIdentitySnapshot, Stay
+from api.models import ConsentGrant, IdentityAccessAudit, SharedIdentitySnapshot, Stay, OperationalStayStatus
 from api.object_storage import ObjectMetadata
 from api.tests import test_check_in_api as fixtures
 
@@ -108,6 +108,8 @@ class SharedIdentityWatermarkTests(APITestCase):
         self.authenticate(self.guest)
         self.assertEqual(self.client.post(self.access_url(stay), {"side": "FRONT"}, format="json").status_code, 404)
         self.authenticate(self.owner)
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = timezone.now() - timedelta(days=60, seconds=1)
         stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
         stay.save()
         self.assertEqual(self.client.post(self.access_url(stay), {"side": "FRONT"}, format="json").status_code, 403)

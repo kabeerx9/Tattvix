@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from .companion_profile import build_companion_profile_payload
@@ -24,6 +25,7 @@ from .models import (
     IdentityAccessAudit,
     IdentityDocument,
     PendingIdentityImageCleanup,
+    OperationalStayStatus,
     SharedIdentityDocumentImage,
     SharedIdentitySnapshot,
     Stay,
@@ -33,7 +35,7 @@ from .object_storage import PrivateObjectStorage
 from .shared_identity_images import cleanup_prepared_images, prepare_shared_image
 
 
-CONSENT_VERSION = "2026-10-22"
+CONSENT_VERSION = "2026-10-27"
 CONSENT_DATA_CATEGORIES = [
     "guest_profile",
     "identity_document",
@@ -123,8 +125,8 @@ def build_check_in_context(
         "property": _property_payload(qr_token.property),
         "tokenExpiresAt": _isoformat(qr_token.expires_at),
         "accessPolicy": {
-            "maximumDays": settings.HOTEL_IDENTITY_MAX_ACCESS_DAYS,
-            "postCheckoutGraceHours": settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS,
+            "maximumDays": settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS,
+            "postCheckoutGraceHours": settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS * 24,
         },
         "existingStay": existing_stay,
     }
@@ -339,9 +341,7 @@ def submit_guest_identity(
                 PendingIdentityImageCleanup.objects.filter(id__in=[item.id for item in preparations]).delete()
                 locked_stay.status = StayStatus.SUBMITTED
                 locked_stay.submitted_at = consent.granted_at
-                locked_stay.hotel_access_expires_at = now + timedelta(
-                    days=settings.HOTEL_IDENTITY_MAX_ACCESS_DAYS
-                )
+                locked_stay.hotel_access_expires_at = None
                 locked_stay.save(
                     update_fields=[
                         "status",
@@ -361,7 +361,6 @@ def submit_guest_identity(
 
 
 def revoke_guest_consent(*, stay: Stay, guest: ClerkUser) -> Stay:
-    now = timezone.now()
     with transaction.atomic():
         locked_stay = Stay.objects.select_for_update().get(id=stay.id, guest=guest)
         if locked_stay.status == StayStatus.REVOKED:
@@ -372,6 +371,10 @@ def revoke_guest_consent(*, stay: Stay, guest: ClerkUser) -> Stay:
                 "This check-in has not been submitted.",
             )
 
+        if locked_stay.operational_status != OperationalStayStatus.CHECKED_OUT:
+            raise CheckInError("stay_not_checked_out", "You can stop sharing after checkout.")
+
+        now = timezone.now()
         locked_stay.status = StayStatus.REVOKED
         locked_stay.hotel_access_expires_at = now
         locked_stay.save(
@@ -390,9 +393,6 @@ def revoke_guest_consent(*, stay: Stay, guest: ClerkUser) -> Stay:
 
 def close_hotel_stay(*, stay: Stay, actor: ClerkUser) -> Stay:
     now = timezone.now()
-    grace_expires_at = now + timedelta(
-        hours=settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS
-    )
     with transaction.atomic():
         locked_stay = Stay.objects.select_for_update().get(id=stay.id)
         if locked_stay.status == StayStatus.REVOKED:
@@ -405,14 +405,12 @@ def close_hotel_stay(*, stay: Stay, actor: ClerkUser) -> Stay:
                 "stay_not_submitted",
                 "This check-in has not been submitted.",
             )
+        if locked_stay.operational_status != OperationalStayStatus.CHECKED_OUT:
+            raise CheckInError("stay_not_checked_out", "Check the guest out before closing this stay.")
         if locked_stay.status != StayStatus.CLOSED:
             locked_stay.status = StayStatus.CLOSED
             locked_stay.closed_at = now
-            if (
-                locked_stay.hotel_access_expires_at is None
-                or locked_stay.hotel_access_expires_at > grace_expires_at
-            ):
-                locked_stay.hotel_access_expires_at = grace_expires_at
+            locked_stay.hotel_access_expires_at = hotel_identity_access_expires_at(locked_stay)
             locked_stay.save(
                 update_fields=[
                     "status",
@@ -429,15 +427,28 @@ def close_hotel_stay(*, stay: Stay, actor: ClerkUser) -> Stay:
         return locked_stay
 
 
+def hotel_identity_access_expires_at(stay: Stay):
+    """Checkout starts the clock; legacy submission/review deadlines do not.
+
+    Keep revocation terminal. Deriving completed deadlines also applies the new
+    policy to existing retained copies without reviving previously purged bytes.
+    """
+    if stay.status == StayStatus.REVOKED:
+        return stay.hotel_access_expires_at
+    if stay.operational_status == OperationalStayStatus.CHECKED_OUT and stay.checked_out_at:
+        return stay.checked_out_at + timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS)
+    return None
+
+
 def hotel_identity_access_state(stay: Stay) -> dict:
     if stay.status == StayStatus.REVOKED:
         return {"isActive": False, "reason": "REVOKED"}
     if stay.status == StayStatus.DRAFT or stay.submitted_at is None:
         return {"isActive": False, "reason": "NOT_SUBMITTED"}
-    if (
-        stay.hotel_access_expires_at is None
-        or stay.hotel_access_expires_at <= timezone.now()
-    ):
+    if stay.operational_status != OperationalStayStatus.CHECKED_OUT:
+        return {"isActive": True, "reason": "ACTIVE"}
+    expires_at = hotel_identity_access_expires_at(stay)
+    if expires_at is None or expires_at <= timezone.now():
         return {"isActive": False, "reason": "EXPIRED"}
     return {"isActive": True, "reason": "ACTIVE"}
 
@@ -452,7 +463,7 @@ def build_guest_stay_payload(stay: Stay) -> dict:
         "closedAt": _isoformat(stay.closed_at),
         "checkedInAt": _isoformat(stay.checked_in_at),
         "checkedOutAt": _isoformat(stay.checked_out_at),
-        "hotelAccessExpiresAt": _isoformat(stay.hotel_access_expires_at),
+        "hotelAccessExpiresAt": _isoformat(hotel_identity_access_expires_at(stay)),
     }
 
 
@@ -507,7 +518,7 @@ def build_hotel_stay_list_item(stay: Stay) -> dict:
         "expectedCheckOutDate": _expected_check_out_date(stay),
         "identityAccess": {
             **hotel_identity_access_state(stay),
-            "expiresAt": _isoformat(stay.hotel_access_expires_at),
+            "expiresAt": _isoformat(hotel_identity_access_expires_at(stay)),
         },
     }
 
@@ -557,7 +568,11 @@ def purge_expired_shared_identity_images(
     ).order_by("created_at").values_list("id", flat=True)[:max(1, batch_size // 2)])
     images = list(
         SharedIdentityDocumentImage.objects.filter(
-            snapshot__stay__hotel_access_expires_at__lte=timezone.now(),
+            Q(snapshot__stay__status=StayStatus.REVOKED)
+            | Q(
+                snapshot__stay__operational_status=OperationalStayStatus.CHECKED_OUT,
+                snapshot__stay__checked_out_at__lte=timezone.now() - timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS),
+            ),
         )
         .order_by("id").values_list("id", "snapshot__stay_id")[:max(0, batch_size - len(pending_ids))]
     )
@@ -569,7 +584,7 @@ def purge_expired_shared_identity_images(
             with transaction.atomic():
                 stay = Stay.objects.select_for_update().get(id=stay_id)
                 image = SharedIdentityDocumentImage.objects.select_for_update().filter(id=image_id).first()
-                if image is None or stay.hotel_access_expires_at is None or stay.hotel_access_expires_at > timezone.now():
+                if image is None or hotel_identity_access_state(stay)["isActive"]:
                     continue
                 storage.delete_object(object_key=image.object_key)
                 image.delete()

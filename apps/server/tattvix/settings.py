@@ -230,14 +230,12 @@ SUPPORT_WHATSAPP_PHONE = os.environ.get("SUPPORT_WHATSAPP_PHONE", "+910000000000
 
 COMPANION_MINOR_AGE_YEARS =env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 HOTEL_QR_TOKEN_TTL_DAYS = env_positive_int("HOTEL_QR_TOKEN_TTL_DAYS", 365)
-HOTEL_IDENTITY_MAX_ACCESS_DAYS = env_positive_int(
-    "HOTEL_IDENTITY_MAX_ACCESS_DAYS",
-    7,
+# A shared ID stays accessible until operational checkout; only then does this
+# retention window begin. Old submission-cap / post-review settings are retired.
+HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS = env_positive_int(
+    "HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS", 60,
 )
-HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS = env_positive_int(
-    "HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS",
-    24,
-)
+
 
 OBJECT_STORAGE_ENDPOINT_URL = os.environ.get(
     "OBJECT_STORAGE_ENDPOINT_URL",

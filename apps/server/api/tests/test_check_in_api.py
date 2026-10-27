@@ -187,7 +187,10 @@ class CheckInApiTests(APITestCase):
         image_event = next(event for event in history.data["stays"][0]["accessEvents"] if event["action"] == "DOCUMENT_VIEWED")
         self.assertEqual(image_event["companionId"], companion.id)
         self.assertEqual(image_event["companionName"], "Asha Joshi")
-        self.client.post(reverse("guest-stay-revoke", args=[snapshot.stay.public_id]))
+        snapshot.stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        snapshot.stay.checked_out_at = timezone.now()
+        snapshot.stay.save(update_fields=["operational_status", "checked_out_at"])
+        self.assertEqual(self.client.post(reverse("guest-stay-revoke", args=[snapshot.stay.public_id])).status_code, 200)
         self.authenticate(self.owner)
         self.assertEqual(self.client.post(access_url, {"side": "FRONT", "companionId": companion.id}, format="json").status_code, 403)
 
@@ -197,8 +200,10 @@ class CheckInApiTests(APITestCase):
         response = self.submit_with_companion(companion, document.id)
         stay = Stay.objects.get(public_id=response.data["id"])
         IdentityAccessAudit.objects.create(stay=stay, actor=self.owner, action="DOCUMENT_VIEWED", image_side="FRONT", companion_id=companion.id)
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = timezone.now() - timedelta(days=60, seconds=1)
         stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
-        stay.save(update_fields=["hotel_access_expires_at"])
+        stay.save(update_fields=["operational_status", "checked_out_at", "hotel_access_expires_at"])
         deleted, failed = purge_expired_shared_identity_images(storage=storage_class.return_value, batch_size=100)
         self.assertEqual((deleted, failed), (3, 0))
         self.assertFalse(stay.identity_snapshot.document_images.exists())
@@ -282,9 +287,9 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(
             response.data["accessPolicy"],
             {
-                "maximumDays": settings.HOTEL_IDENTITY_MAX_ACCESS_DAYS,
+                "maximumDays": settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS,
                 "postCheckoutGraceHours": (
-                    settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS
+                    settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS * 24
                 ),
             },
         )
@@ -463,11 +468,15 @@ class CheckInApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_closing_a_stay_limits_access_to_the_post_close_grace_window(self):
+    def test_closing_a_checked_out_stay_uses_checkout_plus_60_days(self):
         response, _storage_class = self.submit_identity()
         stay_id = response.data["id"]
         self.authenticate(self.owner)
-        before = timezone.now()
+        checked_out_at = timezone.now() - timedelta(days=2)
+        stay = Stay.objects.get(public_id=stay_id)
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = checked_out_at
+        stay.save(update_fields=["operational_status", "checked_out_at"])
 
         close_response = self.client.post(
             reverse(
@@ -479,16 +488,15 @@ class CheckInApiTests(APITestCase):
         self.assertEqual(close_response.status_code, status.HTTP_200_OK)
         stay = Stay.objects.get(public_id=stay_id)
         self.assertEqual(stay.status, StayStatus.CLOSED)
-        self.assertLessEqual(
-            stay.hotel_access_expires_at,
-            before + timedelta(hours=24, seconds=5),
-        )
+        self.assertEqual(stay.hotel_access_expires_at, checked_out_at + timedelta(days=60))
 
     def test_expired_hotel_detail_omits_the_entire_identity_snapshot(self):
         response, _storage_class = self.submit_identity()
         stay = Stay.objects.get(public_id=response.data["id"])
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = timezone.now() - timedelta(days=60, seconds=1)
         stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
-        stay.save(update_fields=["hotel_access_expires_at"])
+        stay.save(update_fields=["operational_status", "checked_out_at", "hotel_access_expires_at"])
         self.authenticate(self.owner)
 
         detail_response = self.client.get(
@@ -519,6 +527,10 @@ class CheckInApiTests(APITestCase):
         response, _storage_class = self.submit_identity()
         stay_id = response.data["id"]
 
+        stay = Stay.objects.get(public_id=stay_id)
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = timezone.now()
+        stay.save(update_fields=["operational_status", "checked_out_at"])
         revoke_response = self.client.post(
             reverse("guest-stay-revoke", args=[stay_id])
         )
@@ -615,8 +627,10 @@ class CheckInApiTests(APITestCase):
     ):
         response, _storage_class = self.submit_identity()
         stay = Stay.objects.get(public_id=response.data["id"])
+        stay.operational_status = OperationalStayStatus.CHECKED_OUT
+        stay.checked_out_at = timezone.now() - timedelta(days=60, seconds=1)
         stay.hotel_access_expires_at = timezone.now() - timedelta(seconds=1)
-        stay.save(update_fields=["hotel_access_expires_at"])
+        stay.save(update_fields=["operational_status", "checked_out_at", "hotel_access_expires_at"])
         output = StringIO()
 
         call_command(

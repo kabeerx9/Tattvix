@@ -20,6 +20,7 @@ import base64
 from datetime import date, timedelta
 from hashlib import sha256
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -736,8 +737,9 @@ class Command(BaseCommand):
             )
             expired_at = now - timedelta(days=1)
             if stay.hotel_access_expires_at != expired_at:
+                stay.checked_out_at = expired_at - timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS)
                 stay.hotel_access_expires_at = expired_at
-                stay.save(update_fields=["hotel_access_expires_at", "updated_at"])
+                stay.save(update_fields=["checked_out_at", "hotel_access_expires_at", "updated_at"])
         created["guest_5_checked_out_expired"] = stay
 
         # (e) A stay at the second property, Udaipur.
@@ -753,11 +755,9 @@ class Command(BaseCommand):
     def _ensure_fresh_submission(self, stay, now):
         if stay is None or stay.operational_status != OperationalStayStatus.PENDING_CHECK_IN:
             return stay
-        fresh_expiry = now + timedelta(days=7)
-        if stay.hotel_access_expires_at is None or stay.hotel_access_expires_at < now + timedelta(days=1):
-            stay.submitted_at = now - timedelta(minutes=20)
-            stay.hotel_access_expires_at = fresh_expiry
-            stay.save(update_fields=["submitted_at", "hotel_access_expires_at", "updated_at"])
+        if stay.hotel_access_expires_at is not None:
+            stay.hotel_access_expires_at = None
+            stay.save(update_fields=["hotel_access_expires_at", "updated_at"])
         return stay
 
     def _ensure_checked_in(

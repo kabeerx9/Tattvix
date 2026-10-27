@@ -584,6 +584,10 @@ function DocumentIdentity({
         <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">
           ID access ends {formatDateTime(stay.identityAccess.expiresAt)}
         </p>
+      ) : stay.identityAccess.isActive ? (
+        <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">
+          ID access stays active throughout the stay. The 60-day window starts at checkout.
+        </p>
       ) : null}
     </PanelSection>
   );

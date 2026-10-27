@@ -32,7 +32,9 @@ class WatermarkConcurrencyTests(APITransactionTestCase):
     def test_conversion_and_expiry_purge_use_the_same_lock_order(self):
         self.assertEqual(connection.vendor, "postgresql")
         stay = self.prepared_stay()
-        stay.hotel_access_expires_at = timezone.now() + timedelta(milliseconds=300)
+        stay.operational_status = "CHECKED_OUT"
+        stay.checked_out_at = timezone.now() - timedelta(days=60) + timedelta(milliseconds=300)
+        stay.hotel_access_expires_at = stay.checked_out_at + timedelta(days=60)
         stay.save()
         entered, release = Event(), Event()
         storage = Mock()
@@ -61,3 +63,32 @@ class WatermarkConcurrencyTests(APITransactionTestCase):
             self.assertEqual(purge.result(timeout=5), (2, 0))
         storage.create_download_url.assert_not_called()
         self.assertFalse(stay.identity_snapshot.document_images.exists())
+
+    def test_revocation_waits_for_checkout_and_then_remains_terminal(self):
+        from django.db import transaction
+        from api.check_in import revoke_guest_consent, hotel_identity_access_state
+        from api.hotel_operations import confirm_hotel_check_in, checkout_hotel_stay
+        from api.models import Stay, Room, StayStatus
+
+        stay = self.prepared_stay()
+        room = Room.objects.create(property=self.property, number="RACE60", nightly_rate_minor=10000)
+        stay = confirm_hotel_check_in(property_=self.property, stay=stay, room_id=room.id, actor=self.owner)
+        entered = Event()
+        def revoke():
+            entered.set()
+            return revoke_guest_consent(stay=stay, guest=self.guest).status
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with transaction.atomic():
+                Stay.objects.select_for_update().get(id=stay.id)
+                revoker = pool.submit(self.worker, revoke)
+                self.assertTrue(entered.wait(timeout=5))
+                sleep(0.1)
+                self.assertFalse(revoker.done(), "Revocation must wait for the stay lock")
+                checked_out = checkout_hotel_stay(property_=self.property, stay=stay, actor=self.owner)
+                self.assertEqual(checked_out.hotel_access_expires_at, checked_out.checked_out_at + timedelta(days=60))
+            self.assertEqual(revoker.result(timeout=5), StayStatus.REVOKED)
+        stay.refresh_from_db()
+        self.assertFalse(hotel_identity_access_state(stay)["isActive"])
+        self.assertGreaterEqual(stay.hotel_access_expires_at, checked_out.checked_out_at)
+        retried = checkout_hotel_stay(property_=self.property, stay=stay, actor=self.owner)
+        self.assertEqual(retried.status, StayStatus.REVOKED)

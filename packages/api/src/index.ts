@@ -46,6 +46,7 @@ export {
 } from "./document-model";
 export {
   describeGuestAccess,
+  formatPostCheckoutWindow,
   getGuestAccessAction,
   isHotelAccessOpen,
   type GuestAccessAction,

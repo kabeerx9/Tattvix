@@ -1,10 +1,7 @@
-from datetime import timedelta
-
-from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from .check_in import CheckInError, hotel_identity_access_state
+from .check_in import CheckInError, hotel_identity_access_state, hotel_identity_access_expires_at
 from .models import (
     ClerkUser,
     IdentityAccessAction,
@@ -211,19 +208,11 @@ def checkout_hotel_stay(
         locked_stay.checked_out_at = now
 
         identity_fields = []
-        if locked_stay.status == StayStatus.SUBMITTED:
-            grace_expires_at = now + timedelta(
-                hours=settings.HOTEL_IDENTITY_POST_CLOSE_GRACE_HOURS
-            )
+        if locked_stay.status in (StayStatus.SUBMITTED, StayStatus.CLOSED):
             locked_stay.status = StayStatus.CLOSED
-            locked_stay.closed_at = now
-            identity_fields.extend(["status", "closed_at"])
-            if (
-                locked_stay.hotel_access_expires_at is None
-                or locked_stay.hotel_access_expires_at > grace_expires_at
-            ):
-                locked_stay.hotel_access_expires_at = grace_expires_at
-                identity_fields.append("hotel_access_expires_at")
+            locked_stay.closed_at = locked_stay.closed_at or now
+            locked_stay.hotel_access_expires_at = hotel_identity_access_expires_at(locked_stay)
+            identity_fields.extend(["status", "closed_at", "hotel_access_expires_at"])
             IdentityAccessAudit.objects.create(
                 stay=locked_stay,
                 actor=actor,

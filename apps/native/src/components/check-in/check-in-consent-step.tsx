@@ -1,3 +1,4 @@
+import { formatPostCheckoutWindow } from "@tattvix/api";
 // The consent notice: the only place consent is captured. It lists who
 // receives what, why, for how long and how to stop, then an unticked checkbox
 // the guest must tick. Sending stays disabled until then (buildSubmitInput).
@@ -90,8 +91,8 @@ export function ConsentStep({
 
       <Notice title="For how long">
         <Text style={styles.body}>
-          Up to {accessPolicy.maximumDays} days. Access ends {accessPolicy.postCheckoutGraceHours} hours after checkout, and
-          the ID photos shared with the hotel are then deleted. Each time the hotel opens your details it is recorded, and you
+          Access stays active throughout your stay and ends {formatPostCheckoutWindow(accessPolicy.postCheckoutGraceHours)} after checkout, and
+          the ID photos shared with the hotel are scheduled for deletion. Each time the hotel opens your details it is recorded, and you
           can see it in Privacy.
         </Text>
       </Notice>

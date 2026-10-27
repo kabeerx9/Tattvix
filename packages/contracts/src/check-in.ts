@@ -74,6 +74,7 @@ export const guestStaySchema = z.object({
   closedAt: dateTimeSchema.nullable(),
   checkedInAt: dateTimeSchema.nullable(),
   checkedOutAt: dateTimeSchema.nullable(),
+  // Null while the stay is active: checkout starts the retention clock.
   hotelAccessExpiresAt: dateTimeSchema.nullable(),
 });
 
@@ -105,6 +106,7 @@ export const checkInContextSchema = z.object({
   property: checkInPropertySchema,
   tokenExpiresAt: dateTimeSchema,
   accessPolicy: z.object({
+    // Legacy field name, now the post-checkout retention days; not a stay cap.
     maximumDays: z.number().int().positive(),
     postCheckoutGraceHours: z.number().int().positive(),
   }),

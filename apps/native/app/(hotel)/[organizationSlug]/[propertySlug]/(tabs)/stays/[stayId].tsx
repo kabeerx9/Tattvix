@@ -180,7 +180,7 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
           {document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}
         </Text>
         <Text style={[styles.meta, { marginTop: 4 }]}>Images shared with this property are watermarked for hotel check-in only.</Text>
-        {stay.identityAccess.expiresAt ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access ends {formatDateTime(stay.identityAccess.expiresAt)}</Text> : null}
+        {stay.identityAccess.expiresAt ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access ends {formatDateTime(stay.identityAccess.expiresAt)}</Text> : stay.identityAccess.isActive ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access stays active throughout the stay. The 60-day window starts at checkout.</Text> : null}
         {anyImages && stay.identityAccess.isActive ? (
           <View style={{ marginTop: space.md, alignSelf: "flex-start" }}>
             <TextLink label={imagesVisible ? "Hide images" : "View images"} onPress={() => setImagesVisible((visible) => !visible)} />
