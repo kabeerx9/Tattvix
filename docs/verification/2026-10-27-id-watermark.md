@@ -91,9 +91,20 @@ explicitly synthetic, marked “NOT VALID ID”. No real guest ID was used.
   one-item batch, with no unrelated objects processed.
 - Web loaded all four 1000x736 watermarked images and showed the hotel-use note.
   The Print stay action opened its print document, whose accessibility tree
-  included primary/back/companion images and the watermark note. **PDF export and
-  final print-dialog inspection were blocked because the Mac was locked.** The
-  user was asked to unlock/cancel the dialog; no paper/PDF export is claimed.
+  included primary/back/companion images and the watermark note. After the Mac
+  was unlocked, the browser's actual print-region DOM, loaded stylesheets and
+  `STAY_PRINT_PAGE_STYLE` were captured. The four exact private snapshot objects
+  were embedded into a standalone HTML artifact and rendered with isolated,
+  sandboxed headless Chromium. Both A4 PDF pages were rendered through Poppler
+  and visually inspected: all four complete ID images, repeated marks and full
+  property/purpose/timestamp footers are visible without clipping. Extracting
+  the PDF's four 1000x736 JPEGs confirmed byte-for-byte identity with the four
+  stored watermarked copies. Existing waiting-for-room controls also appear in
+  the print region; that pre-existing print layout was not changed.
+  **The native macOS print dialog itself remains untested:** the computer-use
+  tool prohibits control of Codex's native UI. This verifies the captured app
+  print content/styles through Chromium PDF rendering, not OS-dialog automation
+  or physical printing.
 - Android displayed primary and companion front/back images, including the
   purpose/name/date footer. Local MinIO required `adb reverse tcp:9000 tcp:9000`;
   after forwarding storage, the actual images loaded. The development client was
@@ -101,7 +112,10 @@ explicitly synthetic, marked “NOT VALID ID”. No real guest ID was used.
 
 Evidence images are in the task's local `watermarks` artifact folder: downloaded
 `shared-*-*.jpg`, `source-synthetic.png`, `web-images.png`, `android-primary.png`,
-and `android-companion.png`. HTTP summaries contain test IDs/statuses, not tokens.
+and `android-companion.png`. Print evidence includes `stay-watermark-print.pdf`
+and `print-page-1.png` / `print-page-2.png`; the standalone HTML embeds image bytes
+so rendering does not require signed URLs. HTTP summaries contain test IDs/statuses,
+not tokens.
 
 ## Local residue and delivery
 
