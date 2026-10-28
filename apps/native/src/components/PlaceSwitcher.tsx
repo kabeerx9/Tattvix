@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
-import { BarChart3, BedDouble, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, UserRound } from "lucide-react-native";
+import { BarChart3, BedDouble, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, Star, UserRound } from "lucide-react-native";
 import { useState } from "react";
 
 import { BottomSheet, ConfirmSheet, ListRow, Panel, StatusPill } from "@/src/design-system";
@@ -9,7 +9,7 @@ import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
 import { describeHotelPlace, getHotelPlaces, hotelHref, isPlatformAdmin } from "@/src/lib/workspace";
 import { SectionTitle, space } from "@/src/design-system";
-import { Linking, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 
 export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string } | { kind: "admin" };
 
@@ -99,6 +99,7 @@ function HotelMenuRows({ placeKey, onNavigate }: { placeKey: string; onNavigate:
     <View style={menuStyles.section}>
       <SectionTitle>{place.propertyName}</SectionTitle>
       <Panel flat>
+        {place.permissions.includes("hotel:manage") ? <ListRow icon={Star} title="Reviews" detail="Guest ratings and feedback" chevron onPress={() => go("reviews")} /> : null}
         <ListRow icon={BarChart3} title="Reports" detail="Register, in-house and occupancy" chevron onPress={() => go("reports")} />
         <ListRow icon={Building2} title="Hotel details" detail="Address, times, amenities and photos" chevron onPress={() => go("details")} />
         <ListRow icon={QrCode} title="Check-in QR" detail="Show the code at the desk" chevron onPress={() => go("desk-qr")} />
@@ -114,10 +115,12 @@ export function PlaceSwitcherSheet({ open, onClose, current }: { open: boolean; 
   const { signOut } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const { height } = useWindowDimensions();
 
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} title={current.kind === "hotel" ? "Menu" : "Switch place"}>
+      <BottomSheet open={open} onClose={onClose} dragHandleOnly title={current.kind === "hotel" ? "Menu" : "Switch place"}>
+        <ScrollView style={{ maxHeight: Math.max(120, height - 200) }} keyboardShouldPersistTaps="handled" bounces={false}>
         {current.kind === "hotel" ? <HotelMenuRows placeKey={current.key} onNavigate={onClose} /> : null}
         <PlaceSwitcherRows
           current={current}
@@ -127,6 +130,7 @@ export function PlaceSwitcherSheet({ open, onClose, current }: { open: boolean; 
             setConfirmOpen(true);
           }}
         />
+        </ScrollView>
       </BottomSheet>
       <ConfirmSheet
         open={confirmOpen}

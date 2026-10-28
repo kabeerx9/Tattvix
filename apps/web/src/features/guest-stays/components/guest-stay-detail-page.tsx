@@ -1,3 +1,4 @@
+import { GuestReviewSection } from "@/features/reviews/guest-review-section";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@tattvix/ui/components/button";
@@ -68,6 +69,7 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
         {bill?.roomNights != null ? <Fact label="Nights" value={bill.roomNights} detail={`at ${formatMoneyMinor(bill.nightlyRateMinor ?? 0)} per night`} /> : null}
       </FactsRow>
       {stay.operationalStatus === "PENDING_CHECK_IN" ? <p className="text-xs text-subtle-foreground">Your request was sent. Reception will assign a room and confirm its charge.</p> : null}
+      {stay.operationalStatus === "CHECKED_OUT" ? <GuestReviewSection key={stay.id} stayId={stay.id} /> : null}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
       <Panel className="overflow-hidden">
         <PanelHeader title="Your bill" meta={bill ? <StatusPill tone={bill.isFinal ? "neutral" : "success"}>{bill.isFinal ? "Final" : "Open"}</StatusPill> : undefined} actions={

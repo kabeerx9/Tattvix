@@ -29,6 +29,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  Star,
   Users,
   UsersRound,
   type LucideIcon,
@@ -96,6 +97,7 @@ const icons = {
     rooms: BedDouble,
     guests: Users,
     reports: BarChart3,
+    reviews: Star,
     settings: Settings,
   },
   personal: {

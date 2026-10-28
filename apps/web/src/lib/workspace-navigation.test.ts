@@ -230,3 +230,12 @@ describe("tab bar split", () => {
     assert.equal(menuActive, true);
   });
 });
+
+it("shows Reviews only with owner management permission and keeps it in the mobile Menu", () => {
+  const context = getActiveHotelContext(user, "/hotel/first/main")!;
+  assert.equal(getHotelNavItems(context, "/hotel/first/main/reviews").some((item) => item.key === "reviews"), false);
+  const owner = { ...context, membership: { ...context.membership, permissions: [...context.membership.permissions, "hotel:manage" as const] } };
+  const nav = getHotelNavItems(owner, "/hotel/first/main/reviews");
+  assert.equal(nav.find((item) => item.key === "reviews")?.isActive, true);
+  assert.equal(splitHotelNavForTabBar(nav).overflow.some((item) => item.key === "reviews"), true);
+});

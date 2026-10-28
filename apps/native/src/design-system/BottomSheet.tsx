@@ -17,8 +17,9 @@ export function BottomSheet({
   onClose,
   title,
   footer,
+  dragHandleOnly = false,
   children,
-}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; footer?: ReactNode }>) {
+}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; footer?: ReactNode; dragHandleOnly?: boolean }>) {
   const reduceMotion = useReducedMotion();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -81,6 +82,19 @@ export function BottomSheet({
       }
     });
 
+  const header = (
+    <View style={dragHandleOnly ? { paddingBottom: space.sm } : undefined}>
+      <View style={styles.grab} />
+      {title ? <Text accessibilityRole="header" style={styles.title}>{title}</Text> : null}
+    </View>
+  );
+  const sheet = (
+    <Animated.View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.md) + space.xl }, sheetStyle]}>
+      {dragHandleOnly ? <GestureDetector gesture={pan}>{header}</GestureDetector> : header}
+      {children}
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+    </Animated.View>
+  );
   return (
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       {/* Modal is its own native root, so gesture handling needs a root view inside it. */}
@@ -88,18 +102,9 @@ export function BottomSheet({
         <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]}>
           <Pressable accessibilityLabel="Close" style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <GestureDetector gesture={pan}>
-          <Animated.View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.md) + space.xl }, sheetStyle]}>
-            <View style={styles.grab} />
-            {title ? (
-              <Text accessibilityRole="header" style={styles.title}>
-                {title}
-              </Text>
-            ) : null}
-            {children}
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </Animated.View>
-        </GestureDetector>
+        {/* Scrollable content owns its drag gestures; the Menu dismisses from
+            its header. Existing non-scroll sheets retain whole-sheet dragging. */}
+        {dragHandleOnly ? sheet : <GestureDetector gesture={pan}>{sheet}</GestureDetector>}
       </GestureHandlerRootView>
     </Modal>
   );

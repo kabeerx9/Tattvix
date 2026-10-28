@@ -1,3 +1,4 @@
+import { GuestReviewSection } from "@/src/components/guest-review-section";
 // One of the guest's stays: the hotel, room and dates, what the hotel can see,
 // and the read-only bill. Mirrors the web's stay detail. Polls the stay until
 // checkout and the bill until it is final, as the web does.
@@ -78,6 +79,7 @@ export default function GuestStayDetailScreen() {
 
       {pending ? <Text style={styles.meta}>Your request was sent. Reception will assign a room and confirm its charge.</Text> : null}
 
+      {stay.operationalStatus === "CHECKED_OUT" ? <GuestReviewSection key={stay.id} stayId={stay.id} /> : null}
       <View style={styles.section}>
         <GuestBill stay={stay} />
       </View>

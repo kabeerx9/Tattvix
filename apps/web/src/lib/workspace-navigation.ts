@@ -47,12 +47,14 @@ export type HotelNavKey =
   | "rooms"
   | "guests"
   | "reports"
+  | "reviews"
   | "settings";
 export type HotelNavRoute =
   | "/hotel/$organizationSlug/$propertySlug/dashboard"
   | "/hotel/$organizationSlug/$propertySlug/stays"
   | "/hotel/$organizationSlug/$propertySlug/rooms"
   | "/hotel/$organizationSlug/$propertySlug/guests"
+  | "/hotel/$organizationSlug/$propertySlug/reviews"
   | "/hotel/$organizationSlug/$propertySlug/reports"
   | "/hotel/$organizationSlug/$propertySlug/details";
 export type HotelNavItem = {
@@ -74,6 +76,7 @@ const hotelNav: {
   { key: "stays", label: "Stays", segment: "stays" },
   { key: "rooms", label: "Rooms", segment: "rooms" },
   { key: "guests", label: "Guests", segment: "guests" },
+  { key: "reviews", label: "Reviews", segment: "reviews" },
   { key: "reports", label: "Reports", segment: "reports" },
   { key: "settings", label: "Property settings", shortLabel: "Settings", segment: "details" },
 ];
@@ -86,7 +89,7 @@ export function getHotelNavItems(
   const activeSegment = pathname.split("/").filter(Boolean)[3];
   const canViewReports = context.membership.permissions.includes("reports:view");
   return hotelNav
-    .filter((item) => item.key !== "reports" || canViewReports)
+    .filter((item) => (item.key !== "reports" || canViewReports) && (item.key !== "reviews" || context.membership.permissions.includes("hotel:manage")))
     .map((item) => ({
       key: item.key,
       label: item.label,

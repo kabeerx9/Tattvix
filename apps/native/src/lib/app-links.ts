@@ -46,7 +46,7 @@ function resolveHotelPath(rest: string[]): string {
   }
 
   // Pages with no sub-route. Anything else (dashboard, reservations, ...) lands on the dashboard.
-  if (id === undefined && ["guests", "rooms", "reports", "details", "getting-started"].includes(page)) {
+  if (id === undefined && ["guests", "rooms", "reports", "reviews", "details", "getting-started"].includes(page)) {
     return `${base}/${page}`;
   }
   return base;

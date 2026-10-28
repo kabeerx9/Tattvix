@@ -1,6 +1,8 @@
 // One ApiClient for the app. Clerk's getToken is wired in by the root layout
 // (see AuthWiring) so fetchers can live at module level like the web's.
 import {
+  createReviewsApi,
+  createReviewQueries,
   createCheckInApi,
   createCheckInQueries,
   createCompanionQueries,
@@ -48,6 +50,7 @@ export const apiClient = createApiClient({
 });
 
 export const api = {
+  reviews: createReviewsApi(apiClient),
   currentUser: createCurrentUserApi(apiClient),
   hotelOperations: createHotelOperationsApi(apiClient),
   hotelDetails: createHotelDetailsApi(apiClient),
@@ -67,6 +70,7 @@ export const api = {
 };
 
 export const queries = {
+  reviews: createReviewQueries(api.reviews),
   currentUser: createCurrentUserQueries(api.currentUser),
   hotelOperations: createHotelOperationsQueries(api.hotelOperations),
   hotelDetails: createHotelDetailsQueries(api.hotelDetails),

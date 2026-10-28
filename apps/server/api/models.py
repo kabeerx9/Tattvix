@@ -839,3 +839,19 @@ class PropertyPhoto(models.Model):
                 name="unique_property_photo_slot",
             ),
         ]
+
+
+class StayReview(models.Model):
+    """One immutable guest review per completed visit, independent of ID access."""
+
+    stay = models.OneToOneField(Stay, on_delete=models.PROTECT, related_name="review")
+    rating = models.PositiveSmallIntegerField()
+    comment = models.CharField(max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(rating__gte=1, rating__lte=5), name="review_rating_range"),
+            models.CheckConstraint(condition=~models.Q(comment=""), name="review_comment_not_empty"),
+        ]
