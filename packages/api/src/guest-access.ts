@@ -1,4 +1,4 @@
-import type { GuestStay } from "@tattvix/contracts";
+import type { GuestShare, GuestStay, IdentityAccessAction } from "@tattvix/contracts";
 
 import { formatDateTime } from "./guest-format";
 
@@ -64,4 +64,66 @@ export function describeGuestAccess(
     case "not-shared":
       return "Not shared with the hotel.";
   }
+}
+
+const shortDate = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const formatShortDate = (iso: string) => shortDate.format(new Date(iso));
+
+/** One short line for a privacy row: is the hotel still able to see the ID, and until when. */
+export function getGuestAccessSummary(action: GuestAccessAction, format: (iso: string) => string = formatShortDate): { open: boolean; text: string } {
+  switch (action.kind) {
+    case "hidden":
+      return { open: true, text: "Sharing while you stay" };
+    case "revocable":
+      return { open: true, text: `Sharing until ${format(action.accessEndsAt)}` };
+    case "ended":
+      // No date: for a revoked stay endedAt is the stored expiry, not the moment sharing stopped.
+      if (action.reason === "revoked") return { open: false, text: "You stopped sharing" };
+      return { open: false, text: action.endedAt ? `Sharing ended ${format(action.endedAt)}` : "Sharing ended" };
+    case "not-shared":
+      return { open: false, text: "Not shared" };
+  }
+}
+
+type AccessEvent = GuestShare["accessEvents"][number];
+
+export type AccessEventGroup = {
+  action: IdentityAccessAction;
+  imageSide: "FRONT" | "BACK" | null;
+  companionName: string | null;
+  count: number;
+  lastAt: string;
+};
+
+// Collapse repeat views per record: a review session opens details plus each
+// image, and refetches audit again. The guest wants "how often was each record
+// opened", not every issuance row.
+export function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
+  const groups = new Map<string, AccessEventGroup>();
+  for (const event of events) {
+    const key = `${event.action}:${event.imageSide ?? ""}:${event.companionId ?? 0}`;
+    const current = groups.get(key);
+    if (current) {
+      current.count += 1;
+      if (new Date(event.createdAt).getTime() > new Date(current.lastAt).getTime()) current.lastAt = event.createdAt;
+    } else {
+      groups.set(key, {
+        action: event.action,
+        imageSide: event.imageSide,
+        companionName: event.companionId ? event.companionName || "Companion" : null,
+        count: 1,
+        lastAt: event.createdAt,
+      });
+    }
+  }
+  return [...groups.values()];
+}
+
+/** What the hotel did, in the guest's words: "Opened the back of your ID". */
+export function accessActivityLabel(group: Pick<AccessEventGroup, "action" | "imageSide" | "companionName">) {
+  const whose = group.companionName ? `${group.companionName}'s` : "your";
+  if (group.action === "DOCUMENT_VIEWED") return `Opened the ${group.imageSide === "BACK" ? "back" : "front"} of ${whose} ID`;
+  if (group.action === "DETAILS_VIEWED") return `Opened ${whose} ID details`;
+  if (group.action === "STAY_CLOSED") return "Finished checking your ID";
+  return "You stopped sharing";
 }

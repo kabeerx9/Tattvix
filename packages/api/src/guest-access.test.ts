@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestStay } from "@tattvix/contracts";
-import { describeGuestAccess, getGuestAccessAction, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
+import { accessActivityLabel, describeGuestAccess, getGuestAccessAction, getGuestAccessSummary, groupAccessEvents, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
 
 const now = new Date("2026-10-27T12:00:00Z");
 const at = (days: number) => new Date(now.getTime() + days * 86_400_000).toISOString();
@@ -49,4 +49,22 @@ test("post-checkout policy renders days rather than 1440 hours", () => {
   assert.equal(formatPostCheckoutWindow(1), "1 hour");
   assert.equal(formatPostCheckoutWindow(2), "2 hours");
   assert.match(describeGuestAccess({ kind: "hidden", accessEndsBy: null }, { graceHours: 48 }), /2 days after checkout/);
+});
+
+test("access summary is one short line for a privacy row, open or ended", () => {
+  assert.deepEqual(getGuestAccessSummary({ kind: "hidden", accessEndsBy: null }), { open: true, text: "Sharing while you stay" });
+  assert.deepEqual(getGuestAccessSummary({ kind: "revocable", accessEndsAt: at(59) }, format), { open: true, text: `Sharing until <${at(59)}>` });
+  assert.deepEqual(getGuestAccessSummary({ kind: "ended", reason: "revoked", endedAt: at(-2) }, format), { open: false, text: "You stopped sharing" });
+  assert.deepEqual(getGuestAccessSummary({ kind: "ended", reason: "expired", endedAt: null }), { open: false, text: "Sharing ended" });
+  assert.deepEqual(getGuestAccessSummary({ kind: "not-shared" }), { open: false, text: "Not shared" });
+});
+
+test("access events collapse per record, keeping the latest time", () => {
+  const event = (action: "DETAILS_VIEWED" | "DOCUMENT_VIEWED", createdAt: string, imageSide: "FRONT" | "BACK" | null = null) =>
+    ({ action, createdAt, imageSide, companionId: null, companionName: null }) as Parameters<typeof groupAccessEvents>[0][number];
+  const groups = groupAccessEvents([event("DETAILS_VIEWED", at(-3)), event("DETAILS_VIEWED", at(-1)), event("DOCUMENT_VIEWED", at(-2), "BACK")]);
+  assert.equal(groups.length, 2);
+  assert.deepEqual({ count: groups[0]!.count, lastAt: groups[0]!.lastAt }, { count: 2, lastAt: at(-1) });
+  assert.equal(accessActivityLabel(groups[0]!), "Opened your ID details");
+  assert.equal(accessActivityLabel(groups[1]!), "Opened the back of your ID");
 });

@@ -46,10 +46,14 @@ export {
   type ExpiryStatus,
 } from "./document-model";
 export {
+  accessActivityLabel,
   describeGuestAccess,
   formatPostCheckoutWindow,
   getGuestAccessAction,
+  getGuestAccessSummary,
+  groupAccessEvents,
   isHotelAccessOpen,
+  type AccessEventGroup,
   type GuestAccessAction,
 } from "./guest-access";
 export {

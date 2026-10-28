@@ -1,363 +1,177 @@
-import type { GuestShare, IdentityAccessAction } from "@tattvix/contracts";
+// Privacy: which hotels can see the guest's ID right now, and which no longer
+// can. One row per stay with one line of status; the detail (what the hotel
+// opened, and stopping sharing) opens in a sheet. Mirrors
+// apps/native/app/(guest)/(tabs)/privacy.tsx.
+import {
+  accessActivityLabel,
+  describeGuestAccess,
+  formatDateTime,
+  getGuestAccessAction,
+  getGuestAccessSummary,
+  groupAccessEvents,
+} from "@tattvix/api";
+import type { GuestShare } from "@tattvix/contracts";
+import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
-import {
-  BedDouble,
-  Clock3,
-  Eye,
-  FileImage,
-  History,
-  Hotel,
-  ShieldCheck,
-  ShieldOff,
-} from "lucide-react";
+import { cn } from "@tattvix/ui/lib/utils";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
-import { travelImages } from "@/lib/travel-images";
+import { ConfirmDialog, EmptyState, ListRow, PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
-import {
-  describeGuestAccess,
-  getGuestAccessAction,
-  isHotelAccessOpen,
-  type GuestAccessAction,
-} from "@/features/guest-stays/access";
 import { ApiError } from "@/lib/api";
+import { travelImages } from "@/lib/travel-images";
 
 export function PrivacyCenterPage() {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(checkInQueries.shares());
-  const [revokeTarget, setRevokeTarget] = useState<GuestShare | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [stopTarget, setStopTarget] = useState<GuestShare | null>(null);
   const revokeMutation = useMutation(checkInMutations.revoke(queryClient));
 
-  function revoke() {
-    if (!revokeTarget) return;
-    const stayId = revokeTarget.id;
+  function stopSharing() {
+    if (!stopTarget) return;
     revokeMutation.mutate(
-      { stayId },
+      { stayId: stopTarget.id },
       {
         onSuccess: () => {
-          setRevokeTarget(null);
-          toast.success("Hotel identity access revoked");
+          setStopTarget(null);
+          toast.success("Sharing stopped");
         },
       },
     );
   }
 
-  const error =
-    revokeMutation.error instanceof ApiError
-      ? revokeMutation.error.message
-      : revokeMutation.isError
-        ? "Hotel access could not be revoked."
-        : null;
+  // Grouped by what the guest cares about: can this hotel still see my ID?
+  const rows = data.stays.map((stay) => ({ stay, summary: getGuestAccessSummary(getGuestAccessAction(stay)) }));
+  const sharing = rows.filter((row) => row.summary.open);
+  const ended = rows.filter((row) => !row.summary.open);
+  const opened = data.stays.find((stay) => stay.id === openId) ?? null;
+  const error = revokeMutation.error instanceof ApiError ? revokeMutation.error.message : revokeMutation.isError ? "Sharing could not be stopped." : null;
 
-  // Operational status drives current-vs-past: a stay stays "current" for
-  // the guest until the hotel actually checks them out, independent of
-  // whether identity-sharing consent (stay.status) was separately revoked
-  // or closed out by staff. Mirrors the current/history split hotel staff
-  // see for the same reason.
-  const currentStays = data.stays.filter(
-    (stay) => stay.operationalStatus !== "CHECKED_OUT",
-  );
-  const pastStays = data.stays.filter(
-    (stay) => stay.operationalStatus === "CHECKED_OUT",
-  );
+  const section = (title: string, list: typeof rows) =>
+    list.length ? (
+      <section className="grid gap-3">
+        <SectionTitle title={title} />
+        <Panel>
+          <ul className="divide-y divide-border-soft">
+            {list.map(({ stay, summary }) => (
+              <li key={stay.id}>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(stay.id)}
+                  className="w-full px-5 py-3.5 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                >
+                  <ListRow
+                    title={<span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{stay.property.name}</span>}
+                    meta={<span className={cn("text-sm", summary.open ? "text-success" : "text-muted-foreground")}>{summary.text}</span>}
+                    trailing={<ChevronRight aria-hidden className="size-4 text-subtle-foreground" />}
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      </section>
+    ) : null;
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <PageHeader
-        title="Hotel access history"
-      />
-      <PageCover src={travelImages.privacy} />
-
-      <KpiStrip>
-        <Kpi label="Current stays" value={currentStays.length} />
-        <Kpi label="Past stays" value={pastStays.length} />
-        <Kpi label="Revoked" value={data.stays.filter((stay) => stay.status === "REVOKED").length} />
-      </KpiStrip>
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          {error}
-        </p>
-      ) : null}
+    <div className="mx-auto grid max-w-3xl gap-8">
+      <div className="grid gap-4">
+        <PageHeader title="Privacy" meta="Hotels that can see your ID" />
+        <PageCover src={travelImages.privacy} />
+      </div>
 
       {data.stays.length ? (
         <>
-          <Section
-            title="Current stays"
-            description="Your current stays and the identity access you approved."
-            icon={Hotel}
-          >
-            {currentStays.length ? (
-              <div>
-                {currentStays.map((stay) => (
-                  <ShareCard
-                    key={stay.id}
-                    stay={stay}
-                    isRevoking={
-                      revokeMutation.isPending &&
-                      revokeMutation.variables?.stayId === stay.id
-                    }
-                    onAskRevoke={() => setRevokeTarget(stay)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <>
-                <EmptyState
-                  icon={Hotel}
-                  title="No active stay right now"
-                  description="Once a hotel checks you in, it will show up here with your room number."
-                />
-              </>
-            )}
-          </Section>
-
-          <Section
-            title="Past stays"
-            description="Completed stays, kept for your own record of what was shared and when."
-            icon={History}
-          >
-            {pastStays.length ? (
-              <div>
-                {pastStays.map((stay) => (
-                  <ShareCard
-                    key={stay.id}
-                    stay={stay}
-                    isRevoking={
-                      revokeMutation.isPending &&
-                      revokeMutation.variables?.stayId === stay.id
-                    }
-                    onAskRevoke={() => setRevokeTarget(stay)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <>
-                <EmptyState
-                  icon={History}
-                  title="No past stays yet"
-                  description="Past stays will appear here after checkout."
-                />
-              </>
-            )}
-          </Section>
+          {section("Sharing now", sharing)}
+          {section("Ended", ended)}
         </>
       ) : (
-        <Panel><EmptyState icon={ShieldCheck} title="Nothing shared yet" description="Saving your profile and documents does not share them. Approved hotel check-ins will appear here." /></Panel>
+        <Panel>
+          <EmptyState icon={ShieldCheck} title="Nothing shared yet" description="A hotel sees your ID only after you check in there." />
+        </Panel>
       )}
-      <ConfirmDialog
-        open={revokeTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setRevokeTarget(null);
+
+      <StaySheet
+        stay={opened}
+        onClose={() => setOpenId(null)}
+        onStop={(stay) => {
+          setOpenId(null);
+          revokeMutation.reset();
+          setStopTarget(stay);
         }}
-        title={`Revoke ${revokeTarget?.property.name ?? "hotel"} access?`}
-        description="The hotel immediately loses access to your shared identity and document images. Your stay history remains for your own record."
-        confirmLabel="Revoke access"
+      />
+      <ConfirmDialog
+        open={stopTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !revokeMutation.isPending) setStopTarget(null);
+        }}
+        title={`Stop sharing with ${stopTarget?.property.name ?? "this hotel"}?`}
+        description={error ?? "They lose access to your ID right away. The stay stays in your history."}
+        confirmLabel="Stop sharing"
         cancelLabel="Keep sharing"
         tone="destructive"
-        onConfirm={revoke}
+        onConfirm={stopSharing}
         pending={revokeMutation.isPending}
       />
     </div>
   );
 }
 
-function Section({
-  title,
-  description,
-  icon: Icon,
-  children,
-}: {
-  title: string;
-  description: string;
-  icon: typeof Hotel;
-  children: React.ReactNode;
-}) {
+function StaySheet({ stay, onClose, onStop }: { stay: GuestShare | null; onClose: () => void; onStop: (stay: GuestShare) => void }) {
+  const access = stay ? getGuestAccessAction(stay) : null;
+  const activity = stay ? groupAccessEvents(stay.accessEvents).slice(0, 8) : [];
   return (
-    <Panel>
-      <PanelHeader title={title} icon={Icon} />
-      <p className="px-5 py-3 text-xs text-subtle-foreground">{description}</p>
-      {children}
-    </Panel>
-  );
-}
-
-function ShareCard({
-  stay,
-  isRevoking,
-  onAskRevoke,
-}: {
-  stay: GuestShare;
-  isRevoking: boolean;
-  onAskRevoke: () => void;
-}) {
-  const access = getGuestAccessAction(stay);
-  const accessActive = isHotelAccessOpen(access);
-
-  return (
-    <div className="border-t border-border-soft">
-      <div className="group flex min-h-11 flex-wrap items-center justify-between gap-3 px-5 py-3">
-        <div className="flex min-w-0 flex-[1_1_16rem] items-start gap-3">
-          <Hotel aria-hidden className="mt-0.5 size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 text-sm font-semibold [overflow-wrap:anywhere]">
-                {stay.property.name}
-              </h2>
-              <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{stay.operationalStatus === "PENDING_CHECK_IN" ? "Awaiting check-in" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}</StatusPill>
-              {stay.room ? (
-                <span className="flex items-center gap-1 text-xs text-subtle-foreground">
-                  <BedDouble className="size-3" />
-                  Room {stay.room.number}
-                </span>
-              ) : null}
-              <StatusPill tone={stay.status === "REVOKED" ? "danger" : accessActive ? "success" : "neutral"}>
-                {accessActive ? "Identity access active" : statusLabel(access)}
-              </StatusPill>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-              {stay.property.organization.name}
-              {stay.submittedAt
-                ? ` · Shared ${formatDateTime(stay.submittedAt)}`
-                : ""}
+    <BottomSheet
+      open={stay !== null}
+      onOpenChange={(open) => (open ? undefined : onClose())}
+      title={stay?.property.name ?? ""}
+      footer={
+        stay && access?.kind === "revocable" ? (
+          <Button variant="outline" className="w-full" onClick={() => onStop(stay)}>
+            Stop sharing
+          </Button>
+        ) : undefined
+      }
+    >
+      {stay && access ? (
+        <div className="grid gap-6">
+          <div className="grid gap-1">
+            <p className="text-[15px]">{describeGuestAccess(access, { format: formatDateTime })}</p>
+            <p className="text-sm text-muted-foreground">
+              {[stay.room ? `Room ${stay.room.number}` : null, stayMoment(stay)].filter(Boolean).join(" · ")}
             </p>
           </div>
-        </div>
-
-        {access.kind === "revocable" ? (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isRevoking}
-            onClick={onAskRevoke}
-          >
-            <ShieldOff />
-            {isRevoking ? "Revoking..." : "Revoke access"}
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="grid gap-4 border-t border-border-soft px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
-        <div>
-          <p className="text-xs font-medium">Stay timeline</p>
-          <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-            <Clock3 className="mt-0.5 size-3.5 shrink-0" />
-            {stay.checkedOutAt
-              ? `Checked out ${formatDateTime(stay.checkedOutAt)}`
-              : stay.checkedInAt
-                ? `Checked in ${formatDateTime(stay.checkedInAt)}`
-                : "Not checked in yet"}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-medium">Access boundary</p>
-          <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-            <Clock3 className="mt-0.5 size-3.5 shrink-0" />
-            {describeGuestAccess(access, { format: formatDateTime })}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-medium">Recorded activity</p>
-          {stay.accessEvents.length ? (
-            <div className="mt-2 overflow-x-auto"><table className="w-full min-w-[300px] text-xs"><thead className="bg-muted text-left text-subtle-foreground"><tr><th className="px-3 py-2 font-medium">Activity</th><th className="px-3 py-2 text-right font-medium">Last recorded</th></tr></thead><tbody>
-              {groupAccessEvents(stay.accessEvents)
-                .slice(0, 8)
-                .map((group, index) => (
-                  <tr key={`${group.lastAt}-${index}`} className="border-t border-border-soft text-muted-foreground"><td className="px-3 py-2"><span className="flex items-start gap-1.5">
-                    {group.action === "DOCUMENT_VIEWED" ? (
-                      <FileImage className="mt-px size-3.5 shrink-0" />
-                    ) : (
-                      <Eye className="mt-px size-3.5 shrink-0" />
-                    )}
+          <div className="grid gap-2">
+            <p className="text-xs font-medium text-subtle-foreground">History</p>
+            {activity.length ? (
+              <ul className="grid gap-1.5 text-sm">
+                {activity.map((group, index) => (
+                  <li key={`${group.lastAt}-${index}`} className="flex justify-between gap-4">
                     <span className="min-w-0 [overflow-wrap:anywhere]">
-                      {activityLabel(group.action, group.imageSide, group.companionName)}
+                      {accessActivityLabel(group)}
                       {group.count > 1 ? ` ×${group.count}` : ""}
                     </span>
-                    </span></td><td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">{formatDateTime(group.lastAt)}</td></tr>
+                    <span className="shrink-0 text-muted-foreground tabular-nums">{formatDateTime(group.lastAt)}</span>
+                  </li>
                 ))}
-            </tbody></table></div>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">
-              No hotel identity views have been recorded.
-            </p>
-          )}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nothing yet.</p>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      ) : null}
+    </BottomSheet>
   );
 }
 
-type AccessEvent = GuestShare["accessEvents"][number];
-
-type AccessEventGroup = {
-  action: IdentityAccessAction;
-  imageSide: "FRONT" | "BACK" | null;
-  companionName?: string | null;
-  count: number;
-  lastAt: string;
-};
-
-// Collapse repeat views per record: a review session opens details plus
-// each image, and refetches (tab refocus, reload) audit again — the guest
-// wants "how often was each record opened", not every issuance row.
-function groupAccessEvents(events: AccessEvent[]): AccessEventGroup[] {
-  const groups = new Map<string, AccessEventGroup>();
-  for (const event of events) {
-    const key = `${event.action}:${event.imageSide ?? ""}:${event.companionId ?? 0}`;
-    const current = groups.get(key);
-    if (current) {
-      current.count += 1;
-      if (
-        new Date(event.createdAt).getTime() >
-        new Date(current.lastAt).getTime()
-      ) {
-        current.lastAt = event.createdAt;
-      }
-    } else {
-      groups.set(key, {
-        action: event.action,
-        imageSide: event.imageSide,
-        companionName: event.companionId ? event.companionName || "Companion" : null,
-        count: 1,
-        lastAt: event.createdAt,
-      });
-    }
-  }
-  return [...groups.values()];
-}
-
-function activityLabel(
-  action: IdentityAccessAction,
-  side: "FRONT" | "BACK" | null,
-  companionName?: string | null,
-) {
-  if (action === "DOCUMENT_VIEWED") {
-    return `${companionName ? `${companionName}: ` : ""}${side === "BACK" ? "Back" : "Front"} document image opened`;
-  }
-  if (action === "DETAILS_VIEWED") return "Identity details opened";
-  if (action === "STAY_CLOSED") return "Hotel finished identity review";
-  return "Consent revoked";
-}
-
-function statusLabel(access: GuestAccessAction) {
-  if (access.kind === "ended" && access.reason === "revoked") return "Consent revoked";
-  if (access.kind === "not-shared") return "Not shared";
-  return "Access ended";
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+function stayMoment(stay: GuestShare) {
+  if (stay.checkedOutAt) return `Checked out ${formatDateTime(stay.checkedOutAt)}`;
+  if (stay.checkedInAt) return `Checked in ${formatDateTime(stay.checkedInAt)}`;
+  return "Waiting for a room";
 }
