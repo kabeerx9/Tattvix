@@ -846,3 +846,19 @@ export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; labe
     </nav>
   );
 }
+
+/** Read-only facts inside a Panel: small label over each value; null reads "Not added". */
+export function FactList({ facts }: { facts: { label: string; value: string | null }[] }) {
+  return (
+    <dl className="divide-y divide-border-soft">
+      {facts.map((fact) => (
+        <div key={fact.label} className="px-5 py-3.5">
+          <dt className="text-sm text-muted-foreground">{fact.label}</dt>
+          <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
+            {fact.value ?? "Not added"}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

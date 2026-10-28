@@ -13,14 +13,13 @@ import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
-import { cn } from "@tattvix/ui/lib/utils";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { FactList, PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -130,16 +129,7 @@ export function GuestProfilePage() {
             }
           />
           <Panel>
-            <dl className="divide-y divide-border-soft">
-              {section.facts.map((fact) => (
-                <div key={fact.label} className="px-5 py-3.5">
-                  <dt className="text-sm text-muted-foreground">{fact.label}</dt>
-                  <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
-                    {fact.value ?? "Not added"}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <FactList facts={section.facts} />
           </Panel>
         </section>
       ))}

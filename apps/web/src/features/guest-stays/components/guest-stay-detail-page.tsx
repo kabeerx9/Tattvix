@@ -2,9 +2,12 @@ import { GuestReviewSection } from "@/features/reviews/guest-review-section";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@tattvix/ui/components/button";
-import { PageHeader, Panel, PanelHeader, PanelSection, FactsRow, Fact, StatusPill } from "@/components/design-system";
+import { getGuestAccessSummary, getGuestStayFacts } from "@tattvix/api";
+import { ChevronRight, ShieldCheck } from "lucide-react";
+import { cn } from "@tattvix/ui/lib/utils";
+import { FactList, ListRow, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { formatMoneyMinor } from "@/lib/money";
-import { describeGuestAccess, getGuestAccessAction } from "../access";
+import { getGuestAccessAction } from "../access";
 import { guestStayQueries } from "../queries";
 import { stayStatusLabel } from "../status";
 
@@ -45,9 +48,9 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
       </Panel>
     );
   const bill = billQuery.data;
-  const access = getGuestAccessAction(stay);
+  const sharing = getGuestAccessSummary(getGuestAccessAction(stay));
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
+    <div className="mx-auto grid max-w-3xl gap-6">
       <PageHeader
         title={stay.property.name}
         meta={<StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}
@@ -61,16 +64,11 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
           </Button>
         }
       />
-      <FactsRow>
-        <Fact label="Room" value={stay.room?.number ?? "Awaiting assignment"} />
-        <Fact label="Submitted" value={stay.submittedAt ? new Date(stay.submittedAt).toLocaleString() : "—"} />
-        {stay.checkedInAt ? <Fact label="Checked in" value={new Date(stay.checkedInAt).toLocaleString()} /> : null}
-        {stay.checkedOutAt ? <Fact label="Checked out" value={new Date(stay.checkedOutAt).toLocaleString()} /> : null}
-        {bill?.roomNights != null ? <Fact label="Nights" value={bill.roomNights} detail={`at ${formatMoneyMinor(bill.nightlyRateMinor ?? 0)} per night`} /> : null}
-      </FactsRow>
-      {stay.operationalStatus === "PENDING_CHECK_IN" ? <p className="text-xs text-subtle-foreground">Your request was sent. Reception will assign a room and confirm its charge.</p> : null}
+      {stay.operationalStatus === "PENDING_CHECK_IN" ? <p className="text-sm text-muted-foreground">Reception will assign your room and confirm its charge.</p> : null}
+      <Panel>
+        <FactList facts={getGuestStayFacts(stay, bill)} />
+      </Panel>
       {stay.operationalStatus === "CHECKED_OUT" ? <GuestReviewSection key={stay.id} stayId={stay.id} /> : null}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
       <Panel className="overflow-hidden">
         <PanelHeader title="Your bill" meta={bill ? <StatusPill tone={bill.isFinal ? "neutral" : "success"}>{bill.isFinal ? "Final" : "Open"}</StatusPill> : undefined} actions={
           <Button size="sm" variant="outline" disabled={billQuery.isFetching} onClick={() => void billQuery.refetch()}>Refresh bill</Button>
@@ -124,28 +122,19 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
           </>
         ) : null}
       </Panel>
-      <Panel><PanelHeader title="Identity sharing" /><PanelSection className="grid justify-items-start gap-3">
-        <StatusPill tone={stay.status === "REVOKED" ? "danger" : stay.status === "CLOSED" ? "neutral" : "success"}>{stay.status === "REVOKED" ? "Consent revoked" : stay.status === "CLOSED" ? "Identity review complete" : "Consent approved"}</StatusPill>
-        <p className="text-xs leading-5 text-subtle-foreground">{describeGuestAccess(access)}</p>
-      </PanelSection><PanelSection className="grid gap-4">
-        <div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {stay.status === "REVOKED"
-              ? "You revoked identity access. Your stay and bill remain available."
-              : access.kind === "revocable"
-                ? "To stop sharing before access ends, use the Privacy center."
-                : "See when the hotel opened your details in the Privacy center."}
-          </p>
-        </div>
-        <Button
-          nativeButton={false}
-          variant="outline"
-          render={<Link to="/privacy" />}
+      <Panel>
+        <Link
+          to="/privacy"
+          className="block px-5 py-3.5 outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
-          Privacy center
-        </Button>
-      </PanelSection></Panel>
-      </div>
+          <ListRow
+            leading={<ShieldCheck aria-hidden className="size-5" strokeWidth={1.75} />}
+            title={<span className="text-[15px] font-semibold">ID sharing</span>}
+            meta={<span className={cn("text-sm", sharing.open ? "text-success" : "text-muted-foreground")}>{sharing.text}</span>}
+            trailing={<ChevronRight aria-hidden className="size-4 text-subtle-foreground" />}
+          />
+        </Link>
+      </Panel>
     </div>
   );
 }
