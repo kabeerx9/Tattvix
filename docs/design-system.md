@@ -248,13 +248,6 @@ action the UI doesn't actually have.
 
 ## Native application
 
-The native app uses the same product character and semantic decisions, adapted for touch interfaces. Its implementation lives in `apps/native/src/design-system`.
-
-> Not yet updated for the 2026-10 web redesign; native visuals intentionally diverge from web for now.
-
-- Use `useAppTheme()` instead of hardcoded structural colors.
-- Use `Screen`, `Card`, `PageHeader`, `IconTile`, `AppButton`, `AppInput`, and `GuestPage` before creating new native primitives.
-- Maintain 48–50px touch targets, 12px control radii, 18px card radii, and 20px screen gutters.
-- Bottom navigation is limited to guest Home, Profile, Companions, Privacy, and Account.
-- Native content is guest-facing. Do not expose platform roles, hotel memberships, operational dashboards, internal IDs, or debug/API details.
-- Support the device light/dark setting automatically.
+The native app (Tattwix, Android-first) serves hotel staff and guests with the same visual
+language as the web. Its contract is `apps/native/docs/design-system.md`; components live in
+`apps/native/src/design-system`. Every feature, copy or behaviour change lands in both apps.

@@ -20,9 +20,9 @@ forces `userInterfaceStyle: light` and never branches on the device scheme.
   per render in hot lists.
 - `react-native-reanimated` for motion, `react-native-gesture-handler` for sheets and swipes.
 - `lucide-react-native` line icons, `react-native-svg` for the brand mark.
-- Expo UI (`@expo/ui/jetpack-compose`) **only** for `Switch` and `DatePickerDialog` /
-  `TimePickerDialog`, each inside its own light `Host` with `colorOverrides` set to the tokens
-  below (research: issue #48). Everything else is RN primitives.
+- Pickers (date, country) are JS bottom sheets built from these primitives. Expo UI
+  (`@expo/ui`) is not installed; adding it, or any native module, needs a new store build, so
+  prefer JS-only components that can ship over the air.
 - Fonts: Inter (variable) via `expo-font`, weights 400 / 500 / 600 / 700.
 
 ## Colour (`theme.ts` → `colors`)
