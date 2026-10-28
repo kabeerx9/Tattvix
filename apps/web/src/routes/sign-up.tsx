@@ -3,7 +3,7 @@ import { createFileRoute, Navigate, Outlet, useMatch } from "@tanstack/react-rou
 import { useEffect } from "react";
 import { z } from "zod";
 import { BrandLogo } from "@/components/brand";
-import { stashPostLoginRedirect } from "@/utils/post-login-redirect";
+import { hotelRegistrationSearchFromRedirect, stashPostLoginRedirect } from "@/utils/post-login-redirect";
 
 export const Route = createFileRoute("/sign-up")({
   validateSearch: z.object({
@@ -42,6 +42,8 @@ export function SignUpPage() {
   }
 
   if (isSignedIn) {
+    const registration = hotelRegistrationSearchFromRedirect(search.redirect);
+    if (registration) return <Navigate to="/register-hotel" search={registration} />;
     const checkInToken = checkInTokenFromRedirect(search.redirect);
     if (checkInToken) {
       return (
@@ -60,7 +62,7 @@ export function SignUpPage() {
       <SignUp
         routing="path"
         path="/sign-up"
-        signInUrl="/login"
+        signInUrl={search.redirect ? `/login?${new URLSearchParams({ redirect: search.redirect })}` : "/login"}
         fallbackRedirectUrl={search.redirect ?? "/guest"}
       />
     </div>

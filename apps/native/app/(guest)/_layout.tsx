@@ -21,6 +21,7 @@ export default function GuestLayout() {
       <Stack.Screen name="getting-started" />
       <Stack.Screen name="companions" />
       <Stack.Screen name="account" />
+      <Stack.Screen name="referrals" />
     </Stack>
   );
 }

@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import APIException
 
+from .referrals import referral_for_registration
+
 from .models import (
     HotelRegistrationRequest,
     Membership,
@@ -48,11 +50,12 @@ def request_payload(item, *, include_applicant=False):
     return payload
 
 
-def submit_request(*, applicant, **fields):
+def submit_request(*, applicant, referral_code="", **fields):
     try:
         with transaction.atomic():
+            referral = referral_for_registration(applicant=applicant, code=referral_code)
             return HotelRegistrationRequest.objects.create(
-                applicant=applicant, **fields
+                applicant=applicant, referral=referral, **fields
             )
     except IntegrityError as exc:
         raise HotelRegistrationConflict(

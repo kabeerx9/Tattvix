@@ -14,7 +14,7 @@ function SettingsPage() {
   const settings = getAccountSettings(auth.currentUser);
   return (
     <div className="mx-auto grid max-w-[1400px] gap-7">
-      <PageHeader title={settings.isOwner ? "Hotel owner account" : "Account settings"} />
+      <PageHeader title={settings.isOwner ? "Hotel owner account" : "Account settings"} actions={settings.isOwner ? <Button variant="outline" render={<Link to="/referrals" />}>Referrals</Button> : undefined} />
       {settings.isOwner ? <Panel>
         <PanelHeader title="Your hotels" />
         {settings.hotels.map((hotel) => <PanelSection key={hotel.id}>

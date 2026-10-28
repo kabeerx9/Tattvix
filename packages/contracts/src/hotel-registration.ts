@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { optionalReferralCodeSchema } from "./referrals";
 
 export const hotelRegistrationStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 
 export const hotelRegistrationInputSchema = z.object({
+  referralCode: optionalReferralCodeSchema,
   hotelName: requiredText(255),
   address: requiredText(1000),
   contactPhone: requiredText(32).regex(/^\+?[0-9\s-]+$/, "Enter a valid contact phone number.").refine(

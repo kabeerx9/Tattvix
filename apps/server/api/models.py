@@ -743,6 +743,10 @@ class HotelRegistrationStatus(models.TextChoices):
 
 
 class HotelRegistrationRequest(models.Model):
+    referral = models.ForeignKey(
+        "HotelReferralCode", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="registrations",
+    )
     applicant = models.ForeignKey(
         ClerkUser, on_delete=models.PROTECT, related_name="hotel_requests"
     )
@@ -855,3 +859,9 @@ class StayReview(models.Model):
             models.CheckConstraint(condition=models.Q(rating__gte=1, rating__lte=5), name="review_rating_range"),
             models.CheckConstraint(condition=~models.Q(comment=""), name="review_comment_not_empty"),
         ]
+
+
+class HotelReferralCode(models.Model):
+    owner = models.OneToOneField(ClerkUser, on_delete=models.PROTECT, related_name="hotel_referral_code")
+    code = models.CharField(max_length=12, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

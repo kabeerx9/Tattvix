@@ -17,6 +17,7 @@ class StrictSerializer(serializers.Serializer):
 
 
 class HotelRegistrationSubmitSerializer(StrictSerializer):
+    referralCode = serializers.CharField(source="referral_code", max_length=32, required=False, allow_blank=True)
     hotelName = serializers.CharField(source="hotel_name", max_length=255)
     address = serializers.CharField(max_length=1000)
     contactPhone = serializers.CharField(source="contact_phone", max_length=32)

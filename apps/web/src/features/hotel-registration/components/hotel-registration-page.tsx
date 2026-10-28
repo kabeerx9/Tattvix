@@ -17,7 +17,7 @@ import { hotelRegistrationMutations } from "../mutations";
 import { hotelRegistrationQueries } from "../queries";
 import { getLatestRejectedRequest, hasPendingHotelRequest } from "../status";
 
-export function HotelRegistrationPage() {
+export function HotelRegistrationPage({ referralCode }: { referralCode?: string }) {
   const queryClient = useQueryClient();
   const requestQuery = useQuery(hotelRegistrationQueries.guest());
   const submitMutation = useMutation(hotelRegistrationMutations.submit(queryClient));
@@ -52,6 +52,7 @@ export function HotelRegistrationPage() {
     const form = event.currentTarget;
     const data = new FormData(form);
     const parsed = hotelRegistrationInputSchema.safeParse({
+      referralCode: data.get("referralCode") ?? undefined,
       hotelName: data.get("hotelName"),
       address: data.get("address"),
       contactPhone: data.get("contactPhone"),
@@ -100,7 +101,8 @@ export function HotelRegistrationPage() {
           <div className="grid gap-6">
             {hasPending ? <PendingState /> : (
               <RegistrationForm
-                key={latestRejection?.id ?? "new"}
+                key={`${latestRejection?.id ?? "new"}/${referralCode ?? ""}`}
+                referralCode={referralCode}
                 latestRejection={latestRejection}
                 fieldErrors={fieldErrors}
                 submitError={submitError}
@@ -119,7 +121,8 @@ export function HotelRegistrationPage() {
   );
 }
 
-function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitting, onSubmit }: {
+function RegistrationForm({ referralCode, latestRejection, fieldErrors, submitError, isSubmitting, onSubmit }: {
+  referralCode?: string;
   latestRejection: HotelRegistrationRequest | undefined;
   fieldErrors: Record<string, string>;
   submitError: string | null;
@@ -150,6 +153,12 @@ function RegistrationForm({ latestRejection, fieldErrors, submitError, isSubmitt
         <Field label="Contact phone" error={fieldErrors.contactPhone}>
           <Input id="contactPhone" name="contactPhone" defaultValue={latestRejection?.contactPhone} maxLength={32} required type="tel" autoComplete="tel" placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.contactPhone)} />
         </Field>
+        <div className="grid gap-2">
+          <Label htmlFor="referralCode">Referral code (optional)</Label>
+          <Input id="referralCode" name="referralCode" defaultValue={referralCode?.trim().toUpperCase()} maxLength={32} autoCapitalize="characters" autoComplete="off" placeholder="Enter the owner's code" aria-invalid={Boolean(fieldErrors.referralCode)} />
+          <p className="text-xs text-muted-foreground">Including a code lets that owner see your hotel name and registration status.</p>
+          {fieldErrors.referralCode ? <p className="text-xs text-destructive">{fieldErrors.referralCode}</p> : null}
+        </div>
         {submitError ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</p> : null}
         <div className="flex justify-end border-t pt-5">
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Submitting request..." : <><Send />Submit for review</>}</Button>

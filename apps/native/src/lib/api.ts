@@ -3,6 +3,7 @@
 import {
   createReviewsApi,
   createReviewQueries,
+  createReferralsApi,
   createCheckInApi,
   createCheckInQueries,
   createCompanionQueries,
@@ -50,6 +51,7 @@ export const apiClient = createApiClient({
 });
 
 export const api = {
+  referrals: createReferralsApi(apiClient),
   reviews: createReviewsApi(apiClient),
   currentUser: createCurrentUserApi(apiClient),
   hotelOperations: createHotelOperationsApi(apiClient),

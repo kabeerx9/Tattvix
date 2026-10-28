@@ -1,3 +1,4 @@
+from .referral_views import account_referrals
 from .review_views import guest_stay_review, hotel_reviews
 from django.urls import path
 
@@ -68,6 +69,7 @@ from .property_photo_views import (
 from .team_views import hotel_team, hotel_team_member, hotel_team_users
 
 urlpatterns = [
+    path("api/account/referrals/", account_referrals, name="account-referrals"),
     path("api/guest/stays/<uuid:stay_id>/review/", guest_stay_review, name="guest-stay-review"),
     path("api/hotel/<slug:organization_slug>/<slug:property_slug>/reviews/", hotel_reviews, name="hotel-reviews"),
     path("api/hotel/<slug:organization_slug>/team/", hotel_team, name="hotel-team"),

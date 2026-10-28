@@ -2,7 +2,7 @@ import { AuthenticateWithRedirectCallback } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  checkInTokenFromRedirect,
+  postLoginDestination,
   readPostLoginRedirect,
 } from "@/utils/post-login-redirect";
 
@@ -12,8 +12,7 @@ export const Route = createFileRoute("/login/sso-callback")({
 
 function LoginSSOCallbackPage() {
   const [destination] = useState(() => {
-    const token = checkInTokenFromRedirect(readPostLoginRedirect());
-    return token ? `/check-in/${token}` : "/guest";
+    return postLoginDestination(readPostLoginRedirect());
   });
 
   return (

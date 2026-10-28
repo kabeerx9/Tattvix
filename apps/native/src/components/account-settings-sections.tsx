@@ -1,7 +1,7 @@
 import { getAccountSettings } from "@tattvix/api";
 import type { MeResponse } from "@tattvix/contracts";
 import { useRouter, type Href } from "expo-router";
-import { BedDouble, ShieldCheck, UserRound, UsersRound } from "lucide-react-native";
+import { BedDouble, ShieldCheck, UserRound, UserPlus, UsersRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { ListRow, Panel, SectionTitle, colors, space, type } from "@/src/design-system";
@@ -13,6 +13,7 @@ export function AccountSettingsSections({ user }: { user: Pick<MeResponse, "memb
   return <View style={styles.sections}>
     {settings.isOwner ? <View style={styles.group}>
       <SectionTitle>Your hotels</SectionTitle>
+      <Panel><ListRow icon={UserPlus} title="Referrals" detail="Share a code and track hotel registrations" chevron onPress={() => router.push("/(guest)/referrals" as Href)} /></Panel>
       {settings.hotels.map((hotel) => <View style={styles.group} key={hotel.id}>
         <Text style={styles.organization}>{hotel.organization.name}</Text>
         <Text style={styles.muted}>{hotel.subscriptionLabel}</Text>

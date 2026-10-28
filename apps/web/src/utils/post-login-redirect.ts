@@ -27,3 +27,38 @@ export function checkInTokenFromRedirect(
   const match = redirect?.match(/^\/check-in\/([^/?#]+)$/);
   return match?.[1] ?? null;
 }
+
+/** Only the registration destination is accepted here; arbitrary return URLs
+ * are never promoted into the sign-in callback's trusted destination. */
+export function hotelRegistrationSearchFromRedirect(
+  redirect: string | null | undefined,
+): { ref?: string } | null {
+  if (
+    !redirect?.startsWith("/") ||
+    redirect.startsWith("//") ||
+    redirect.includes("\\")
+  )
+    return null;
+  try {
+    const url = new URL(redirect, "https://tattwix.invalid");
+    if (
+      url.origin !== "https://tattwix.invalid" ||
+      url.pathname !== "/register-hotel"
+    )
+      return null;
+    const ref = url.searchParams.get("ref");
+    return ref && ref.length <= 32 ? { ref } : {};
+  } catch {
+    return null;
+  }
+}
+
+export function postLoginDestination(
+  redirect: string | null | undefined,
+): string {
+  const registration = hotelRegistrationSearchFromRedirect(redirect);
+  if (registration)
+    return `/register-hotel${registration.ref ? `?${new URLSearchParams({ ref: registration.ref })}` : ""}`;
+  const token = checkInTokenFromRedirect(redirect);
+  return token ? `/check-in/${token}` : "/guest";
+}

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { z } from "zod";
 import { BrandLogo } from "@/components/brand";
 import { travelImages } from "@/lib/travel-images";
-import { stashPostLoginRedirect } from "@/utils/post-login-redirect";
+import { hotelRegistrationSearchFromRedirect, stashPostLoginRedirect } from "@/utils/post-login-redirect";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({
@@ -43,6 +43,8 @@ export function LoginPage() {
   }
 
   if (isSignedIn) {
+    const registration = hotelRegistrationSearchFromRedirect(search.redirect);
+    if (registration) return <Navigate to="/register-hotel" search={registration} />;
     const checkInToken = checkInTokenFromRedirect(search.redirect);
     if (checkInToken) {
       return (
@@ -75,7 +77,7 @@ export function LoginPage() {
         <SignIn
           routing="path"
           path="/login"
-          signUpUrl="/sign-up"
+          signUpUrl={search.redirect ? `/sign-up?${new URLSearchParams({ redirect: search.redirect })}` : "/sign-up"}
           fallbackRedirectUrl={search.redirect ?? "/guest"}
         />
       </div></div>
