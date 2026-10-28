@@ -8,10 +8,9 @@ import { ChevronRight, Hotel } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { EmptyState, HeroScreen, Panel, Spinner, StatusPill, colors, space, type } from "@/src/design-system";
+import { EmptyState, LargeTitle, Screen, Panel, Spinner, StatusPill, colors, space, type } from "@/src/design-system";
 import { usePressFeedback } from "@/src/design-system/press";
 import { queries } from "@/src/lib/api";
-import { travelImages } from "@/src/lib/travel-images";
 
 const pillTone = { PENDING_CHECK_IN: "warning", CHECKED_IN: "success", CHECKED_OUT: "neutral" } as const;
 
@@ -21,7 +20,8 @@ export default function GuestStaysScreen() {
   const stays = query.data?.stays ?? [];
 
   return (
-    <HeroScreen image={travelImages.stays} size="page" title="My stays" subtitle="Past and upcoming stays, with check-in details." refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
+    <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
+      <LargeTitle meta="Past and upcoming stays, with check-in details.">My stays</LargeTitle>
       {query.isPending ? (
         <View style={styles.center}>
           <Spinner color={colors.mutedForeground} />
@@ -47,7 +47,7 @@ export default function GuestStaysScreen() {
           </Panel>
         </View>
       )}
-    </HeroScreen>
+    </Screen>
   );
 }
 

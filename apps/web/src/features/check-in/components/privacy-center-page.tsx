@@ -19,11 +19,10 @@ import { ChevronRight, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, ListRow, PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, ListRow, PageHeader, Panel, SectionTitle } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
-import { travelImages } from "@/lib/travel-images";
 
 export function PrivacyCenterPage() {
   const queryClient = useQueryClient();
@@ -82,7 +81,6 @@ export function PrivacyCenterPage() {
     <div className="mx-auto grid max-w-3xl gap-8">
       <div className="grid gap-4">
         <PageHeader title="Privacy" meta="Hotels that can see your ID" />
-        <PageCover src={travelImages.privacy} />
       </div>
 
       {data.stays.length ? (

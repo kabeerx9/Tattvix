@@ -22,7 +22,8 @@ export default function CompanionsScreen() {
 
   return (
     <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
-      <SecondaryHeader title="Companions" onBack={() => router.back()} />
+      {/* Back only: the large title below names the page once. */}
+      <SecondaryHeader title="" onBack={() => router.back()} />
       <LargeTitle meta="People you check in with" action={companions.length ? <TextLink label="Add" onPress={() => setAdding(true)} /> : undefined}>
         Travel companions
       </LargeTitle>

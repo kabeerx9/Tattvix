@@ -19,12 +19,11 @@ import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { FactList, PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { FactList, PageHeader, Panel, SectionTitle } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
 import { ApiError } from "@/lib/api";
-import { travelImages } from "@/lib/travel-images";
 
 import { CountrySelect } from "./country-select";
 
@@ -85,7 +84,6 @@ export function GuestProfilePage() {
           meta="What a hotel gets when you check in"
           actions={<Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Getting started</Button>}
         />
-        <PageCover src={travelImages.profile} />
       </div>
 
       {readiness.ready ? (

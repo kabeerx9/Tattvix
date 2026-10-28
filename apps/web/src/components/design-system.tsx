@@ -385,19 +385,6 @@ export function PhotoTile({
  * Decorative photo strip under a guest-facing page header. Purely visual
  * (empty alt): it sets the mood, it never carries information.
  */
-export function PageCover({ src, className }: { src: string; className?: string }) {
-  return (
-    <div className={cn("overflow-hidden rounded-lg bg-muted", className)}>
-      <img
-        src={src}
-        alt=""
-        decoding="async"
-        className="h-32 w-full object-cover sm:h-40"
-      />
-    </div>
-  );
-}
-
 /**
  * Photo-led page head for hubs (hotel Today, guest Home): the photo fills a
  * tall block and the title sits on a scrim, so it reads on any image. Hotel

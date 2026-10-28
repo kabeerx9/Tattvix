@@ -101,11 +101,10 @@ export const companionMissingFieldLabels: Record<CompanionProfileMissingField, s
 
 type CompanionView = Pick<CompanionProfile, "legalFirstName" | "legalLastName" | "relationship" | "dateOfBirth" | "nationality" | "isMinor" | "readiness">;
 
-/** A companion's saved details as facts; a null value means "not added yet". */
+/** A companion's saved details as facts (the name is the page title); null means "not added yet". */
 export function getCompanionFacts(companion: CompanionView): ProfileFact[] {
   const born = companion.dateOfBirth ? joined([formatDate(companion.dateOfBirth), companion.isMinor ? "Under 18" : null], " · ") : null;
   return [
-    { label: "Legal name", value: joined([companion.legalFirstName, companion.legalLastName], " ") },
     { label: "Relationship", value: joined([companion.relationship], "") },
     { label: "Date of birth", value: born },
     { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null },

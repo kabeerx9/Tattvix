@@ -37,7 +37,7 @@ test("companion facts and list line", () => {
     legalFirstName: "Ravi", legalLastName: "Nayak", relationship: "Brother", dateOfBirth: "2012-05-04", nationality: "IN", isMinor: true,
     readiness: { isReady: false, missingFields: ["nationality"] },
   } as unknown as Parameters<typeof getCompanionFacts>[0];
-  assert.deepEqual(getCompanionFacts(companion).map((fact) => fact.value), ["Ravi Nayak", "Brother", "4 May 2012 · Under 18", "India"]);
+  assert.deepEqual(getCompanionFacts(companion).map((fact) => fact.value), ["Brother", "4 May 2012 · Under 18", "India"]);
   assert.equal(companionRowDetail(companion), "Brother · 1 detail missing");
   assert.equal(companionRowDetail({ ...companion, relationship: "", readiness: { isReady: true, missingFields: [] } }), "Ready for check-in");
 });

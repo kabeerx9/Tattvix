@@ -220,8 +220,9 @@ Crisp and minimal: motion is feedback or orientation, never decoration. Tokens i
   settings. Where a layout is built around a photo (room tiles on Today, room choices in a sheet),
   a missing photo shows a quiet `muted` block (large slots may say "No photo yet"; no icon) so the
   grid stays even; elsewhere omit the slot.
-- **Guest-facing pages may use decorative travel photography** to feel alive: the guest home hero,
-  destination cards, and a `PageCover` strip under personal page headers. Sources live in
+- **Photos lead only the two hubs:** hotel Today (the hotel's own cover) and guest Home (a decorative
+  travel photo), plus the check-in welcome and sign-in. Every other page uses a plain text header;
+  no cover strips or decorative photos on Stays, Profile, Privacy, Companions or settings. Sources live in
   `apps/web/public/images/travel` (self-hosted WebP, credits in `CREDITS.md`), referenced through
   `lib/travel-images.ts`. Decorative images use `alt=""` and never carry information.
 - Never present stock imagery as a hotel's own property or rooms.

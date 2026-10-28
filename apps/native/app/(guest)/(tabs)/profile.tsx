@@ -24,10 +24,10 @@ import {
   Card,
   Enter,
   FactRow,
-  HeroAction,
-  HeroScreen,
+  LargeTitle,
   ListRow,
   Panel,
+  Screen,
   SectionTitle,
   TextField,
   TextLink,
@@ -39,7 +39,6 @@ import {
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
-import { travelImages } from "@/src/lib/travel-images";
 
 type Form = Omit<GuestProfileInput, "dateOfBirth"> & { dateOfBirth: string };
 type FormKey = keyof Form;
@@ -100,18 +99,13 @@ export default function ProfileScreen() {
   const sections = getProfileSections(profile.data.profile);
 
   return (
-    <HeroScreen
-      image={travelImages.profile}
-      size="page"
-      title="Profile"
-      subtitle="What a hotel gets when you check in"
-      action={<HeroAction label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}
-      refreshing={profile.isFetching && !profile.isPending}
-      onRefresh={() => void profile.refetch()}
-    >
+    <Screen refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}>
+      <LargeTitle meta="What a hotel gets when you check in" action={<TextLink label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}>
+        Profile
+      </LargeTitle>
       {onboarding === "identity" ? <Text style={[styles.meta, styles.note]}>Next: add a government ID under Identity documents below.</Text> : null}
 
-      <Enter>
+      <Enter style={styles.first}>
         {readiness.ready ? (
           <Panel>
             <ListRow icon={BadgeCheck} title="Ready for check-in" detail="Scan a hotel's QR and these details go with you." />
@@ -157,7 +151,7 @@ export default function ProfileScreen() {
           if (!save.isPending) setEditing(null);
         }}
       />
-    </HeroScreen>
+    </Screen>
   );
 }
 
@@ -233,7 +227,8 @@ function EditSheet({
 }
 
 const styles = StyleSheet.create({
-  note: { marginBottom: space.lg },
+  note: { marginTop: space.md },
+  first: { marginTop: space.xl },
   section: { marginTop: space.xxl, gap: space.md },
   cardTitle: { ...type.cardTitle, color: colors.foreground },
   meta: { ...type.meta, color: colors.mutedForeground },

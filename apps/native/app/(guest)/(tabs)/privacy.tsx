@@ -17,10 +17,9 @@ import { ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, ConfirmSheet, EmptyState, Enter, HeroScreen, ListRow, Panel, SectionTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, ConfirmSheet, EmptyState, Enter, LargeTitle, Screen, ListRow, Panel, SectionTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
-import { travelImages } from "@/src/lib/travel-images";
 
 export default function PrivacyScreen() {
   const queryClient = useQueryClient();
@@ -57,7 +56,8 @@ export default function PrivacyScreen() {
     ) : null;
 
   return (
-    <HeroScreen image={travelImages.privacy} size="page" title="Privacy" subtitle="Hotels that can see your ID" refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
+    <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
+      <LargeTitle meta="Hotels that can see your ID">Privacy</LargeTitle>
       {query.isPending ? (
         <View style={styles.center}>
           <Spinner color={colors.mutedForeground} />
@@ -102,7 +102,7 @@ export default function PrivacyScreen() {
           if (stopTarget) revoke.mutate(stopTarget.id);
         }}
       />
-    </HeroScreen>
+    </Screen>
   );
 }
 
@@ -152,7 +152,7 @@ function stayMoment(stay: GuestShare) {
 
 const styles = StyleSheet.create({
   center: { alignItems: "center", paddingVertical: space.xxxl },
-  section: { gap: space.md, marginBottom: space.xxl },
+  section: { gap: space.md, marginTop: space.xl },
   sheet: { gap: space.xl, paddingBottom: space.md },
   block: { gap: space.sm },
   body: { ...type.body, color: colors.foreground },

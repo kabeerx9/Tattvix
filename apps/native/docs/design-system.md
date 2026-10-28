@@ -103,7 +103,7 @@ buttons, cards, inputs, sheets, pills or empty states.
 | Primitive | Role | Notes |
 |---|---|---|
 | `Screen` | Safe-area aware scroll container with the 20 gutter and tab-bar clearance | `scroll` or `fixed` |
-| `HeroScreen` + `HeroAction` | Photo-led hub screen (hotel Today on the hotel's cover, guest Home and guest tab pages on travel photos): title on a scrim, white sheet overlapping by 24, photo parallax at half speed, compact solid title bar and dark status bar once scrolled past | `size` `hub` 260 / `page` 196; no photo or a failed load falls back to `Screen` + `LargeTitle`; never a stand-in photo for a hotel. `HeroAction` is the white chip pinned top-right |
+| `HeroScreen` + `HeroAction` | Photo-led hub screen, used only by hotel Today (the hotel's cover) and guest Home (a travel photo): title on a scrim, white sheet overlapping by 24, photo parallax at half speed, compact solid title bar and dark status bar once scrolled past | 260 tall; no photo or a failed load falls back to `Screen` + `LargeTitle`; never a stand-in photo for a hotel. `HeroAction` is the white chip pinned top-right |
 | `Enter` | Staggered entrance for sections: fade + 10 up, 320ms `easeOut`, 40ms per `index` | reduced motion: 200ms fade only |
 | `LargeTitle` / `PageTitle` / `SectionTitle` | Title + optional meta line + optional trailing `action` (text link) | |
 | `Button` | `primary` (rose) · `outline` (1px foreground border) · `ghost` (muted fill) · `destructive` text | sizes `md` 44 / `sm` 38; `loading` swaps label for a spinner; press scales to 0.97 |

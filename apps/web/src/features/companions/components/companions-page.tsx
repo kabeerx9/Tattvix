@@ -13,12 +13,11 @@ import { ChevronRight, Plus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, InitialsAvatar, ListRow, PageCover, PageHeader, Panel } from "@/components/design-system";
+import { EmptyState, InitialsAvatar, ListRow, PageHeader, Panel } from "@/components/design-system";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
 import { CountrySelect } from "@/features/guest-profile/components/country-select";
 import { ApiError } from "@/lib/api";
-import { travelImages } from "@/lib/travel-images";
 
 export function CompanionsPage() {
   const queryClient = useQueryClient();
@@ -45,7 +44,6 @@ export function CompanionsPage() {
           meta="People you check in with"
           actions={data.companions.length ? <Button variant="outline" onClick={() => setAdding(true)}><Plus />Add</Button> : undefined}
         />
-        <PageCover src={travelImages.companions} />
       </div>
 
       {data.companions.length ? (

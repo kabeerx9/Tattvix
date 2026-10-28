@@ -10,7 +10,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { CompanionEditorSheet } from "@/src/components/companions/CompanionEditorSheet";
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { PendingScreen } from "@/src/components/status-screens";
-import { Button, ConfirmSheet, EmptyState, Enter, FactRow, Panel, Screen, SecondaryHeader, SectionTitle, TextLink, colors, space, toast, type } from "@/src/design-system";
+import { Button, ConfirmSheet, EmptyState, Enter, FactRow, InitialsAvatar, Panel, Screen, SecondaryHeader, SectionTitle, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -56,10 +56,13 @@ export default function CompanionScreen() {
   return (
     <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
       <SecondaryHeader title="Companion" onBack={() => router.back()} />
-      <Text accessibilityRole="header" style={styles.name}>
-        {name}
-      </Text>
-      {missing.length ? <Text style={styles.meta}>{`Still needed: ${missing.join(", ")}`}</Text> : null}
+      <View style={styles.head}>
+        <InitialsAvatar initials={initialsFor(name)} size={72} />
+        <Text accessibilityRole="header" style={styles.name}>
+          {name}
+        </Text>
+        <Text style={[styles.meta, missing.length ? styles.missing : null]}>{missing.length ? `Still needed: ${missing.join(", ")}` : companion.relationship || "Ready for check-in"}</Text>
+      </View>
 
       <Enter style={styles.section}>
         <SectionTitle action={<TextLink label="Edit" onPress={() => setEditing(true)} />}>Details</SectionTitle>
@@ -100,8 +103,14 @@ export default function CompanionScreen() {
 }
 
 const styles = StyleSheet.create({
-  name: { ...type.pageTitle, color: colors.foreground, marginTop: space.sm },
-  meta: { ...type.meta, color: colors.mutedForeground, marginTop: space.xs },
+  head: { alignItems: "center", gap: space.xs, marginTop: space.lg },
+  name: { ...type.pageTitle, color: colors.foreground, marginTop: space.sm, textAlign: "center" },
+  meta: { ...type.meta, color: colors.mutedForeground, textAlign: "center" },
+  missing: { color: colors.warning },
   section: { marginTop: space.xxl, gap: space.md },
-  remove: { marginTop: space.xxxl, alignItems: "flex-start" },
+  remove: { marginTop: space.xxxl, alignItems: "center" },
 });
+
+function initialsFor(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("") || "?";
+}

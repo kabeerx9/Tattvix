@@ -14,8 +14,8 @@ import { Screen } from "./Screen";
 import { LargeTitle } from "./Titles";
 import { colors, fonts, radii, space, type } from "./theme";
 
-// Hubs (Today, guest Home) get the tall photo; other guest pages a shorter cover.
-const HEIGHTS = { hub: 260, page: 196 } as const;
+// Only the two hubs use this: hotel Today (the hotel's cover) and guest Home.
+const HERO = 260;
 const SHEET_OVERLAP = 24;
 
 type HeroScreenProps = PropsWithChildren<{
@@ -24,9 +24,6 @@ type HeroScreenProps = PropsWithChildren<{
   /** Small line above the title, e.g. the date. */
   eyebrow?: string;
   title: string;
-  /** One short line under the title. */
-  subtitle?: string;
-  size?: keyof typeof HEIGHTS;
   /** A compact action pinned to the top-right of the photo, e.g. the check-in QR. */
   action?: ReactNode;
   refreshing?: boolean;
@@ -38,9 +35,9 @@ type HeroScreenProps = PropsWithChildren<{
 // half speed while scrolling; past it, a compact title bar fades in so the
 // status bar stays legible. Without a photo it is an ordinary Screen with a
 // LargeTitle: we never put a stand-in image where a hotel's own photo belongs.
-export function HeroScreen({ image, eyebrow, title, subtitle, size = "hub", action, refreshing = false, onRefresh, children }: HeroScreenProps) {
+export function HeroScreen({ image, eyebrow, title, action, refreshing = false, onRefresh, children }: HeroScreenProps) {
   const insets = useSafeAreaInsets();
-  const hero = HEIGHTS[size];
+  const hero = HERO;
   // Only the focused screen owns the status bar, or a background tab overrides it.
   const [focused, setFocused] = useState(false);
   useFocusEffect(
@@ -78,7 +75,7 @@ export function HeroScreen({ image, eyebrow, title, subtitle, size = "hub", acti
     return (
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
         {focused ? <StatusBar style="dark" /> : null}
-        <LargeTitle meta={subtitle ?? eyebrow} action={action}>
+        <LargeTitle meta={eyebrow} action={action}>
           {title}
         </LargeTitle>
         {children}
@@ -106,7 +103,6 @@ export function HeroScreen({ image, eyebrow, title, subtitle, size = "hub", acti
             <Text accessibilityRole="header" style={styles.title} numberOfLines={2}>
               {title}
             </Text>
-            {subtitle ? <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text> : null}
           </Animated.View>
         </Animated.View>
         <View style={styles.sheet}>{children}</View>
@@ -127,7 +123,6 @@ const styles = StyleSheet.create({
   copy: { position: "absolute", left: space.xl, right: space.xl },
   eyebrow: { ...type.meta, color: "rgba(255,255,255,0.88)" },
   title: { ...type.largeTitle, color: "#ffffff", marginTop: 2 },
-  subtitle: { ...type.meta, color: "rgba(255,255,255,0.88)", marginTop: space.xs },
   sheet: {
     marginTop: -SHEET_OVERLAP,
     backgroundColor: colors.background,
