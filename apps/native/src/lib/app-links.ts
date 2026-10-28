@@ -44,9 +44,11 @@ function resolveHotelPath(rest: string[]): string {
     if (id === undefined) return extra.length === 0 ? `${base}/stays` : base;
     return extra.length === 0 ? `${base}/stays/${id}` : base;
   }
+  // The Guests page was folded into Stays; old links land there.
+  if (page === "guests") return id === undefined ? `${base}/stays` : base;
 
   // Pages with no sub-route. Anything else (dashboard, reservations, ...) lands on the dashboard.
-  if (id === undefined && ["guests", "rooms", "reports", "reviews", "details", "getting-started"].includes(page)) {
+  if (id === undefined && ["rooms", "reports", "reviews", "details", "getting-started"].includes(page)) {
     return `${base}/${page}`;
   }
   return base;

@@ -30,7 +30,6 @@ import {
   Settings,
   ShieldCheck,
   Star,
-  Users,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -95,7 +94,6 @@ const icons = {
     overview: CalendarCheck,
     stays: ClipboardList,
     rooms: BedDouble,
-    guests: Users,
     reports: BarChart3,
     reviews: Star,
     settings: Settings,

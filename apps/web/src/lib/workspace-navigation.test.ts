@@ -101,7 +101,7 @@ describe("hotel navigation items", () => {
     const items = getHotelNavItems(context, "/hotel/first/main/stays/abc");
     assert.deepEqual(
       items.map((item) => item.key),
-      ["overview", "stays", "rooms", "guests", "settings"],
+      ["overview", "stays", "rooms", "settings"],
     );
     assert.deepEqual(
       items.filter((item) => item.isActive).map((item) => item.key),
@@ -125,7 +125,7 @@ describe("hotel navigation items", () => {
       },
     };
     const keys = getHotelNavItems(withReports, "/hotel/first/main").map((i) => i.key);
-    assert.deepEqual(keys, ["overview", "stays", "rooms", "guests", "reports", "settings"]);
+    assert.deepEqual(keys, ["overview", "stays", "rooms", "reports", "settings"]);
   });
   it("returns no nav items without a property", () => {
     const orgOnly = getActiveHotelContext(user, "/hotel/first")!;
@@ -142,11 +142,11 @@ describe("mobile tab bar", () => {
       permissions: [...context.membership.permissions, "reports:view" as const],
     },
   };
-  it("gives the four everyday pages a tab and the rest to Menu", () => {
+  it("gives the three everyday pages a tab and the rest to Menu", () => {
     const { tabs, overflow } = splitHotelNavForTabBar(
       getHotelNavItems(withReports, "/hotel/first/main/dashboard"),
     );
-    assert.deepEqual(tabs.map((item) => item.key), ["overview", "stays", "rooms", "guests"]);
+    assert.deepEqual(tabs.map((item) => item.key), ["overview", "stays", "rooms"]);
     assert.deepEqual(overflow.map((item) => item.key), ["reports", "settings"]);
   });
   it("keeps reports out of the Menu without permission", () => {

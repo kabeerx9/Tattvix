@@ -45,7 +45,6 @@ export type HotelNavKey =
   | "overview"
   | "stays"
   | "rooms"
-  | "guests"
   | "reports"
   | "reviews"
   | "settings";
@@ -53,7 +52,6 @@ export type HotelNavRoute =
   | "/hotel/$organizationSlug/$propertySlug/dashboard"
   | "/hotel/$organizationSlug/$propertySlug/stays"
   | "/hotel/$organizationSlug/$propertySlug/rooms"
-  | "/hotel/$organizationSlug/$propertySlug/guests"
   | "/hotel/$organizationSlug/$propertySlug/reviews"
   | "/hotel/$organizationSlug/$propertySlug/reports"
   | "/hotel/$organizationSlug/$propertySlug/details";
@@ -75,7 +73,6 @@ const hotelNav: {
   { key: "overview", label: "Today", segment: "dashboard" },
   { key: "stays", label: "Stays", segment: "stays" },
   { key: "rooms", label: "Rooms", segment: "rooms" },
-  { key: "guests", label: "Guests", segment: "guests" },
   { key: "reviews", label: "Reviews", segment: "reviews" },
   { key: "reports", label: "Reports", segment: "reports" },
   { key: "settings", label: "Property settings", shortLabel: "Settings", segment: "details" },
@@ -100,7 +97,7 @@ export function getHotelNavItems(
 }
 
 /** Pages that get their own tab in the mobile bottom tab bar, per workspace. */
-const hotelTabKeys: readonly HotelNavKey[] = ["overview", "stays", "rooms", "guests"];
+const hotelTabKeys: readonly HotelNavKey[] = ["overview", "stays", "rooms"];
 
 /**
  * Splits a workspace nav for the mobile bottom tab bar: the everyday pages
@@ -117,7 +114,7 @@ export function splitNavForTabBar<Item extends { key: string; isActive: boolean 
   return { tabs, overflow, menuActive: overflow.some((item) => item.isActive) };
 }
 
-/** Hotel staff: Today, Stays, Rooms and Guests get tabs; reports and property settings go to Menu. */
+/** Hotel staff: Today, Stays and Rooms get tabs; reviews, reports and property settings go to Menu. */
 export function splitHotelNavForTabBar(items: HotelNavItem[]) {
   return splitNavForTabBar(items, hotelTabKeys);
 }

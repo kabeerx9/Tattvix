@@ -47,9 +47,12 @@ describe("resolveAppLinkPath", () => {
     assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/stays/s42"), "/(hotel)/acme/main/stays/s42");
   });
 
-  it("maps guests, rooms, reports, reviews and details", () => {
+  it("sends the retired guests page to stays", () => {
+    assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/guests"), "/(hotel)/acme/main/stays");
+  });
+
+  it("maps rooms, reports, reviews and details", () => {
     assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/reviews"), "/(hotel)/acme/main/reviews");
-    assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/guests"), "/(hotel)/acme/main/guests");
     assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/rooms"), "/(hotel)/acme/main/rooms");
     assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/reports"), "/(hotel)/acme/main/reports");
     assert.equal(resolveAppLinkPath("https://tattwix.in/hotel/acme/main/details"), "/(hotel)/acme/main/details");
