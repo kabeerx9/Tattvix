@@ -9,6 +9,7 @@ import { useEffect, useState, type ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
+import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { Button, Card, LargeTitle, Screen, SectionTitle, StatusPill, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
@@ -61,7 +62,7 @@ export default function ProfileScreen() {
   });
 
   if (!profile.data || !form) {
-    if (profile.isError) return <RetryScreen onRetry={() => void profile.refetch()} retrying={profile.isFetching} />;
+    if (profile.isError) return <RetryScreen onRetry={() => void profile.refetch()} retrying={profile.isFetching} error={profile.error} />;
     return <PendingScreen />;
   }
 
@@ -77,7 +78,7 @@ export default function ProfileScreen() {
       const next: Partial<Record<FormKey, string>> = {};
       for (const issue of parsed.error.issues) {
         const key = issue.path[0] as FormKey | undefined;
-        if (key) next[key] ??= key === "dateOfBirth" ? "Use a date as YYYY-MM-DD, in the past." : issue.message;
+        if (key) next[key] ??= key === "dateOfBirth" ? "Choose a date in the past." : issue.message;
       }
       setErrors(next);
       return;
@@ -122,7 +123,7 @@ export default function ProfileScreen() {
               <StatusPill tone="success">Ready for check-in</StatusPill>
             </View>
           )}
-          <Text style={styles.caption}>A complete government identity document is required for full readiness.</Text>
+          {missing.includes("identityDocuments") ? <Text style={styles.caption}>A complete government identity document is required for full readiness.</Text> : null}
         </Card>
       </View>
 
@@ -131,19 +132,8 @@ export default function ProfileScreen() {
         {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name" })}
         {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name." })}
         {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210" })}
-        {text("dateOfBirth", "Date of birth", {
-          placeholder: "YYYY-MM-DD",
-          helper: "YYYY-MM-DD",
-          keyboardType: "numbers-and-punctuation",
-          autoCapitalize: "none",
-          maxLength: 10,
-        })}
-        {text("nationality", "Nationality", {
-          maxLength: 2,
-          autoCapitalize: "characters",
-          placeholder: "IN",
-          helper: "Two-letter country code, such as IN.",
-        })}
+        <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => set("dateOfBirth")(value ?? "")} />
+        <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={set("nationality")} />
       </View>
 
       <View style={styles.section}>
@@ -153,12 +143,7 @@ export default function ProfileScreen() {
         {text("city", "City", { maxLength: 120 })}
         {text("stateRegion", "State or region", { maxLength: 120 })}
         {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code" })}
-        {text("country", "Country", {
-          maxLength: 2,
-          autoCapitalize: "characters",
-          placeholder: "IN",
-          helper: "Two-letter country code, such as IN.",
-        })}
+        <CountryField label="Country" value={form.country} error={errors.country} onChange={set("country")} />
       </View>
 
       <View style={styles.section}>

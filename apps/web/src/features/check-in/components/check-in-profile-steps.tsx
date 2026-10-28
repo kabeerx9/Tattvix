@@ -4,6 +4,7 @@ import { SegmentedControl } from "@tattvix/ui/components/segmented-control";
 import { useState } from "react";
 
 import type { ProfileFieldErrors } from "@/features/check-in/steps";
+import { CountrySelect } from "@/features/guest-profile/components/country-select";
 
 import { FormField, stepInputClassName } from "./check-in-layout";
 
@@ -13,22 +14,22 @@ type Props = {
   onChange: (patch: Partial<GuestProfileInput>) => void;
 };
 
-/** India first; anyone else types their two-letter country code. */
+/** India first; anyone else picks their country from the list. */
 function CountryChoice({
   label,
   value,
   error,
   onChange,
-  hint,
+  otherLabel,
 }: {
   label: string;
   value: string;
   error?: string;
   onChange: (value: string) => void;
-  hint: string;
+  otherLabel: string;
 }) {
   const isIndia = value.toUpperCase() === "IN";
-  // "Another country" with no code typed yet still needs to show the input.
+  // "Another country" with nothing picked yet still needs to show the picker.
   const [otherChosen, setOtherChosen] = useState(value !== "" && !isIndia);
   const choice = isIndia ? "IN" : otherChosen ? "OTHER" : null;
   return (
@@ -52,17 +53,15 @@ function CountryChoice({
         {error && choice !== "OTHER" ? <p className="text-[13px] text-destructive">{error}</p> : null}
       </div>
       {choice === "OTHER" ? (
-        <FormField label="Country code" required error={error} hint={hint}>
+        <FormField label={otherLabel} required error={error}>
           {(field) => (
-            <Input
-              {...field}
-              className={stepInputClassName}
+            <CountrySelect
+              id={field.id}
+              aria-describedby={field["aria-describedby"]}
+              invalid={field["aria-invalid"]}
+              className="h-12 w-full text-base"
               value={isIndia ? "" : value}
-              maxLength={2}
-              autoCapitalize="characters"
-              autoComplete="country"
-              placeholder="NP"
-              onChange={(event) => onChange(event.target.value.toUpperCase())}
+              onChange={onChange}
             />
           )}
         </FormField>
@@ -137,7 +136,7 @@ export function AboutStepFields({ values, errors, onChange }: Props) {
         label="Nationality"
         value={values.nationality}
         error={errors.nationality}
-        hint="Two letters, as on your passport, e.g. NP for Nepal."
+        otherLabel="Country on your passport"
         onChange={(nationality) => onChange({ nationality })}
       />
     </div>
@@ -214,7 +213,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
         label="Country"
         value={values.country}
         error={errors.country}
-        hint="Two letters, e.g. NP for Nepal."
+        otherLabel="Country"
         onChange={(country) => onChange({ country })}
       />
     </div>

@@ -19,6 +19,8 @@ import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
 import { ApiError } from "@/lib/api";
 
+import { CountrySelect } from "./country-select";
+
 const missingFieldLabels: Record<GuestProfileMissingField, string> = {
   legalFirstName: "Legal first name",
   legalLastName: "Legal last name",
@@ -115,11 +117,11 @@ export function GuestProfilePage() {
                 <Field label="Phone number" required error={fieldErrors.phoneNumber}>
                   <Input name="phoneNumber" defaultValue={data.profile.phoneNumber} maxLength={32} type="tel" autoComplete="tel" placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.phoneNumber)} />
                 </Field>
-                <Field label="Date of birth" required error={fieldErrors.dateOfBirth}>
-                  <Input name="dateOfBirth" defaultValue={data.profile.dateOfBirth ?? ""} type="date" aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
+                <Field label="Date of birth" htmlFor="profile-date-of-birth" required error={fieldErrors.dateOfBirth}>
+                  <Input id="profile-date-of-birth" name="dateOfBirth" defaultValue={data.profile.dateOfBirth ?? ""} type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
                 </Field>
-                <Field label="Nationality" required error={fieldErrors.nationality} hint="Two-letter country code, such as IN.">
-                  <Input name="nationality" defaultValue={data.profile.nationality} maxLength={2} autoCapitalize="characters" placeholder="IN" aria-invalid={Boolean(fieldErrors.nationality)} />
+                <Field label="Nationality" htmlFor="profile-nationality" required error={fieldErrors.nationality}>
+                  <CountrySelect id="profile-nationality" name="nationality" defaultValue={data.profile.nationality} invalid={Boolean(fieldErrors.nationality)} />
                 </Field>
               </div>
             </ProfileSection>
@@ -145,8 +147,8 @@ export function GuestProfilePage() {
                 <Field label="Postal code" required error={fieldErrors.postalCode}>
                   <Input name="postalCode" defaultValue={data.profile.postalCode} maxLength={20} autoComplete="postal-code" />
                 </Field>
-                <Field label="Country" required error={fieldErrors.country} hint="Two-letter country code, such as IN.">
-                  <Input name="country" defaultValue={data.profile.country} maxLength={2} autoComplete="country" autoCapitalize="characters" placeholder="IN" />
+                <Field label="Country" htmlFor="profile-country" required error={fieldErrors.country}>
+                  <CountrySelect id="profile-country" name="country" defaultValue={data.profile.country} invalid={Boolean(fieldErrors.country)} />
                 </Field>
               </div>
             </ProfileSection>
@@ -212,9 +214,11 @@ export function GuestProfilePage() {
             <div><StatusPill tone="success">Ready for check-in</StatusPill><p className="mt-1 text-xs leading-5 text-subtle-foreground">Your profile meets the current identity requirements.</p></div>
           )}
 
-          <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
-            A complete government identity document is required for full readiness.
-          </p>
+          {missingFields.includes("identityDocuments") ? (
+            <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
+              A complete government identity document is required for full readiness.
+            </p>
+          ) : null}
         </Panel>
       </div>
     </div>
@@ -238,8 +242,9 @@ function ProfileSection({ icon: Icon, title, description, children }: {
   );
 }
 
-function Field({ label, required, error, hint, className, children }: {
+function Field({ label, htmlFor, required, error, hint, className, children }: {
   label: string;
+  htmlFor?: string;
   required?: boolean;
   error?: string;
   hint?: string;
@@ -248,7 +253,7 @@ function Field({ label, required, error, hint, className, children }: {
 }) {
   return (
     <div className={`grid gap-2 ${className ?? ""}`}>
-      <Label>{label}{required ? <span className="text-destructive">*</span> : null}</Label>
+      <Label htmlFor={htmlFor}>{label}{required ? <span className="text-destructive">*</span> : null}</Label>
       {children}
       {error ? <p className="text-xs text-destructive">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>

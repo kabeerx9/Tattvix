@@ -5,6 +5,7 @@ import type { GuestProfileInput } from "@tattvix/contracts";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
 import { PillTabs, TextField, colors, space, type } from "@/src/design-system";
 
 type Props = {
@@ -13,22 +14,22 @@ type Props = {
   onChange: (patch: Partial<GuestProfileInput>) => void;
 };
 
-/** India first; anyone else types their two-letter country code. */
+/** India first; anyone else picks their country from the list. */
 function CountryChoice({
   label,
   value,
   error,
-  hint,
+  otherLabel,
   onChange,
 }: {
   label: string;
   value: string;
   error?: string;
-  hint: string;
+  otherLabel: string;
   onChange: (value: string) => void;
 }) {
   const isIndia = value.toUpperCase() === "IN";
-  // "Another country" with no code typed yet still needs to show the input.
+  // "Another country" with nothing picked yet still needs to show the picker.
   const [otherChosen, setOtherChosen] = useState(value !== "" && !isIndia);
   const choice = isIndia ? "IN" : otherChosen ? "OTHER" : "";
   return (
@@ -47,16 +48,7 @@ function CountryChoice({
       />
       {error && choice !== "OTHER" ? <Text style={styles.error}>{error}</Text> : null}
       {choice === "OTHER" ? (
-        <TextField
-          label="Country code"
-          value={value}
-          maxLength={2}
-          autoCapitalize="characters"
-          placeholder="NP"
-          helper={hint}
-          error={error}
-          onChangeText={(text) => onChange(text.toUpperCase())}
-        />
+        <CountryField label={otherLabel} value={value} error={error} onChange={onChange} />
       ) : null}
     </View>
   );
@@ -93,22 +85,17 @@ export function AboutStepFields({ values, errors, onChange }: Props) {
         error={errors.phoneNumber}
         onChangeText={(text) => onChange({ phoneNumber: text })}
       />
-      <TextField
+      <DateOfBirthField
         label="Date of birth"
-        value={values.dateOfBirth ?? ""}
-        placeholder="YYYY-MM-DD"
-        helper="YYYY-MM-DD"
-        keyboardType="numbers-and-punctuation"
-        autoCapitalize="none"
-        maxLength={10}
+        value={values.dateOfBirth}
         error={errors.dateOfBirth}
-        onChangeText={(text) => onChange({ dateOfBirth: text.trim() || null })}
+        onChange={(dateOfBirth) => onChange({ dateOfBirth })}
       />
       <CountryChoice
         label="Nationality"
         value={values.nationality}
         error={errors.nationality}
-        hint="Two letters, as on your passport, e.g. NP for Nepal."
+        otherLabel="Country on your passport"
         onChange={(nationality) => onChange({ nationality })}
       />
     </View>
@@ -165,7 +152,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
         label="Country"
         value={values.country}
         error={errors.country}
-        hint="Two letters, e.g. NP for Nepal."
+        otherLabel="Country"
         onChange={(country) => onChange({ country })}
       />
     </View>

@@ -4,10 +4,12 @@ import { formatDateTime, stayStatusLabel } from "@tattvix/api";
 import type { GuestShare } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
-import { Hotel } from "lucide-react-native";
-import { StyleSheet, View } from "react-native";
+import { ChevronRight, Hotel } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { EmptyState, Kpi, KpiRow, LargeTitle, ListRow, Panel, Screen, Spinner, StatusPill, colors, space } from "@/src/design-system";
+import { EmptyState, LargeTitle, Panel, Screen, Spinner, StatusPill, colors, space, type } from "@/src/design-system";
+import { usePressFeedback } from "@/src/design-system/press";
 import { queries } from "@/src/lib/api";
 
 const pillTone = { PENDING_CHECK_IN: "warning", CHECKED_IN: "success", CHECKED_OUT: "neutral" } as const;
@@ -39,27 +41,36 @@ export default function GuestStaysScreen() {
         </View>
       ) : (
         <View style={styles.section}>
-          <KpiRow>
-            <Kpi label="Waiting for a room" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-            <Kpi label="Checked in" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
-            <Kpi label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
-          </KpiRow>
           <Panel>
             {stays.map((stay) => (
-              <ListRow
-                key={stay.id}
-                icon={Hotel}
-                title={stay.property.name}
-                detail={stayDetail(stay)}
-                trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}
-                chevron
-                onPress={() => router.push(`/(guest)/stays/${stay.id}` as Href)}
-              />
+              <StayRow key={stay.id} stay={stay} onPress={() => router.push(`/(guest)/stays/${stay.id}` as Href)} />
             ))}
           </Panel>
         </View>
       )}
     </Screen>
+  );
+}
+
+// The hotel name wraps and the status sits under it, so a long name is never
+// cut short to make room for the pill.
+function StayRow({ stay, onPress }: { stay: GuestShare; onPress: () => void }) {
+  const press = usePressFeedback();
+  const status = stayStatusLabel(stay.operationalStatus);
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${stay.property.name}, ${status}`} accessibilityHint={stayDetail(stay)} onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+      <Animated.View style={[styles.row, press.style]}>
+        <Hotel color={colors.foreground} size={22} strokeWidth={1.6} />
+        <View style={styles.copy}>
+          <Text style={styles.title}>{stay.property.name}</Text>
+          <Text style={styles.detail}>{stayDetail(stay)}</Text>
+          <View style={styles.pill}>
+            <StatusPill tone={pillTone[stay.operationalStatus]}>{status}</StatusPill>
+          </View>
+        </View>
+        <ChevronRight color={colors.subtleForeground} size={18} strokeWidth={2} />
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -72,4 +83,9 @@ function stayDetail(stay: GuestShare) {
 const styles = StyleSheet.create({
   center: { alignItems: "center", paddingVertical: space.xxxl },
   section: { marginTop: space.xxl, gap: space.md },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 56, paddingVertical: space.md, paddingHorizontal: space.lg },
+  copy: { flex: 1, gap: 2 },
+  title: { ...type.rowTitle, color: colors.foreground },
+  detail: { ...type.caption, color: colors.mutedForeground },
+  pill: { marginTop: space.xs },
 });
