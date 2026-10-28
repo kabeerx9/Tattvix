@@ -86,3 +86,35 @@ export function getTodayHeadline({ waiting, checkingOut, checkedIn }: { waiting:
   if (checkedIn) return { title: `${checkedIn} checked in`, detail: "No arrivals or checkouts waiting" };
   return { title: "All quiet at the desk", detail: "New check-ins appear here as guests scan your QR" };
 }
+
+export type WalletCard = { stay: HotelStayListItem; badge: "late" | "today" | null; line: string };
+
+const dayAfter = (key: string) => {
+  const date = new Date(`${key}T12:00:00`);
+  date.setDate(date.getDate() + 1);
+  return localDayKey(date);
+};
+const time = (iso: string | null) => (iso ? Date.parse(iso) : 0);
+
+/**
+ * The Stays page: guests in house as a stack of key cards (late first, then
+ * leaving today, then by checkout date), guests waiting for a room, and past stays.
+ */
+export function getStayWallet(stays: HotelStayListItem[], todayKey: string) {
+  const tomorrow = dayAfter(todayKey);
+  const inHouse = stays
+    .filter((stay) => stay.operationalStatus === "CHECKED_IN")
+    .map((stay): WalletCard => {
+      const due = stay.expectedCheckOutDate;
+      if (!due) return { stay, badge: null, line: "No checkout date" };
+      if (due < todayKey) return { stay, badge: "late", line: `Was due out ${formatDay(due, todayKey)}` };
+      if (due === todayKey) return { stay, badge: "today", line: "Leaving today" };
+      return { stay, badge: null, line: due === tomorrow ? "Leaves tomorrow" : `Leaves ${formatDay(due, todayKey)}` };
+    })
+    .sort((a, b) => (a.stay.expectedCheckOutDate ?? "9999").localeCompare(b.stay.expectedCheckOutDate ?? "9999"));
+  return {
+    inHouse,
+    waiting: stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").sort((a, b) => time(a.submittedAt) - time(b.submittedAt)),
+    past: stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").sort((a, b) => time(b.checkedOutAt) - time(a.checkedOutAt)),
+  };
+}

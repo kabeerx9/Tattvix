@@ -1,3 +1,7 @@
+// Stays: guests in house as a wallet of room key cards, guests waiting for a
+// room, and past stays. Any search or filter shows matching stays as a plain
+// list. Mirrors the native Stays tab.
+import { getStayWallet, localDayKey } from "@tattvix/api";
 import type {
   HotelQrTokenResponse,
   HotelStayListItem,
@@ -6,6 +10,7 @@ import type {
 } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
+import { cn } from "@tattvix/ui/lib/utils";
 import {
   Select,
   SelectContent,
@@ -18,6 +23,7 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
   Clock3,
   Copy,
+  KeyRound,
   QrCode,
   Search,
   UsersRound,
@@ -26,11 +32,13 @@ import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, FilterBar, InitialsAvatar, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
+import { EmptyState, FilterBar, GroupTitle, InitialsAvatar, ListRow, PageHeader, Panel, StatusPill } from "@/components/design-system";
 import { useDebouncedValue } from "@/core/hooks/use-debounced-value";
 import { hotelStayMutations } from "@/features/hotel-stays/mutations";
 import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { ApiError } from "@/lib/api";
+
+import { StayWallet } from "./stay-wallet";
 
 const STATUS_FILTERS: {
   value: OperationalStayStatus | "__all__";
@@ -73,6 +81,7 @@ export function HotelStaysPage({
     placeholderData: keepPreviousData,
   });
   const stays = data?.stays ?? [];
+  const wallet = getStayWallet(stays, localDayKey(new Date()));
 
   const [qrToken, setQrToken] = useState<HotelQrTokenResponse | null>(null);
   const qrMutation = useMutation(hotelStayMutations.generateQr());
@@ -100,6 +109,7 @@ export function HotelStaysPage({
     <div className="mx-auto grid max-w-[1400px] gap-6">
       <PageHeader
         title="Stays"
+        meta={hasActiveFilters ? `${stays.length} matching ${stays.length === 1 ? "stay" : "stays"}` : `${wallet.inHouse.length} in house · ${wallet.waiting.length} waiting for a room`}
         actions={
           <Button onClick={generateQr} disabled={qrMutation.isPending}>
             <QrCode />
@@ -119,90 +129,120 @@ export function HotelStaysPage({
         </p>
       ) : null}
 
-      <KpiStrip>
-        <Kpi label={hasActiveFilters ? "Filtered results" : "All stays"} value={stays.length} />
-        <Kpi label="Waiting for a room" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-        <Kpi label="Checked in" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
-        <Kpi label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
-      </KpiStrip>
-
-      <Panel>
-        <PanelHeader title="Check-ins" meta={stays.length} />
-        <PanelSection>
-          <FilterBar className="sm:items-center">
-            <div className="relative sm:w-[240px]">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search guest name"
-                aria-label="Search guest name"
-                className="pl-9"
-              />
-            </div>
-            <Select
-              items={STATUS_FILTERS}
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as OperationalStayStatus | "__all__")
-              }
-            >
-              <SelectTrigger className="sm:w-[190px]" aria-label="Filter by status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_FILTERS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:flex">
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-                aria-label="From date"
-                className="sm:w-[160px]"
-              />
-              <span className="text-xs text-muted-foreground">to</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-                aria-label="To date"
-                className="sm:w-[160px]"
-              />
-            </div>
-          </FilterBar>
-        </PanelSection>
-
-        {stays.length ? (
-          <div>
-            {stays.map((stay) => (
-              <StayRow
-                key={stay.id}
-                stay={stay}
-                organizationSlug={organizationSlug}
-                propertySlug={propertySlug}
-              />
-            ))}
-          </div>
-        ) : hasActiveFilters ? (
-          <EmptyState
-            icon={Search}
-            title="No results for this search"
-            description="Try a different name, or clear the status and date filters to see all submitted check-ins."
+      <FilterBar className="sm:items-center">
+        <div className="relative sm:w-[240px]">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search guest name"
+            aria-label="Search guest name"
+            className="pl-9"
           />
+        </div>
+        <Select
+          items={STATUS_FILTERS}
+          value={statusFilter}
+          onValueChange={(value) =>
+            setStatusFilter(value as OperationalStayStatus | "__all__")
+          }
+        >
+          <SelectTrigger className="sm:w-[190px]" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTERS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:flex">
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            aria-label="From date"
+            className="sm:w-[160px]"
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
+            aria-label="To date"
+            className="sm:w-[160px]"
+          />
+        </div>
+      </FilterBar>
+
+      {hasActiveFilters ? (
+        stays.length ? (
+          <StayRows stays={stays} organizationSlug={organizationSlug} propertySlug={propertySlug} />
         ) : (
+          <Panel>
+            <EmptyState
+              icon={Search}
+              title="No results for this search"
+              description="Try a different name, or clear the status and date filters to see all submitted check-ins."
+            />
+          </Panel>
+        )
+      ) : stays.length ? (
+        <>
+          {wallet.inHouse.length ? (
+            <section className="grid gap-2">
+              <GroupTitle title="In house" />
+              <StayWallet cards={wallet.inHouse} organizationSlug={organizationSlug} propertySlug={propertySlug} />
+            </section>
+          ) : null}
+          {wallet.waiting.length ? (
+            <section className="grid gap-2">
+              <GroupTitle title="Waiting for a room" />
+              <Panel>
+                {wallet.waiting.map((stay, index) => (
+                  <Link
+                    key={stay.id}
+                    to="/hotel/$organizationSlug/$propertySlug/stays/$stayId"
+                    params={{ organizationSlug, propertySlug, stayId: stay.id }}
+                    className={cn("block px-5 py-3 hover:bg-muted/50 active:bg-muted/70", index > 0 && "border-t border-border-soft")}
+                  >
+                    <ListRow
+                      leading={
+                        <span aria-hidden className="grid size-10 place-items-center rounded-xl border-[1.5px] border-dashed border-warning/60 text-warning">
+                          <KeyRound className="size-5" strokeWidth={1.8} />
+                        </span>
+                      }
+                      title={stay.guestName}
+                      meta={
+                        <>
+                          {stay.companionCount > 0 ? `${stay.companionCount + 1} guests` : "1 guest"}
+                          {stay.submittedAt ? ` · checked in on phone ${formatDateTime(stay.submittedAt)}` : ""}
+                        </>
+                      }
+                    />
+                  </Link>
+                ))}
+              </Panel>
+            </section>
+          ) : null}
+          {wallet.past.length ? (
+            <section className="grid gap-2">
+              <GroupTitle title="Checked out" />
+              <StayRows stays={wallet.past} organizationSlug={organizationSlug} propertySlug={propertySlug} />
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <Panel>
           <EmptyState
             icon={UsersRound}
             title="No submitted check-ins yet"
             description="Generate the property QR. A guest will appear here only after reviewing and approving their identity package."
           />
-        )}
-      </Panel>
+        </Panel>
+      )}
     </div>
   );
 }
@@ -255,12 +295,24 @@ function CheckInQrPanel({ qrToken }: { qrToken: HotelQrTokenResponse }) {
   );
 }
 
+function StayRows({ stays, organizationSlug, propertySlug }: { stays: HotelStayListItem[]; organizationSlug: string; propertySlug: string }) {
+  return (
+    <Panel>
+      {stays.map((stay, index) => (
+        <StayRow key={stay.id} stay={stay} first={index === 0} organizationSlug={organizationSlug} propertySlug={propertySlug} />
+      ))}
+    </Panel>
+  );
+}
+
 function StayRow({
   stay,
+  first,
   organizationSlug,
   propertySlug,
 }: {
   stay: HotelStayListItem;
+  first: boolean;
   organizationSlug: string;
   propertySlug: string;
 }) {
@@ -268,7 +320,7 @@ function StayRow({
     <Link
       to="/hotel/$organizationSlug/$propertySlug/stays/$stayId"
       params={{ organizationSlug, propertySlug, stayId: stay.id }}
-      className="block border-t border-border-soft px-5 py-3 hover:bg-muted/50 active:bg-muted/70"
+      className={cn("block px-5 py-3 hover:bg-muted/50 active:bg-muted/70", !first && "border-t border-border-soft")}
     >
       <ListRow
         leading={<InitialsAvatar name={stay.guestName} />}

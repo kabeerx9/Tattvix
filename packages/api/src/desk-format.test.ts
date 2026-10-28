@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { HotelStayListItem } from "@tattvix/contracts";
-import { formatDay, getReservationDetail, getStayKeyCard, getTodayHeadline, partyLabel } from "./desk-format";
+import { formatDay, getReservationDetail, getStayKeyCard, getStayWallet, getTodayHeadline, partyLabel } from "./desk-format";
 
 const today = "2026-10-28";
 const stay = (patch: Partial<HotelStayListItem>) =>
@@ -70,4 +70,36 @@ test("key card covers waiting, checked-out and undated stays", () => {
   assert.equal(gone.checkout.overdue, false);
 
   assert.equal(getStayKeyCard(stay({}), today).checkout.when, "No date set");
+});
+
+test("stay wallet puts late and leaving-today guests on top, then by checkout date", () => {
+  const s = (id: string, patch: Partial<HotelStayListItem>) => stay({ id, ...patch } as Partial<HotelStayListItem>);
+  const wallet = getStayWallet(
+    [
+      s("later", { expectedCheckOutDate: "2026-10-31" }),
+      s("tomorrow", { expectedCheckOutDate: "2026-10-29" }),
+      s("today", { expectedCheckOutDate: today }),
+      s("late", { expectedCheckOutDate: "2026-10-27" }),
+      s("undated", {}),
+      s("wait-2", { operationalStatus: "PENDING_CHECK_IN", submittedAt: "2026-10-28T10:00:00Z" }),
+      s("wait-1", { operationalStatus: "PENDING_CHECK_IN", submittedAt: "2026-10-28T09:00:00Z" }),
+      s("gone-old", { operationalStatus: "CHECKED_OUT", checkedOutAt: "2026-10-24T06:00:00Z" }),
+      s("gone-new", { operationalStatus: "CHECKED_OUT", checkedOutAt: "2026-10-27T06:00:00Z" }),
+    ],
+    today,
+  );
+  assert.deepEqual(wallet.inHouse.map((card) => [card.stay.id, card.badge]), [
+    ["late", "late"],
+    ["today", "today"],
+    ["tomorrow", null],
+    ["later", null],
+    ["undated", null],
+  ]);
+  assert.match(wallet.inHouse[0]!.line, /^Was due out /);
+  assert.equal(wallet.inHouse[1]!.line, "Leaving today");
+  assert.equal(wallet.inHouse[2]!.line, "Leaves tomorrow");
+  assert.match(wallet.inHouse[3]!.line, /^Leaves /);
+  assert.equal(wallet.inHouse[4]!.line, "No checkout date");
+  assert.deepEqual(wallet.waiting.map((entry) => entry.id), ["wait-1", "wait-2"]);
+  assert.deepEqual(wallet.past.map((entry) => entry.id), ["gone-new", "gone-old"]);
 });

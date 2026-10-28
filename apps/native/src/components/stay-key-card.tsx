@@ -40,7 +40,7 @@ export function StayKeyCard({
   return (
     <LinearGradient colors={keyCard.gradient} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={styles.card}>
       <View style={[styles.status, { backgroundColor: status.fill }]} accessibilityRole="text">
-        <status.Icon color="#ffffff" size={17} strokeWidth={2.2} />
+        <status.Icon color="#ffffff" size={15} strokeWidth={2.2} />
         <Text style={styles.statusText}>{card.status.label}</Text>
       </View>
 
@@ -81,10 +81,10 @@ export function StayKeyCard({
 
 const styles = StyleSheet.create({
   card: { borderRadius: 22, padding: space.xl, marginTop: space.lg, overflow: "hidden" },
-  status: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", paddingVertical: 8, paddingLeft: 12, paddingRight: 14, borderRadius: radii.pill },
-  statusText: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 18, color: "#ffffff" },
-  room: { fontFamily: fonts.bold, fontSize: 64, lineHeight: 68, letterSpacing: -2.5, color: "#ffffff", marginTop: space.lg, fontVariant: ["tabular-nums"] },
-  noRoom: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6, color: "rgba(255,255,255,0.75)" },
+  status: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", paddingVertical: 6, paddingLeft: 10, paddingRight: 12, borderRadius: radii.pill },
+  statusText: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 16, color: "#ffffff" },
+  room: { fontFamily: fonts.bold, fontSize: 40, lineHeight: 46, letterSpacing: -1.2, color: "#ffffff", marginTop: space.lg, fontVariant: ["tabular-nums"] },
+  noRoom: { fontSize: 24, lineHeight: 30, letterSpacing: -0.4, color: "rgba(255,255,255,0.75)" },
   dim: { ...type.meta, color: "rgba(255,255,255,0.72)" },
   who: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.lg },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" },
@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
   out: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.lg, backgroundColor: colors.card, borderRadius: 16, paddingVertical: 14, paddingHorizontal: space.lg },
   outLate: { backgroundColor: colors.destructiveTint, borderWidth: 2, borderColor: keyCard.danger },
   outLabel: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16, letterSpacing: 0.5, textTransform: "uppercase", color: colors.mutedForeground },
-  outWhen: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.5, color: colors.foreground },
+  outWhen: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 24, letterSpacing: -0.3, color: colors.foreground },
   late: { color: colors.destructive },
   count: { marginLeft: "auto", alignItems: "flex-end" },
   countLead: { ...type.meta, color: colors.mutedForeground },
-  countValue: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.5, color: colors.foreground },
+  countValue: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 24, letterSpacing: -0.3, color: colors.foreground },
   checkedIn: { marginTop: space.md },
 });

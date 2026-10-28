@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.sm, marginBottom: space.sm },
   cell: { flex: 1, aspectRatio: 1 / 1.05 },
   tile: { flex: 1, borderRadius: 14, padding: 9, justifyContent: "space-between", overflow: "hidden" },
-  number: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 26, letterSpacing: -0.6 },
+  number: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 22, letterSpacing: -0.4 },
   caption: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14 },
   flag: { position: "absolute", top: 8, right: 8, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
 });

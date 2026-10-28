@@ -97,7 +97,7 @@ function Tile({ tile }: { tile: FloorBoardTile }) {
       style={tile.kind === "occupied" ? { background: keyGradient } : undefined}
     >
       {flag ? <span className="absolute top-2 right-2 size-2.5 rounded-full ring-2 ring-white/90" style={{ backgroundColor: flag }} /> : null}
-      <span className="truncate text-[22px] leading-none font-extrabold tracking-[-0.6px] tabular-nums">{tile.room.number}</span>
+      <span className="truncate text-lg leading-none font-extrabold tracking-[-0.4px] tabular-nums">{tile.room.number}</span>
       <span className={cn("truncate text-[11px] font-semibold", tile.kind === "occupied" && "font-medium text-white/80")}>{tile.caption}</span>
     </div>
   );
