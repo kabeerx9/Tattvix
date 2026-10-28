@@ -4,7 +4,7 @@ import type {
   IdentityDocumentImageAccessResponse,
   IdentityDocumentImageSide,
 } from "@tattvix/contracts";
-import { describeHotelIdentityAccess } from "@tattvix/api";
+import { countryName, describeHotelIdentityAccess, getStayKeyCard, localDayKey } from "@tattvix/api";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
@@ -32,7 +32,6 @@ import {
   LogOut,
   Printer,
   RefreshCw,
-  UserRound,
   UsersRound,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -42,12 +41,10 @@ import { toast } from "sonner";
 import { useHotelSubscription } from "@/features/subscription/use-hotel-subscription";
 import {
   ConfirmDialog,
-  Fact,
-  FactsRow,
+  FactList,
   Panel,
   PanelHeader,
   PanelSection,
-  StatusPill,
 } from "@/components/design-system";
 import { hotelOperationsMutations } from "@/features/hotel-operations/mutations";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
@@ -59,6 +56,7 @@ import { getInitials } from "@/lib/initials";
 import { formatMoneyMinor } from "@/lib/money";
 
 import { StayBillPanel } from "./stay-bill-panel";
+import { StayKeyCard } from "./stay-key-card";
 
 const STAY_PRINT_PAGE_STYLE = `
   @page {
@@ -273,26 +271,20 @@ export function HotelStayDetailPage({
       </Button>
 
       <div ref={printContentRef} className="stay-print-root grid gap-6">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-sm font-medium">{getInitials(stay.guestName)}</span>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h1 className="min-w-0 text-[22px] leading-tight font-semibold wrap-anywhere">{stay.guestName}</h1>
-                <StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
-                  {stay.operationalStatus === "PENDING_CHECK_IN" ? "Waiting for a room" : stay.operationalStatus === "CHECKED_IN" ? "Checked in" : "Checked out"}
-                </StatusPill>
-              </div>
-              <p className="mt-1 text-sm text-subtle-foreground tabular-nums">
-                {[
-                  stay.room ? `Room ${stay.room.number}` : null,
-                  roomPhotoUrl ? null : assignedRoom?.roomType,
-                  !roomPhotoUrl && assignedRoom?.floor ? `Floor ${assignedRoom.floor}` : null,
-                  `${1 + stay.companionCount} ${stay.companionCount === 0 ? "guest" : "guests"}`,
-                ].filter(Boolean).join(" · ")}
-              </p>
-            </div>
-          </div>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <StayKeyCard
+            card={getStayKeyCard(stay, localDayKey(new Date()))}
+            roomNumber={stay.room?.number ?? null}
+            roomDetail={[
+              assignedRoom?.roomType || null,
+              assignedRoom?.floor ? `Floor ${assignedRoom.floor}` : null,
+              assignedRoom?.nightlyRateMinor != null ? `${formatMoneyMinor(assignedRoom.nightlyRateMinor)} a night` : null,
+            ].filter(Boolean).join(" · ") || null}
+            guestName={stay.guestName}
+            initials={getInitials(stay.guestName)}
+            party={companionLine(stay)}
+            checkedIn={stay.checkedInAt ? `Checked in ${formatDateTime(stay.checkedInAt)}` : stay.submittedAt ? `Checked in on phone ${formatDateTime(stay.submittedAt)}` : null}
+          />
           <div className="stay-print-actions flex flex-wrap gap-2">
             {stay.snapshot ? (
               <Button
@@ -313,12 +305,6 @@ export function HotelStayDetailPage({
             ) : null}
           </div>
         </header>
-        <FactsRow>
-          <Fact label="Submitted" value={stay.submittedAt ? formatDateTime(stay.submittedAt) : "—"} />
-          {stay.checkedInAt ? <Fact label="Checked in" value={formatDateTime(stay.checkedInAt)} /> : null}
-          {stay.expectedCheckOutDate && stay.operationalStatus !== "CHECKED_OUT" ? <Fact label="Due out" value={formatDate(stay.expectedCheckOutDate)} /> : null}
-          {stay.checkedOutAt ? <Fact label="Checked out" value={formatDateTime(stay.checkedOutAt)} /> : null}
-        </FactsRow>
 
         {error ? (
           <p
@@ -400,6 +386,14 @@ export function HotelStayDetailPage({
         />
     </div>
   );
+}
+
+/** "+ Rohan Sharma", "+ Rohan Sharma and 1 more", or "1 guest" when travelling alone. */
+function companionLine(stay: HotelStayDetail) {
+  const names = stay.snapshot?.companions.map((companion) => `${companion.legalFirstName} ${companion.legalLastName}`.trim()) ?? [];
+  if (names.length) return `+ ${names[0]}${names.length > 1 ? ` and ${names.length - 1} more` : ""}`;
+  const people = 1 + stay.companionCount;
+  return `${people} ${people === 1 ? "guest" : "guests"}`;
 }
 
 function OperationalStayPanel({
@@ -533,21 +527,23 @@ function GuestIdentity({ stay }: { stay: HotelStayDetail }) {
     guest.city,
     guest.stateRegion,
     guest.postalCode,
-    guest.country,
+    guest.country ? countryName(guest.country) : null,
   ]
     .filter(Boolean)
     .join(", ");
 
   return (
-    <PanelSection className="app-surface rounded-none border-0 shadow-none">
-      <h2 className="flex items-center gap-2 text-sm font-semibold"><UserRound className="size-4 text-muted-foreground" />Guest</h2>
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4">
-        <Detail label="Phone" value={guest.phoneNumber} />
-        <Detail label="Date of birth" value={formatDate(guest.dateOfBirth)} />
-        <Detail label="Nationality" value={guest.nationality} />
-        <Detail className="col-span-2" label="Address" value={address} />
-      </div>
-    </PanelSection>
+    <section className="border-b border-border-soft">
+      <h2 className="px-5 pt-4 text-[13px] font-semibold text-muted-foreground">Guest</h2>
+      <FactList
+        facts={[
+          { label: "Phone", value: guest.phoneNumber || null, icon: "phone" },
+          { label: "Date of birth", value: guest.dateOfBirth ? formatDate(guest.dateOfBirth) : null, icon: "birthday" },
+          { label: "Nationality", value: guest.nationality ? countryName(guest.nationality) : null, icon: "nationality" },
+          { label: "Address", value: address || null, icon: "address" },
+        ]}
+      />
+    </section>
   );
 }
 
@@ -568,7 +564,7 @@ function DocumentIdentity({
     <PanelSection className="app-surface rounded-none border-0 shadow-none">
       <h2 className="flex items-center gap-2 text-sm font-semibold"><FileKey2 className="size-4 text-muted-foreground" />Identity</h2>
       <p className="mt-4 text-sm">{documentTypeLabel(document.documentType)} · {document.documentNumber}</p>
-      <p className="mt-1 text-xs text-subtle-foreground">Issued by {document.issuingCountry}{document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}</p>
+      <p className="mt-1 text-xs text-subtle-foreground">Issued by {countryName(document.issuingCountry)}{document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}</p>
       <Button className="stay-print-screen-only mt-2 px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>
         {imagesVisible ? "Hide images" : "View images"}
       </Button>

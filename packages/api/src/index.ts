@@ -109,7 +109,7 @@ export * from "./onboarding";
 export * from "./reviews";
 export * from "./referrals";
 export { countries, countryName, searchCountries, type Country } from "./countries";
-export { formatDay, formatTime, getReservationDetail, getTodayHeadline, partyLabel } from "./desk-format";
+export { formatDay, formatTime, getReservationDetail, getStayKeyCard, getTodayHeadline, partyLabel, type StayKeyCard } from "./desk-format";
 export {
   companionMissingFieldLabels,
   companionRowDetail,

@@ -1,26 +1,25 @@
 // A stay: status and facts, the one action it allows, and the identity the
 // guest shared. Document images are fetched only while shown and never cached
 // to disk (expo-image cachePolicy "none"): this is a shared desk phone.
-import { describeHotelIdentityAccess, formatMoneyWholeRupees, getStayStatus, localDayKey, stayStatusLabel } from "@tattvix/api";
+import { countryName, describeHotelIdentityAccess, formatMoneyWholeRupees, getStayKeyCard, localDayKey } from "@tattvix/api";
 import type { HotelStayDetail, IdentityDocumentImageSide } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { FileKey2, ShieldOff, UserRound, UsersRound } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { BillSection } from "@/src/components/bill-section";
 import { StaySheet } from "@/src/components/desk-sheets";
+import { StayKeyCard } from "@/src/components/stay-key-card";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { Button, Card, ConfirmSheet, InitialsAvatar, Screen, SecondaryHeader, Spinner, StatusPill, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
+import { Button, Card, ConfirmSheet, FactRow, GroupTitle, Panel, Screen, SecondaryHeader, Spinner, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
-import { documentTypeLabel, errorMessage, formatDate, formatDateTime, formatDay, initialsOf, partyLabel } from "@/src/lib/format";
+import { documentTypeLabel, errorMessage, formatDate, formatDateTime, initialsOf, partyLabel } from "@/src/lib/format";
 import { hotelMutations } from "@/src/lib/hotel-mutations";
 import { useHotelPlace } from "@/src/lib/hotel-place";
 
-const pillTone = { PENDING_CHECK_IN: "warning", CHECKED_IN: "success", CHECKED_OUT: "neutral" } as const;
 
 export default function StayDetailScreen() {
   const place = useHotelPlace();
@@ -44,7 +43,6 @@ export default function StayDetailScreen() {
   const rooms = roomQuery.data?.rooms ?? [];
   const room = stay.room ? rooms.find((entry) => entry.id === stay.room!.id) : undefined;
   const todayKey = localDayKey(new Date());
-  const status = getStayStatus(stay, todayKey);
   const waiting = stay.operationalStatus === "PENDING_CHECK_IN";
   const inHouse = stay.operationalStatus === "CHECKED_IN";
 
@@ -68,24 +66,15 @@ export default function StayDetailScreen() {
     <Screen refreshing={stayQuery.isFetching && !stayQuery.isPending} onRefresh={() => void stayQuery.refetch()}>
       <SecondaryHeader title="Stay" onBack={() => router.back()} />
 
-      <View style={styles.hero}>
-        <InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} />
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={styles.name}>{stay.guestName}</Text>
-          <Text style={styles.meta}>
-            {partyLabel(stay)}
-            {room ? ` · Room ${room.number}${room.roomType ? `, ${room.roomType}` : ""}` : ""}
-          </Text>
-          <StatusPill tone={status.tone === "danger" ? "destructive" : pillTone[stay.operationalStatus]}>{status.tone === "danger" ? status.label : stayStatusLabel(stay.operationalStatus)}</StatusPill>
-        </View>
-      </View>
-
-      <View style={styles.facts}>
-        <Fact label={stay.checkedInAt ? "Checked in" : "Submitted"}>{formatDateTime(stay.checkedInAt ?? stay.submittedAt)}</Fact>
-        <Fact label={stay.checkedOutAt ? "Checked out" : "Due out"}>{stay.checkedOutAt ? formatDateTime(stay.checkedOutAt) : formatDay(stay.expectedCheckOutDate, todayKey)}</Fact>
-        <Fact label="Room">{room ? `${room.number}${room.floor ? ` · Floor ${room.floor}` : ""}` : "Not assigned"}</Fact>
-        <Fact label="Nightly rate">{room?.nightlyRateMinor != null ? formatMoneyWholeRupees(room.nightlyRateMinor) : "—"}</Fact>
-      </View>
+      <StayKeyCard
+        card={getStayKeyCard(stay, todayKey)}
+        roomNumber={stay.room?.number ?? null}
+        roomDetail={[room?.roomType || null, room?.floor ? `Floor ${room.floor}` : null, room?.nightlyRateMinor != null ? `${formatMoneyWholeRupees(room.nightlyRateMinor)} a night` : null].filter(Boolean).join(" · ") || null}
+        guestName={stay.guestName}
+        initials={initialsOf(stay.guestName)}
+        party={companionLine(stay)}
+        checkedIn={stay.checkedInAt ? `Checked in ${formatDateTime(stay.checkedInAt)}` : stay.submittedAt ? `Checked in on phone ${formatDateTime(stay.submittedAt)}` : null}
+      />
 
       {waiting && scope.canAssign ? (
         <View style={styles.action}>
@@ -119,27 +108,19 @@ export default function StayDetailScreen() {
   );
 }
 
-function Fact({ label, children }: { label: string; children: string }) {
-  return (
-    <View style={styles.fact}>
-      <Text style={styles.factLabel}>{label}</Text>
-      <Text style={styles.factValue} numberOfLines={1}>
-        {children}
-      </Text>
-    </View>
-  );
+/** "+ Rohan Sharma", "+ Rohan Sharma and 1 more", or "1 guest" when travelling alone. */
+function companionLine(stay: HotelStayDetail) {
+  const names = stay.snapshot?.companions.map((companion) => `${companion.legalFirstName} ${companion.legalLastName}`.trim()) ?? [];
+  if (names.length) return `+ ${names[0]}${names.length > 1 ? ` and ${names.length - 1} more` : ""}`;
+  return partyLabel(stay);
 }
 
-function Section({ icon: Icon, title, meta, children }: { icon: typeof UserRound; title: string; meta?: string; children: ReactNode }) {
+function Section({ title, meta, flush, children }: { title: string; meta?: string; flush?: boolean; children: ReactNode }) {
   return (
-    <Card style={styles.sectionCard}>
-      <View style={styles.sectionHead}>
-        <Icon color={colors.mutedForeground} size={18} strokeWidth={1.8} />
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-      </View>
-      {children}
-    </Card>
+    <View style={styles.section}>
+      <GroupTitle action={meta ? <Text style={styles.meta}>{meta}</Text> : undefined}>{title}</GroupTitle>
+      {flush ? <Panel>{children}</Panel> : <Card>{children}</Card>}
+    </View>
   );
 }
 
@@ -147,36 +128,31 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
   const [imagesVisible, setImagesVisible] = useState(false);
   if (!stay.snapshot) {
     return (
-      <Section icon={ShieldOff} title="Identity">
+      <Section title="Identity">
         <Text style={styles.meta}>{stay.identityAccess.reason === "REVOKED" ? "The guest revoked identity access." : stay.identityAccess.reason === "NOT_SUBMITTED" ? "The guest has not shared an ID yet." : "Identity access has ended."}</Text>
       </Section>
     );
   }
   const { guest, document, companions, images } = stay.snapshot;
-  const address = [guest.addressLine1, guest.addressLine2, guest.city, guest.stateRegion, guest.postalCode, guest.country].filter(Boolean).join(", ");
+  const address = [guest.addressLine1, guest.addressLine2, guest.city, guest.stateRegion, guest.postalCode, guest.country ? countryName(guest.country) : null].filter(Boolean).join(", ");
   const anyImages = images.length > 0 || companions.some((companion) => companion.images.length > 0);
   const accessLine = describeHotelIdentityAccess(stay);
 
   return (
     <>
-      <Section icon={UserRound} title="Guest">
-        <View style={styles.facts}>
-          <Fact label="Phone">{guest.phoneNumber || "—"}</Fact>
-          <Fact label="Date of birth">{formatDate(guest.dateOfBirth || null)}</Fact>
-          <Fact label="Nationality">{guest.nationality || "—"}</Fact>
-          <View style={[styles.fact, { width: "100%" }]}>
-            <Text style={styles.factLabel}>Address</Text>
-            <Text style={styles.factValue}>{address || "—"}</Text>
-          </View>
-        </View>
+      <Section title="Guest" flush>
+        <FactRow label="Phone" value={guest.phoneNumber || null} icon="phone" />
+        <FactRow label="Date of birth" value={guest.dateOfBirth ? formatDate(guest.dateOfBirth) : null} icon="birthday" />
+        <FactRow label="Nationality" value={guest.nationality ? countryName(guest.nationality) : null} icon="nationality" />
+        <FactRow label="Address" value={address || null} icon="address" />
       </Section>
 
-      <Section icon={FileKey2} title="Identity">
+      <Section title="Identity">
         <Text style={styles.body}>
           {documentTypeLabel(document.documentType)} · {document.documentNumber}
         </Text>
         <Text style={styles.meta}>
-          Issued by {document.issuingCountry.toUpperCase()}
+          Issued by {countryName(document.issuingCountry)}
           {document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}
         </Text>
         {accessLine ? <Text style={[styles.meta, { marginTop: 4 }]}>{accessLine}</Text> : null}
@@ -196,7 +172,7 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
       </Section>
 
       {companions.length ? (
-        <Section icon={UsersRound} title="Companions" meta={String(companions.length)}>
+        <Section title="Companions" meta={String(companions.length)}>
           <View style={{ gap: space.lg }}>
             {companions.map((companion, index) => (
               <View key={`${companion.legalFirstName}-${index}`} style={{ gap: 2 }}>
@@ -259,18 +235,10 @@ function DocumentImage({ side, scope, stayId, companionId }: { side: IdentityDoc
 }
 
 const styles = StyleSheet.create({
-  hero: { flexDirection: "row", alignItems: "center", gap: space.lg, marginTop: space.lg },
-  name: { ...type.pageTitle, color: colors.foreground },
+  section: { marginTop: space.xl, gap: space.sm },
   meta: { ...type.meta, color: colors.mutedForeground },
   body: { ...type.body, color: colors.foreground },
-  facts: { flexDirection: "row", flexWrap: "wrap", rowGap: space.lg, marginTop: space.xl },
-  fact: { width: "50%", gap: 2, paddingRight: space.md },
-  factLabel: { ...type.label, color: colors.subtleForeground },
-  factValue: { ...type.rowTitle, color: colors.foreground },
   action: { marginTop: space.xl },
-  sectionCard: { marginTop: space.lg },
-  sectionHead: { flexDirection: "row", alignItems: "center", gap: space.sm, marginBottom: space.md },
-  sectionTitle: { ...type.cardTitle, color: colors.foreground, flex: 1 },
   images: { gap: space.md, marginTop: space.md },
   imageBox: { borderRadius: radii.photo, backgroundColor: colors.muted, overflow: "hidden" },
   imageHead: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },

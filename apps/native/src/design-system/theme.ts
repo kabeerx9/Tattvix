@@ -25,6 +25,15 @@ export const colors = {
   scrim: "rgba(0,0,0,0.35)",
 } as const;
 
+// The stay key card (hotel stay detail): the brand rose deepened to aubergine,
+// with solid status fills that read on it. Web mirrors these in stay-key-card.tsx.
+export const keyCard = {
+  gradient: ["#8c1340", "#4a0d29", "#250716"] as const,
+  success: "#12924f",
+  warning: "#d97706",
+  danger: "#dc2626",
+} as const;
+
 export const radii = {
   card: 16,
   sheet: 20,
