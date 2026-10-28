@@ -103,18 +103,20 @@ buttons, cards, inputs, sheets, pills or empty states.
 | Primitive | Role | Notes |
 |---|---|---|
 | `Screen` | Safe-area aware scroll container with the 20 gutter and tab-bar clearance | `scroll` or `fixed` |
+| `HeroScreen` + `HeroAction` | Photo-led hub screen (hotel Today on the hotel's cover, guest Home and guest tab pages on travel photos): title on a scrim, white sheet overlapping by 24, photo parallax at half speed, compact solid title bar and dark status bar once scrolled past | `size` `hub` 260 / `page` 196; no photo or a failed load falls back to `Screen` + `LargeTitle`; never a stand-in photo for a hotel. `HeroAction` is the white chip pinned top-right |
+| `Enter` | Staggered entrance for sections: fade + 10 up, 320ms `easeOut`, 40ms per `index` | reduced motion: 200ms fade only |
 | `LargeTitle` / `PageTitle` / `SectionTitle` | Title + optional meta line + optional trailing `action` (text link) | |
 | `Button` | `primary` (rose) · `outline` (1px foreground border) · `ghost` (muted fill) · `destructive` text | sizes `md` 44 / `sm` 38; `loading` swaps label for a spinner; press scales to 0.97 |
 | `TextField` | Labelled input, 50 tall, `input` outline, focus ring = 2px `primary` at 55% | label above, helper/error below |
 | `Card` | White, border, `shadows.card`, radius 16, padding 16 | |
 | `Panel` + `PanelRow` | A `Card` with zero padding whose children are rows divided by `borderSoft` | rows: optional leading icon / avatar, title, detail, trailing (`chevron`, badge, value) |
 | `ListRow` | The row used inside `Panel` and in plain lists | whole row is pressable when `onPress` is given |
-| `StatusPill` | `neutral` · `success` · `warning` · `destructive`; 12/600 text on the `*Tint` fill | |
-| `PillTabs` | Horizontal, scrolling, pick-one tabs with counts; selected = `foreground` fill, white text | |
+| `StatusPill` | `neutral` · `success` · `warning` · `destructive`; 12/600 text on the `*Tint` fill | `onPhoto`: solid white chip for a badge over a photo |
+| `PillTabs` | Horizontal, scrolling, pick-one tabs with counts; selected = `foreground` fill, white text | the fill slides between pills (220ms `easeInOut`); reduced motion jumps |
 | `Rail` | Horizontal scroll row bleeding to the edge, snap to item, `auto-cols` as a percentage prop | |
 | `Kpi` | Label (14 muted) over value (26/600) inside a `Card` | never with an icon |
 | `InitialsAvatar` | Circle, `muted` fill, 600 initials; sizes 40 / 44 | |
-| `PhotoTile` | 4:3 photo with a bottom scrim and a white label; muted placeholder block when no photo | |
+| `PhotoTile` | Photo (`expo-image`, cached, 200ms fade) with a bottom scrim and a white label; muted placeholder block when no photo | `aspectRatio` (4:3 default), `radius`, top-left `badge`, `emptyText` for "No photo yet" |
 | `EmptyState` | Bare muted line icon, one line of what belongs here, one `Button` | |
 | `BottomSheet` | Drag-to-dismiss sheet: grab handle, 20 top radius, `shadows.raised`, scrim; enters 240ms `easeDrawer`, exits 180ms | one primary action in its footer |
 | `ConfirmSheet` | A `BottomSheet` with title, one line, primary/destructive + cancel | used for charge void, sign out |

@@ -10,8 +10,9 @@ import { useRouter, type Href } from "expo-router";
 import { UsersRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, LargeTitle, ListRow, Panel, Screen, Spinner, StatusPill, colors, radii, space, type } from "@/src/design-system";
+import { Button, Card, Enter, HeroScreen, ListRow, Panel, Spinner, StatusPill, colors, radii, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
+import { travelImages } from "@/src/lib/travel-images";
 
 const requiredFieldCount = guestProfileMissingFieldSchema.options.length;
 
@@ -25,16 +26,16 @@ export default function GuestHome() {
   const loading = stays.isPending || (!stay && profile.isPending);
 
   return (
-    <Screen
+    <HeroScreen
+      image={travelImages.home}
+      title={`Hello, ${name}`}
       refreshing={(stays.isFetching && !stays.isPending) || (profile.isFetching && !profile.isPending)}
       onRefresh={() => {
         void stays.refetch();
         void profile.refetch();
       }}
     >
-      <LargeTitle>{`Hello, ${name}`}</LargeTitle>
-
-      <View style={styles.section}>
+      <Enter style={styles.first}>
         {loading ? (
           <View style={styles.center}>
             <Spinner color={colors.mutedForeground} />
@@ -51,14 +52,14 @@ export default function GuestHome() {
             </View>
           </Card>
         )}
-      </View>
+      </Enter>
 
-      <View style={styles.section}>
+      <Enter index={1} style={styles.section}>
         <Panel>
           <ListRow icon={UsersRound} title="Companions" detail="People you travel with" chevron onPress={() => router.push("/(guest)/companions" as Href)} />
         </Panel>
-      </View>
-    </Screen>
+      </Enter>
+    </HeroScreen>
   );
 }
 
@@ -109,6 +110,7 @@ function ReadinessCard({ missing, onOpenProfile }: { missing: number; onOpenProf
 }
 
 const styles = StyleSheet.create({
+  first: { gap: space.md },
   section: { marginTop: space.xxl, gap: space.md },
   center: { alignItems: "center", paddingVertical: space.xxxl },
   eyebrow: { ...type.label, color: colors.subtleForeground },

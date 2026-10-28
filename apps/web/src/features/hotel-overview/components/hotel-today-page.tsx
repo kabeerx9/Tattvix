@@ -3,7 +3,7 @@
 // nudge, a rail of rooms ready for check-in, housekeeping, and tonight's
 // occupancy. Detail and actions
 // open in a bottom sheet (phones) or dialog (tablet and up).
-import { getReservationDetail, stayStatusLabel } from "@tattvix/api";
+import { getReservationDetail, getTodayHeadline, stayStatusLabel } from "@tattvix/api";
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { PillTabs } from "@tattvix/ui/components/pill-tabs";
@@ -15,7 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { BedDouble, BrushCleaning, ChevronRight, DoorOpen, QrCode, Sparkles, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import { InitialsAvatar, LargeTitle, ListRow, SectionTitle } from "@/components/design-system";
+import { InitialsAvatar, LargeTitle, ListRow, PhotoHero, SectionTitle, StatusPill } from "@/components/design-system";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { getRoomTypePhotoUrl } from "@/features/property-photos/helpers";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
@@ -77,16 +77,20 @@ export function HotelTodayPage({
   const readyRooms = getReadyRooms(roomData.rooms);
   const params = { organizationSlug, propertySlug };
   const shown = groups[tab];
+  const headline = getTodayHeadline({ waiting: groups.arriving.length, checkingOut: groups.checkingOut.length, checkedIn: groups.inHouse.length });
+  const cover = photos?.cover?.url;
 
   return (
     <div className="grid gap-12">
-      <LargeTitle title="Today" meta={`${longDate.format(today)} · ${propertyName}`} />
+      {/* The hotel's own cover leads the page; without one (or while it loads) a plain title. */}
+      {cover ? (
+        <PhotoHero src={cover} eyebrow={longDate.format(today)} title={propertyName} />
+      ) : (
+        <LargeTitle title={propertyName} meta={longDate.format(today)} />
+      )}
 
       <section className="grid gap-4">
-        <SectionTitle
-          title="Your reservations"
-          meta={summaryLine(groups.arriving.length, groups.checkingOut.length)}
-        />
+        <SectionTitle title={headline.title} meta={headline.detail} />
         <PillTabs
           label="Reservation status"
           value={tab}
@@ -116,7 +120,7 @@ export function HotelTodayPage({
 
       <section className="grid gap-4">
         <SectionTitle
-          title="Ready to check in"
+          title="Ready tonight"
           meta={
             readyRooms.length
               ? `${readyRooms.length} ${readyRooms.length === 1 ? "room is" : "rooms are"} clean and free tonight`
@@ -174,14 +178,6 @@ export function HotelTodayPage({
       <RoomSheet scope={scope} roomId={roomId} rooms={roomData.rooms} photos={photos} onClose={() => setRoomId(null)} />
     </div>
   );
-}
-
-function summaryLine(waiting: number, leaving: number) {
-  if (!waiting && !leaving) return "Nothing needs you right now";
-  const parts = [];
-  if (waiting) parts.push(`${waiting} waiting for a room`);
-  if (leaving) parts.push(`${leaving} checking out`);
-  return parts.join(" · ");
 }
 
 function average(values: number[]) {
@@ -248,7 +244,12 @@ function ReadyRoomCard({
       className="press enter-up min-w-0 self-start rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       style={{ "--i": index } as React.CSSProperties}
     >
-      <RoomPhoto url={getRoomTypePhotoUrl(photos, room.roomType)} className="aspect-square w-full rounded-xl" />
+      <span className="relative block">
+        <RoomPhoto url={getRoomTypePhotoUrl(photos, room.roomType)} className="aspect-square w-full rounded-xl" />
+        <span className="absolute top-2.5 left-2.5">
+          <StatusPill tone="onPhoto">Ready</StatusPill>
+        </span>
+      </span>
       <span className="mt-2.5 block text-[15px] font-semibold tabular-nums">Room {room.number}</span>
       <span className="block truncate text-sm text-muted-foreground">
         {[room.roomType, room.floor ? `Floor ${room.floor}` : null].filter(Boolean).join(" · ") || "Ready"}

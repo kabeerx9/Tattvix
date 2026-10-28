@@ -151,7 +151,7 @@ non-React copies must stay in sync with its paths:
 
 ## Page anatomy
 
-1. **Header row:** title (+ meta) on the left, at most one primary action on the right. No eyebrow, no description paragraph, no hero.
+1. **Header row:** title (+ meta) on the left, at most one primary action on the right. No eyebrow, no description paragraph. The one exception is a **photo hero** on hubs (`PhotoHero`): hotel Today over the hotel's own cover (date above the property name), and guest Home over a travel photo. A hotel without a cover gets the plain `LargeTitle`; never a stand-in photo.
 2. **Optional `KpiStrip`:** one bordered container with vertical dividers — not separate cards.
 3. **Work area.** Detail screens use **main + side** (~64/36): the task (bill, table, form) in main; context (guest, companions, identity, activity) in a single side `Panel` with divided sections.
 
@@ -241,7 +241,7 @@ action the UI doesn't actually have.
 - Semantic tokens only; no raw palette classes, no `dark:` variants.
 - Accent only where the accent rule allows; no icon tiles; icons neutral.
 - Motion uses the tokens, has a purpose, and handles reduced motion.
-- No hero header, no eyebrow, no box in a box, each fact once, one primary action.
+- No hero header outside the hub `PhotoHero`, no eyebrow, no box in a box, each fact once, one primary action.
 - Numbers tabular; selects show labels; clickable rows are fully clickable.
 - Loading, empty, error, disabled and narrow-screen states covered.
 - No implementation/debug detail in user-facing copy.

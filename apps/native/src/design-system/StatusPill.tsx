@@ -7,6 +7,8 @@ const tones = {
   success: { backgroundColor: colors.successTint, color: colors.success },
   warning: { backgroundColor: colors.warningTint, color: colors.warning },
   destructive: { backgroundColor: colors.destructiveTint, color: colors.destructive },
+  // Over a photo: a solid white chip so the status reads on any image.
+  onPhoto: { backgroundColor: "#ffffff", color: colors.success },
 } as const satisfies Record<string, { backgroundColor: ColorValue; color: ColorValue }>;
 
 export function StatusPill({ tone = "neutral", children }: { tone?: keyof typeof tones; children: string }) {

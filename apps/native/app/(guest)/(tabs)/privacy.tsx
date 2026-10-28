@@ -22,9 +22,8 @@ import {
   EmptyState,
   Kpi,
   KpiRow,
-  LargeTitle,
   Panel,
-  Screen,
+  HeroScreen,
   SectionTitle,
   Spinner,
   StatusPill,
@@ -34,6 +33,7 @@ import {
   type,
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
+import { travelImages } from "@/src/lib/travel-images";
 import { errorMessage } from "@/src/lib/format";
 
 export default function PrivacyScreen() {
@@ -76,9 +76,7 @@ export default function PrivacyScreen() {
   );
 
   return (
-    <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
-      <LargeTitle meta="See what is shared, with whom, and for how long.">Hotel access history</LargeTitle>
-
+    <HeroScreen image={travelImages.privacy} size="page" title="Hotel access history" subtitle="See what is shared, with whom, and for how long." refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
       {query.isPending ? (
         <View style={styles.center}>
           <Spinner color={colors.mutedForeground} />
@@ -149,7 +147,7 @@ export default function PrivacyScreen() {
           if (revokeTarget) revoke.mutate(revokeTarget.id);
         }}
       />
-    </Screen>
+    </HeroScreen>
   );
 }
 

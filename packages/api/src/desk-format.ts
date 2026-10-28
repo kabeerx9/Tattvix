@@ -36,3 +36,16 @@ export function getReservationDetail(
   const overdue = due < todayKey;
   return { text: `${place ?? "No room yet"} · ${overdue ? "overdue, due out" : "due out"} ${formatDay(due, todayKey, true)}`, overdue };
 }
+
+/** The line over Today's list: the most pressing count first, the rest beneath it. */
+export function getTodayHeadline({ waiting, checkingOut, checkedIn }: { waiting: number; checkingOut: number; checkedIn: number }) {
+  const rest = (parts: (string | null)[], empty: string) => parts.filter(Boolean).join(" · ") || empty;
+  if (waiting)
+    return {
+      title: `${waiting} ${waiting === 1 ? "guest needs" : "guests need"} a room`,
+      detail: rest([checkingOut ? `${checkingOut} checking out` : null, checkedIn ? `${checkedIn} checked in` : null], "No one else at the desk yet"),
+    };
+  if (checkingOut) return { title: `${checkingOut} checking out today`, detail: rest([checkedIn ? `${checkedIn} checked in` : null], "No one else is staying") };
+  if (checkedIn) return { title: `${checkedIn} checked in`, detail: "No arrivals or checkouts waiting" };
+  return { title: "All quiet at the desk", detail: "New check-ins appear here as guests scan your QR" };
+}

@@ -330,6 +330,8 @@ const statusPillTones = {
   warning: "bg-warning-tint text-warning",
   danger: "bg-destructive-tint text-destructive",
   neutral: "bg-muted text-muted-foreground",
+  // Over a photo: a solid white chip so the status reads on any image.
+  onPhoto: "bg-background text-success shadow-sm",
 } as const;
 
 export function StatusPill({
@@ -393,6 +395,41 @@ export function PageCover({ src, className }: { src: string; className?: string 
         className="h-32 w-full object-cover sm:h-40"
       />
     </div>
+  );
+}
+
+/**
+ * Photo-led page head for hubs (hotel Today, guest Home): the photo fills a
+ * tall block and the title sits on a scrim, so it reads on any image. Hotel
+ * pages pass the hotel's own cover only; without one they use LargeTitle.
+ * Mirrors apps/native/src/design-system/HeroScreen.tsx.
+ */
+export function PhotoHero({
+  src,
+  eyebrow,
+  title,
+  className,
+}: {
+  src: string;
+  eyebrow?: React.ReactNode;
+  title: string;
+  className?: string;
+}) {
+  return (
+    <section className={cn("relative overflow-hidden rounded-lg bg-muted", className)}>
+      <img src={src} alt="" decoding="async" className="h-52 w-full object-cover sm:h-64" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-6">
+        {eyebrow ? <p className="text-sm text-white/85">{eyebrow}</p> : null}
+        {/* Email-only names are unbreakable: break anywhere, cap at two lines. */}
+        <h1
+          title={title}
+          className="mt-0.5 line-clamp-2 text-[28px] leading-[1.15] font-bold tracking-[-0.03em] text-white [overflow-wrap:anywhere] md:text-[34px]"
+        >
+          {title}
+        </h1>
+      </div>
+    </section>
   );
 }
 

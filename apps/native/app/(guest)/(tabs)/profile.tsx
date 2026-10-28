@@ -11,9 +11,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { Button, Card, LargeTitle, Screen, SectionTitle, StatusPill, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
+import { Button, Card, HeroAction, HeroScreen, SectionTitle, StatusPill, TextField, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
+import { travelImages } from "@/src/lib/travel-images";
 
 type Form = Omit<GuestProfileInput, "dateOfBirth"> & { dateOfBirth: string };
 type FormKey = keyof Form;
@@ -98,8 +99,14 @@ export default function ProfileScreen() {
   );
 
   return (
-    <Screen refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}>
-      <LargeTitle meta="Keep the essentials ready and choose what is shared at check-in." action={<TextLink label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}>Profile</LargeTitle>
+    <HeroScreen
+      image={travelImages.profile}
+      size="page"
+      title="Profile"
+      subtitle="Keep the essentials ready and choose what is shared at check-in."
+      action={<HeroAction label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}
+      refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}
+    >
 
       {onboarding === "identity" ? <View style={styles.identityNote}><Text style={styles.meta}>Your next task is in Identity documents below. Add a government ID and its required photos.</Text></View> : null}
 
@@ -164,7 +171,7 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <IdentityDocumentsSection />
       </View>
-    </Screen>
+    </HeroScreen>
   );
 }
 

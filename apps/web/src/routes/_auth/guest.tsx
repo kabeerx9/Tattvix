@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
-import { Panel, StatusPill } from "@/components/design-system";
+import { Panel, PhotoHero, StatusPill } from "@/components/design-system";
 import { checkInQueries } from "@/features/check-in/queries";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { travelImages } from "@/lib/travel-images";
@@ -34,25 +34,8 @@ function GuestHomePage() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
-      {/* Hero: the photo is decorative; the scrim keeps the heading legible on any image. */}
-      <section className="relative overflow-hidden rounded-lg bg-muted">
-        <img
-          src={travelImages.home}
-          alt=""
-          decoding="async"
-          className="h-44 w-full object-cover sm:h-52"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-6">
-          {/* Email-only accounts greet with an unbreakable address: break anywhere, cap at two lines. */}
-          <h1
-            title={displayName}
-            className="line-clamp-2 text-[26px] font-semibold tracking-[-0.02em] text-white [overflow-wrap:anywhere]"
-          >
-            Hello, {displayName}
-          </h1>
-        </div>
-      </section>
+      {/* Decorative photo; the scrim keeps the greeting legible on any image. */}
+      <PhotoHero src={travelImages.home} title={`Hello, ${displayName}`} />
 
       {loading ? (
         <Panel className="p-6">

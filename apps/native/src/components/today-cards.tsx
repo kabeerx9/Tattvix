@@ -5,8 +5,10 @@ import { formatMoneyWholeRupees, getReservationDetail, getRoomStats, getStayCard
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { BrushCleaning } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { Button, Card, InitialsAvatar, ListRow, Panel, PhotoTile, colors, radii, space, type } from "@/src/design-system";
+import { Button, Card, InitialsAvatar, ListRow, Panel, PhotoTile, StatusPill, colors, radii, space, type } from "@/src/design-system";
+import { usePressFeedback } from "@/src/design-system/press";
 import type { DeskScope } from "@/src/lib/desk-scope";
 import { formatDay, formatTime, initialsOf, partyLabel, roomMeta } from "@/src/lib/format";
 
@@ -40,20 +42,16 @@ export function ReservationList({ stays, rooms, todayKey, scope, onOpen }: { sta
 }
 
 export function ReadyRoomCard({ room, photos, onOpen }: { room: HotelRoom; photos?: PropertyPhotosResponse; onOpen: () => void }) {
+  const press = usePressFeedback();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Room ${room.number}`} onPress={onOpen} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
-      <PhotoTile uri={roomPhotoUrl(photos, room.roomType)} />
-      <Text style={[styles.rowTitle, { marginTop: 10 }]}>Room {room.number}</Text>
-      <Text style={styles.meta} numberOfLines={1}>
-        {roomMeta(room) || "Ready"}
-      </Text>
-      {room.nightlyRateMinor !== null ? (
-        <Text style={styles.meta}>
-          <Text style={styles.rate}>{formatMoneyWholeRupees(room.nightlyRateMinor)}</Text> night
+    <Pressable accessibilityRole="button" accessibilityLabel={`Room ${room.number}`} onPress={onOpen} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+      <Animated.View style={press.style}>
+        <PhotoTile uri={roomPhotoUrl(photos, room.roomType)} radius={radii.card} emptyText badge={<StatusPill tone="onPhoto">Ready</StatusPill>} />
+        <Text style={[styles.roomTitle, { marginTop: 10 }]}>Room {room.number}</Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {[roomMeta(room), room.nightlyRateMinor !== null ? `${formatMoneyWholeRupees(room.nightlyRateMinor)} night` : "No nightly rate yet"].filter(Boolean).join(" · ")}
         </Text>
-      ) : (
-        <Text style={styles.meta}>No nightly rate yet</Text>
-      )}
+      </Animated.View>
     </Pressable>
   );
 }
@@ -137,6 +135,7 @@ export function Tonight({ rooms, averagePercent, revenueMinor }: { rooms: HotelR
 const styles = StyleSheet.create({
   meta: { ...type.meta, color: colors.mutedForeground },
   rowTitle: { ...type.rowTitle, color: colors.foreground, fontVariant: ["tabular-nums"] },
+  roomTitle: { ...type.cardTitle, fontSize: 16, color: colors.foreground },
   rate: { fontFamily: type.rowTitle.fontFamily, color: colors.foreground },
   cardTitle: { ...type.cardTitle, color: colors.foreground, marginBottom: 2 },
   body: { ...type.body, color: colors.foreground },

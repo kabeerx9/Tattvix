@@ -1,7 +1,7 @@
 // Today: reservation pill tabs over a list of guests, a quiet setup nudge, a
 // rail of rooms ready for check-in, housekeeping and tonight's occupancy.
 // Actions open in sheets.
-import { getDefaultReservationTab, getHotelOnboarding, getOccupancyTrend, getReadyRooms, getReservationGroups, localDayKey, onboardingStorageKey, stayStatusLabel, type ReservationTab } from "@tattvix/api";
+import { getDefaultReservationTab, getHotelOnboarding, getOccupancyTrend, getReadyRooms, getReservationGroups, getTodayHeadline, localDayKey, onboardingStorageKey, stayStatusLabel, type ReservationTab } from "@tattvix/api";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { BedDouble, DoorOpen, QrCode, Sparkles } from "lucide-react-native";
@@ -12,7 +12,7 @@ import { RoomSheet, StaySheet } from "@/src/components/desk-sheets";
 import { OnboardingPrompt } from "@/src/components/onboarding";
 import { Housekeeping, ReadyRoomCard, ReservationList, Tonight } from "@/src/components/today-cards";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { EmptyState, LargeTitle, PillTabs, Rail, Screen, SectionTitle, TextLink, colors, radii, space, type } from "@/src/design-system";
+import { EmptyState, Enter, HeroAction, HeroScreen, PillTabs, Rail, SectionTitle, TextLink, colors, fonts, radii, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { getDeskScope } from "@/src/lib/desk-scope";
@@ -75,6 +75,7 @@ export default function TodayScreen() {
   const trend = getOccupancyTrend(summaryQuery.data).map((entry) => entry.percent);
   const averagePercent = trend.length ? Math.round(trend.reduce((sum, value) => sum + value, 0) / trend.length) : null;
   const empty = emptyCopy[activeTab];
+  const headline = getTodayHeadline({ waiting: groups.arriving.length, checkingOut: groups.checkingOut.length, checkedIn: groups.inHouse.length });
   const guide = canManageSetup && details.data && !details.isError ? getHotelOnboarding({
     details: details.data,
     rooms,
@@ -83,13 +84,20 @@ export default function TodayScreen() {
   }) : null;
 
   return (
-    <Screen refreshing={core.some((query) => query.isFetching && !query.isPending)} onRefresh={refetchAll}>
-      <LargeTitle meta={`${formatLongDate(today)} · ${place.propertyName}`} action={<TextLink label="Check-in QR" onPress={() => router.push(`${base}/desk-qr` as Href)} />}>
-        Today
-      </LargeTitle>
+    <HeroScreen
+      image={photos.data?.cover?.url}
+      eyebrow={formatLongDate(today)}
+      title={place.propertyName}
+      action={<HeroAction label="Check-in QR" icon={QrCode} onPress={() => router.push(`${base}/desk-qr` as Href)} />}
+      refreshing={core.some((query) => query.isFetching && !query.isPending)}
+      onRefresh={refetchAll}
+    >
+      <Enter>
+        <Text style={styles.headline}>{headline.title}</Text>
+        <Text style={styles.headlineDetail}>{headline.detail}</Text>
+      </Enter>
 
-      <View style={styles.section}>
-        <SectionTitle meta={summaryLine(groups.arriving.length, groups.checkingOut.length)}>Your reservations</SectionTitle>
+      <Enter index={1} style={styles.firstSection}>
         <PillTabs items={tabOrder.map((key) => ({ key, label: tabLabels[key], count: groups[key].length }))} value={activeTab} onChange={(key) => setTab(key as ReservationTab)} />
         {shown.length ? (
           <View style={styles.list}>
@@ -108,17 +116,17 @@ export default function TodayScreen() {
           if (dismissalKey) dismissOnboarding(dismissalKey);
           setDismissed(true);
         }} /></View> : null}
-      </View>
+      </Enter>
 
-      <View style={styles.section}>
+      <Enter index={2} style={styles.section}>
         <SectionTitle
           meta={readyRooms.length ? `${readyRooms.length} ${readyRooms.length === 1 ? "room is" : "rooms are"} clean and free tonight` : rooms.length ? "No room is ready right now" : scope.canManageRooms ? "Add rooms to start checking guests in" : "Your owner can add rooms to get started"}
           action={<TextLink label="All rooms" onPress={() => router.push(`${base}/rooms` as Href)} />}
         >
-          Ready to check in
+          Ready tonight
         </SectionTitle>
         {readyRooms.length ? (
-          <Rail autoCols={46}>
+          <Rail autoCols={62}>
             {readyRooms.map((room) => (
               <ReadyRoomCard key={room.id} room={room} photos={photos.data} onOpen={() => setRoomId(room.id)} />
             ))}
@@ -129,12 +137,12 @@ export default function TodayScreen() {
             <Text style={styles.quietText}>{rooms.length ? "Rooms show up here once they are cleaned and marked ready." : "This property has no rooms yet."}</Text>
           </View>
         )}
-      </View>
+      </Enter>
 
-      <View style={[styles.section, { gap: space.md }]}>
+      <Enter index={3} style={[styles.section, { gap: space.md }]}>
         <Housekeeping rooms={rooms} scope={scope} onOpenRoom={setRoomId} />
         <Tonight rooms={rooms} averagePercent={averagePercent} revenueMinor={summaryQuery.data.revenue?.totalMinor ?? null} />
-      </View>
+      </Enter>
 
       <StaySheet scope={scope} stayId={stayId} stays={stays} rooms={rooms} photos={photos.data} initialRoomId={assignRoomId} onClose={() => { setStayId(null); setAssignRoomId(null); }} />
       <RoomSheet
@@ -150,19 +158,14 @@ export default function TodayScreen() {
         }}
         onClose={() => setRoomId(null)}
       />
-    </Screen>
+    </HeroScreen>
   );
 }
 
-function summaryLine(waiting: number, leaving: number) {
-  if (!waiting && !leaving) return "Nothing needs you right now";
-  const parts = [];
-  if (waiting) parts.push(`${waiting} waiting for a room`);
-  if (leaving) parts.push(`${leaving} checking out`);
-  return parts.join(" · ");
-}
-
 const styles = StyleSheet.create({
+  headline: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, color: colors.foreground },
+  headlineDetail: { ...type.meta, color: colors.mutedForeground, marginTop: 2 },
+  firstSection: { marginTop: space.sm },
   section: { marginTop: space.xxxl },
   list: { marginTop: space.lg },
   setup: { marginTop: space.md },
