@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { guestStayStatusLabel } from "./guest-stay-status";
-test("guest status follows hotel operations independently of consent", () => {
-  assert.equal(
-    guestStayStatusLabel("PENDING_CHECK_IN"),
-    "Waiting for reception",
-  );
-  assert.equal(guestStayStatusLabel("CHECKED_IN"), "Checked in");
-  assert.equal(guestStayStatusLabel("CHECKED_OUT"), "Checked out");
+import { stayStatusLabel } from "./guest-stay-status";
+test("guests and staff see the same name for each stay status", () => {
+  assert.equal(stayStatusLabel("PENDING_CHECK_IN"), "Waiting for a room");
+  assert.equal(stayStatusLabel("CHECKED_IN"), "Checked in");
+  assert.equal(stayStatusLabel("CHECKED_OUT"), "Checked out");
 });

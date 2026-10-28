@@ -170,7 +170,7 @@ export function getStayStatus(stay: HotelStayListItem, todayKey: string): { labe
   if (stay.expectedCheckOutDate !== null && stay.expectedCheckOutDate < todayKey)
     return { label: "Overdue checkout", tone: "danger" };
   if (stay.expectedCheckOutDate === todayKey) return { label: "Checking out today", tone: "warning" };
-  return { label: "Currently hosting", tone: "primary" };
+  return { label: "Checked in", tone: "primary" };
 }
 
 const roomNumberOrder = new Intl.Collator("en", { numeric: true });

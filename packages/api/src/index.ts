@@ -62,7 +62,7 @@ export {
 } from "./guest-format";
 export { createGuestProfileApi, createGuestProfileQueries, guestProfileKeys, type GuestProfileApi } from "./guest-profile";
 export { createGuestStayQueries, createGuestStaysApi, type GuestStaysApi } from "./guest-stays";
-export { guestStayStatusLabel } from "./guest-stay-status";
+export { stayStatusLabel } from "./guest-stay-status";
 export { createHotelDetailsApi, createHotelDetailsQueries, hotelDetailsKeys, type HotelDetailsApi } from "./hotel-details";
 export * from "./hotel-metrics";
 export * from "./platform-metrics";

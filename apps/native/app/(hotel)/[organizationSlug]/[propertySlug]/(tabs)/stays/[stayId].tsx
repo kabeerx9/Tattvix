@@ -1,7 +1,7 @@
 // A stay: status and facts, the one action it allows, and the identity the
 // guest shared. Document images are fetched only while shown and never cached
 // to disk (expo-image cachePolicy "none"): this is a shared desk phone.
-import { getStayStatus, localDayKey, formatMoneyWholeRupees } from "@tattvix/api";
+import { formatMoneyWholeRupees, getStayStatus, localDayKey, stayStatusLabel } from "@tattvix/api";
 import type { HotelStayDetail, IdentityDocumentImageSide } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -21,7 +21,6 @@ import { hotelMutations } from "@/src/lib/hotel-mutations";
 import { useHotelPlace } from "@/src/lib/hotel-place";
 
 const pillTone = { PENDING_CHECK_IN: "warning", CHECKED_IN: "success", CHECKED_OUT: "neutral" } as const;
-const pillLabel = { PENDING_CHECK_IN: "Waiting for a room", CHECKED_IN: "In house", CHECKED_OUT: "Checked out" } as const;
 
 export default function StayDetailScreen() {
   const place = useHotelPlace();
@@ -77,7 +76,7 @@ export default function StayDetailScreen() {
             {partyLabel(stay)}
             {room ? ` · Room ${room.number}${room.roomType ? `, ${room.roomType}` : ""}` : ""}
           </Text>
-          <StatusPill tone={status.tone === "danger" ? "destructive" : pillTone[stay.operationalStatus]}>{status.tone === "danger" ? status.label : pillLabel[stay.operationalStatus]}</StatusPill>
+          <StatusPill tone={status.tone === "danger" ? "destructive" : pillTone[stay.operationalStatus]}>{status.tone === "danger" ? status.label : stayStatusLabel(stay.operationalStatus)}</StatusPill>
         </View>
       </View>
 

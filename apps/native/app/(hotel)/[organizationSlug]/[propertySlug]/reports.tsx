@@ -126,7 +126,7 @@ export default function ReportsScreen() {
           <View style={styles.section}>
             <SectionTitle>Stay status</SectionTitle>
             <KpiRow>
-              <Kpi label="Pending" value={valueOrDash(counts?.pendingCheckIn)} />
+              <Kpi label="Waiting for a room" value={valueOrDash(counts?.pendingCheckIn)} />
               <Kpi label="Checked in" value={valueOrDash(counts?.checkedIn)} />
               <Kpi label="Checked out" value={valueOrDash(counts?.checkedOut)} />
             </KpiRow>
@@ -135,7 +135,7 @@ export default function ReportsScreen() {
       )}
 
       <View style={styles.section}>
-        <SectionTitle meta={`${inHouse.length} ${inHouse.length === 1 ? "guest" : "guests"} now`}>In house</SectionTitle>
+        <SectionTitle meta={`${inHouse.length} ${inHouse.length === 1 ? "guest" : "guests"} now`}>Checked in</SectionTitle>
         {inHouse.length ? (
           <Panel>
             {inHouse.map((entry) => (

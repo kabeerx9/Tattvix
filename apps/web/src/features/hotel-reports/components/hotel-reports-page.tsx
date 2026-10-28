@@ -219,7 +219,7 @@ function StatusCountsSection({
         </div>
       ) : (
         <div className="grid grid-cols-3 divide-x">
-          <StatusCountTile label="Pending check-in" value={counts.pendingCheckIn} />
+          <StatusCountTile label="Waiting for a room" value={counts.pendingCheckIn} />
           <StatusCountTile label="Checked in" value={counts.checkedIn} />
           <StatusCountTile label="Checked out" value={counts.checkedOut} />
         </div>
@@ -355,7 +355,7 @@ function formatStatus(status: string) {
     case "CHECKED_OUT":
       return "Checked out";
     default:
-      return "Pending check-in";
+      return "Waiting for a room";
   }
 }
 

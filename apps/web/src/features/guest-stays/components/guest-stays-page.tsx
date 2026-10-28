@@ -6,7 +6,7 @@ import { Hotel, ChevronRight } from "lucide-react";
 import { EmptyState, Kpi, KpiStrip, PageCover, PageHeader, Panel, PanelHeader, StatusPill } from "@/components/design-system";
 import { travelImages } from "@/lib/travel-images";
 import { checkInQueries } from "@/features/check-in/queries";
-import { guestStayStatusLabel } from "../status";
+import { stayStatusLabel } from "../status";
 
 export function GuestStaysPage() {
   const query = useQuery({
@@ -46,7 +46,7 @@ export function GuestStaysPage() {
         <>
           <KpiStrip>
             <Kpi label="Waiting for a room" value={query.data.stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-            <Kpi label="In house" value={query.data.stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
+            <Kpi label="Checked in" value={query.data.stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
             <Kpi label="Checked out" value={query.data.stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
           </KpiStrip>
           <Panel>
@@ -74,7 +74,7 @@ export function GuestStaysPage() {
 function StayStatusPill({ status }: { status: OperationalStayStatus }) {
   return (
     <StatusPill tone={status === "PENDING_CHECK_IN" ? "warning" : status === "CHECKED_IN" ? "success" : "neutral"}>
-      {guestStayStatusLabel(status)}
+      {stayStatusLabel(status)}
     </StatusPill>
   );
 }

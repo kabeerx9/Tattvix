@@ -2,7 +2,7 @@ import { GuestReviewSection } from "@/src/components/guest-review-section";
 // One of the guest's stays: the hotel, room and dates, what the hotel can see,
 // and the read-only bill. Mirrors the web's stay detail. Polls the stay until
 // checkout and the bill until it is final, as the web does.
-import { describeGuestAccess, formatDateTime, formatMoneyMinor, getGuestAccessAction, guestStayStatusLabel } from "@tattvix/api";
+import { describeGuestAccess, formatDateTime, formatMoneyMinor, getGuestAccessAction, stayStatusLabel } from "@tattvix/api";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { Hotel } from "lucide-react-native";
@@ -64,7 +64,7 @@ export default function GuestStayDetailScreen() {
 
       <View style={styles.hero}>
         <Text style={styles.name}>{stay.property.name}</Text>
-        <StatusPill tone={pillTone[stay.operationalStatus]}>{guestStayStatusLabel(stay.operationalStatus)}</StatusPill>
+        <StatusPill tone={pillTone[stay.operationalStatus]}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>
       </View>
 
       <View style={styles.facts}>

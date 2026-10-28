@@ -1,7 +1,7 @@
 // After sending: the status updates on its own, shows the room and, only once
 // the guest has checked out while the hotel's window is open, stop sharing.
 // Mirrors check-in-stay-status.tsx on the web.
-import { checkInKeys, describeGuestAccess, getGuestAccessAction, guestStayStatusLabel } from "@tattvix/api";
+import { checkInKeys, describeGuestAccess, getGuestAccessAction, stayStatusLabel } from "@tattvix/api";
 import type { CheckInContext } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
@@ -52,7 +52,7 @@ export function CheckInStayStatus({
       ? `Room ${stay.room.number}`
       : pending
         ? "Sent to reception"
-        : guestStayStatusLabel(stay.operationalStatus);
+        : stayStatusLabel(stay.operationalStatus);
   const body = revoked
     ? `${propertyName} can no longer open your details. Reception may ask to see your ID at the desk.`
     : checkedOut
@@ -78,7 +78,7 @@ export function CheckInStayStatus({
     <CheckInScaffold header={<CheckInBrandBar />} footer={footer}>
       <View style={styles.center}>
         <Check color={revoked ? colors.mutedForeground : colors.foreground} size={40} strokeWidth={2} />
-        <StatusPill tone={pillTone}>{revoked ? "Not shared" : guestStayStatusLabel(stay.operationalStatus)}</StatusPill>
+        <StatusPill tone={pillTone}>{revoked ? "Not shared" : stayStatusLabel(stay.operationalStatus)}</StatusPill>
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>

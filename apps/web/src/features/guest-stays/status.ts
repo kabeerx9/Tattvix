@@ -1,1 +1,1 @@
-export { guestStayStatusLabel } from "@tattvix/api";
+export { stayStatusLabel } from "@tattvix/api";

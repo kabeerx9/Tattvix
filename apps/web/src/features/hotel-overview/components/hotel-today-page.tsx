@@ -47,7 +47,7 @@ const longDate = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numer
 
 const tabLabels: Record<ReservationTab, string> = {
   checkingOut: "Checking out",
-  inHouse: "Currently hosting",
+  inHouse: "Checked in",
   arriving: "Arriving",
   checkedOut: "Checked out today",
 };

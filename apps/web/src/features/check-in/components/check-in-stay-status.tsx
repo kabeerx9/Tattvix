@@ -9,7 +9,7 @@ import { useState } from "react";
 import { ConfirmDialog, StatusPill } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { describeGuestAccess, getGuestAccessAction } from "@/features/guest-stays/access";
-import { guestStayStatusLabel } from "@/features/guest-stays/status";
+import { stayStatusLabel } from "@/features/guest-stays/status";
 import { ApiError } from "@/lib/api";
 
 import { CheckInBrandBar, StepFooter, footerButtonClassName } from "./check-in-layout";
@@ -46,7 +46,7 @@ export function CheckInStayStatus({
       ? `Room ${stay.room.number}`
       : pending
         ? "Sent to reception"
-        : guestStayStatusLabel(stay.operationalStatus);
+        : stayStatusLabel(stay.operationalStatus);
   const body = revoked
     ? `${propertyName} can no longer open your details. Reception may ask to see your ID at the desk.`
     : checkedOut
@@ -68,7 +68,7 @@ export function CheckInStayStatus({
           strokeWidth={2}
         />
         <StatusPill tone={revoked ? "neutral" : pending ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>
-          {revoked ? "Not shared" : guestStayStatusLabel(stay.operationalStatus)}
+          {revoked ? "Not shared" : stayStatusLabel(stay.operationalStatus)}
         </StatusPill>
         <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em] tabular-nums [overflow-wrap:anywhere]">
           {title}

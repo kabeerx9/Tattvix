@@ -204,7 +204,7 @@ describe("guest card action and status", () => {
     assert.deepEqual(getStayStatus(waiting, "2026-10-03"), { label: "Waiting for a room", tone: "warning" });
     assert.equal(getStayStatus(overdue, "2026-10-03").label, "Overdue checkout");
     assert.equal(getStayStatus(due, "2026-10-03").label, "Checking out today");
-    assert.equal(getStayStatus(later, "2026-10-03").label, "Currently hosting");
+    assert.equal(getStayStatus(later, "2026-10-03").label, "Checked in");
   });
 });
 

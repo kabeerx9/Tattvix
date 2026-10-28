@@ -1,6 +1,6 @@
 // Guest stays: every check-in the signed-in guest has made, with the hotel,
 // room and status. Rows open the stay's detail. Mirrors the web's list.
-import { formatDateTime, guestStayStatusLabel } from "@tattvix/api";
+import { formatDateTime, stayStatusLabel } from "@tattvix/api";
 import type { GuestShare } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
@@ -41,7 +41,7 @@ export default function GuestStaysScreen() {
         <View style={styles.section}>
           <KpiRow>
             <Kpi label="Waiting for a room" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-            <Kpi label="In house" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
+            <Kpi label="Checked in" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
             <Kpi label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
           </KpiRow>
           <Panel>
@@ -51,7 +51,7 @@ export default function GuestStaysScreen() {
                 icon={Hotel}
                 title={stay.property.name}
                 detail={stayDetail(stay)}
-                trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{guestStayStatusLabel(stay.operationalStatus)}</StatusPill>}
+                trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}
                 chevron
                 onPress={() => router.push(`/(guest)/stays/${stay.id}` as Href)}
               />

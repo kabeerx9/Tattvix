@@ -6,7 +6,7 @@ import { PageHeader, Panel, PanelHeader, PanelSection, FactsRow, Fact, StatusPil
 import { formatMoneyMinor } from "@/lib/money";
 import { describeGuestAccess, getGuestAccessAction } from "../access";
 import { guestStayQueries } from "../queries";
-import { guestStayStatusLabel } from "../status";
+import { stayStatusLabel } from "../status";
 
 export function GuestStayDetailPage({ stayId }: { stayId: string }) {
   const stayQuery = useQuery({
@@ -50,7 +50,7 @@ export function GuestStayDetailPage({ stayId }: { stayId: string }) {
     <div className="mx-auto grid max-w-5xl gap-6">
       <PageHeader
         title={stay.property.name}
-        meta={<StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{guestStayStatusLabel(stay.operationalStatus)}</StatusPill>}
+        meta={<StatusPill tone={stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : stay.operationalStatus === "CHECKED_IN" ? "success" : "neutral"}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}
         actions={
           <Button
             nativeButton={false}

@@ -37,7 +37,7 @@ const STATUS_FILTERS: {
   label: string;
 }[] = [
   { value: "__all__", label: "All statuses" },
-  { value: "PENDING_CHECK_IN", label: "Pending check-in" },
+  { value: "PENDING_CHECK_IN", label: "Waiting for a room" },
   { value: "CHECKED_IN", label: "Checked in" },
   { value: "CHECKED_OUT", label: "Checked out" },
 ];
@@ -121,8 +121,8 @@ export function HotelStaysPage({
 
       <KpiStrip>
         <Kpi label={hasActiveFilters ? "Filtered results" : "All stays"} value={stays.length} />
-        <Kpi label="Waiting" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
-        <Kpi label="In house" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
+        <Kpi label="Waiting for a room" value={stays.filter((stay) => stay.operationalStatus === "PENDING_CHECK_IN").length} />
+        <Kpi label="Checked in" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_IN").length} />
         <Kpi label="Checked out" value={stays.filter((stay) => stay.operationalStatus === "CHECKED_OUT").length} />
       </KpiStrip>
 

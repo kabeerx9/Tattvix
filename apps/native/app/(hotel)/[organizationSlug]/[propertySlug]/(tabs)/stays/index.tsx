@@ -1,6 +1,6 @@
 // Stays: every check-in at this property, searchable by guest name and
 // filterable by status. Rows open the stay's detail.
-import { getStayStatus, localDayKey } from "@tattvix/api";
+import { getStayStatus, localDayKey, stayStatusLabel } from "@tattvix/api";
 import type { HotelStayListQuery, OperationalStayStatus } from "@tattvix/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
@@ -18,12 +18,11 @@ import { useHotelPlace } from "@/src/lib/hotel-place";
 type Filter = "ALL" | OperationalStayStatus;
 const filters: { key: Filter; label: string }[] = [
   { key: "ALL", label: "All" },
-  { key: "PENDING_CHECK_IN", label: "Waiting" },
-  { key: "CHECKED_IN", label: "In house" },
+  { key: "PENDING_CHECK_IN", label: "Waiting for a room" },
+  { key: "CHECKED_IN", label: "Checked in" },
   { key: "CHECKED_OUT", label: "Checked out" },
 ];
 const pillTone = { PENDING_CHECK_IN: "warning", CHECKED_IN: "success", CHECKED_OUT: "neutral" } as const;
-const pillLabel = { PENDING_CHECK_IN: "Waiting", CHECKED_IN: "In house", CHECKED_OUT: "Checked out" } as const;
 
 function useDebounced(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -85,7 +84,7 @@ export default function StaysScreen() {
                   leading={<InitialsAvatar initials={initialsOf(stay.guestName)} size={40} />}
                   title={stay.guestName}
                   detail={[stay.room ? `Room ${stay.room.number}` : null, partyLabel(stay), status.tone === "danger" ? status.label : when].filter(Boolean).join(" · ")}
-                  trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{pillLabel[stay.operationalStatus]}</StatusPill>}
+                  trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}
                   chevron
                   onPress={() => router.push(`${base}/stays/${stay.id}` as Href)}
                 />
