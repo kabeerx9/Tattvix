@@ -45,3 +45,25 @@ export function avatarTone(name: string): 0 | 1 | 2 | 3 | 4 {
   for (const char of name.trim().toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return (hash % 5) as 0 | 1 | 2 | 3 | 4;
 }
+
+export type PlaceTone = "plum" | "midnight" | "emerald" | "graphite";
+const placeTones: PlaceTone[] = ["plum", "midnight", "emerald", "graphite"];
+
+/**
+ * The colour a hotel wears in the Menu and on Privacy: stable per place, so it
+ * looks the same everywhere. Seed with "organizationSlug/propertySlug". Teal is
+ * kept for the guest's own Personal place.
+ */
+export function placeTone(seed: string): PlaceTone {
+  let hash = 0;
+  for (const char of seed) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return placeTones[hash % placeTones.length] ?? "plum";
+}
+
+/** Up to two letters for a place's mark: its first two words, skipping words in other scripts when Latin ones exist. */
+export function placeInitials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const latin = words.filter((word) => /^[\p{Script=Latin}\d]/u.test(word));
+  const picked = (latin.length ? latin : words).slice(0, 2);
+  return picked.map((word) => Array.from(word)[0] ?? "").join("").toUpperCase() || "?";
+}

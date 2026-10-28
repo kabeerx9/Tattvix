@@ -127,3 +127,9 @@ export function accessActivityLabel(group: Pick<AccessEventGroup, "action" | "im
   if (group.action === "STAY_CLOSED") return "Finished checking your ID";
   return "You stopped sharing";
 }
+
+/** The line in the Privacy band. */
+export function getPrivacyHeadline(openCount: number) {
+  if (openCount === 0) return "No hotel can see your ID";
+  return `${openCount} ${openCount === 1 ? "hotel" : "hotels"} can see your ID right now`;
+}

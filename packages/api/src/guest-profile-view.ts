@@ -25,6 +25,24 @@ export type FactIcon = "name" | "phone" | "birthday" | "nationality" | "address"
 
 export type ProfileFact = { label: string; value: string | null; icon: FactIcon };
 
+export type FactTone = "teal" | "blue" | "rose" | "amber" | "green" | "plum" | "slate";
+
+/** The solid colour behind each kind of fact's icon, the same on every screen. */
+export const factTones: Record<FactIcon, FactTone> = {
+  name: "teal",
+  relationship: "teal",
+  phone: "blue",
+  nights: "blue",
+  birthday: "rose",
+  contact: "rose",
+  nationality: "amber",
+  requested: "amber",
+  address: "green",
+  checkedIn: "green",
+  room: "plum",
+  checkedOut: "slate",
+};
+
 const joined = (parts: (string | null | undefined)[], separator: string) => parts.map((part) => part?.trim()).filter(Boolean).join(separator) || null;
 
 /** Label and value pairs per section; a null value means "not added yet". */
@@ -120,4 +138,11 @@ export function companionRowDetail(companion: CompanionView) {
   const missing = companion.readiness.missingFields.length;
   if (!missing) return companion.relationship.trim() || "Ready for check-in";
   return joined([companion.relationship, `${missing} ${missing === 1 ? "detail" : "details"} missing`], " · ")!;
+}
+
+/** The line in the Profile band: ready, or how many things are left and which. */
+export function readinessLine(readiness: ReturnType<typeof getProfileReadiness>) {
+  if (readiness.ready) return { title: "Ready for check-in", detail: "Scan a hotel's QR and these details go with you." };
+  const count = readiness.missing.length;
+  return { title: `${count} ${count === 1 ? "thing" : "things"} left before check-in`, detail: readiness.missing.join(", ") };
 }

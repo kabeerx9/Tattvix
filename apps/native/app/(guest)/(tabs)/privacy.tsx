@@ -1,5 +1,5 @@
 // Privacy: which hotels can see the guest's ID right now, and which no longer
-// can. One row per stay with one line of status; the detail (what the hotel
+// can, under a teal band that counts them. Each hotel wears its place colour. One row per stay with one line of status; the detail (what the hotel
 // opened, and stopping sharing) opens in a sheet. Mirrors
 // apps/web/src/features/check-in/components/privacy-center-page.tsx.
 import {
@@ -9,7 +9,10 @@ import {
   formatDateTime,
   getGuestAccessAction,
   getGuestAccessSummary,
+  getPrivacyHeadline,
   groupAccessEvents,
+  placeInitials,
+  placeTone,
 } from "@tattvix/api";
 import type { GuestShare } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +20,7 @@ import { ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, ConfirmSheet, EmptyState, Enter, LargeTitle, Screen, ListRow, Panel, GroupTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
+import { BandIcon, BandScreen, BottomSheet, Button, ConfirmSheet, EmptyState, Enter, ListRow, Panel, PlaceMark, GroupTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -49,15 +52,28 @@ export default function PrivacyScreen() {
         <GroupTitle>{title}</GroupTitle>
         <Panel>
           {list.map(({ stay, summary }) => (
-            <ListRow key={stay.id} title={stay.property.name} detail={summary.text} detailTone={summary.open ? "success" : "muted"} chevron onPress={() => setOpenId(stay.id)} />
+            <ListRow
+              key={stay.id}
+              leading={<PlaceMark tone={placeTone(`${stay.property.organization.slug}/${stay.property.slug}`)} initials={placeInitials(stay.property.name)} size={36} dim={!summary.open} />}
+              title={stay.property.name}
+              detail={summary.text}
+              detailTone={summary.open ? "success" : "muted"}
+              chevron
+              onPress={() => setOpenId(stay.id)}
+            />
           ))}
         </Panel>
       </Enter>
     ) : null;
 
   return (
-    <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
-      <LargeTitle meta="Hotels that can see your ID">Privacy</LargeTitle>
+    <BandScreen
+      title="Privacy"
+      meta="Hotels that can see your ID"
+      summary={query.data ? { leading: <BandIcon icon={ShieldCheck} />, title: getPrivacyHeadline(sharing.length), detail: sharing.length ? "Tap a hotel to see what it opened, or stop sharing." : undefined } : undefined}
+      refreshing={query.isFetching && !query.isPending}
+      onRefresh={() => void query.refetch()}
+    >
       {query.isPending ? (
         <View style={styles.center}>
           <Spinner color={colors.mutedForeground} />
@@ -102,7 +118,7 @@ export default function PrivacyScreen() {
           if (stopTarget) revoke.mutate(stopTarget.id);
         }}
       />
-    </Screen>
+    </BandScreen>
   );
 }
 

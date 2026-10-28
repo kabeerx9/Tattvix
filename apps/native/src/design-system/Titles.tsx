@@ -47,10 +47,10 @@ export function GroupTitle({ children, action }: { children: string; action?: Re
 }
 
 /** Text link used as a trailing action on a title. */
-export function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+export function TextLink({ label, onPress, light = false }: { label: string; onPress: () => void; light?: boolean }) {
   return (
     <Pressable accessibilityRole="link" hitSlop={8} onPress={onPress}>
-      <Text style={styles.link}>{label}</Text>
+      <Text style={[styles.link, light && { color: "#ffffff" }]}>{label}</Text>
     </Pressable>
   );
 }

@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@tattvix/ui/components/alert-dialog";
-import { avatarTone, describeLoadFailure, type FactIcon } from "@tattvix/api";
+import { avatarTone, describeLoadFailure, factTones, type FactIcon } from "@tattvix/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useRouter } from "@tanstack/react-router";
 import { Children, useEffect, useRef, useState } from "react";
@@ -17,6 +17,7 @@ import { AlertTriangle, ArrowLeft, FileX, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
 import { factIcons } from "@/components/fact-icons";
+import { SolidIcon } from "@/components/marks";
 import { getInitials } from "@/lib/initials";
 
 /**
@@ -49,6 +50,63 @@ export function PageHeader({
         <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
       ) : null}
     </header>
+  );
+}
+
+/**
+ * The header of a flat page that needs colour (Profile, Privacy): the title on
+ * a teal band with one summary line inside it. Photos stay on the hubs; this is
+ * how a flat page gets its colour. Mirrors native's BandScreen.
+ */
+export function BandHeader({
+  title,
+  meta,
+  actions,
+  summary,
+}: {
+  title: string;
+  meta?: React.ReactNode;
+  actions?: React.ReactNode;
+  summary?: { leading: React.ReactNode; title: string; detail?: string };
+}) {
+  return (
+    <header
+      className="rounded-[26px] px-5 pt-6 pb-5 text-white [print-color-adjust:exact] sm:px-7 sm:pt-7"
+      style={{ background: "linear-gradient(155deg, #13615f 0%, #0a3b3b 55%, #052222 100%)" }}
+    >
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl leading-tight font-bold tracking-[-0.025em] wrap-anywhere md:text-[28px]">{title}</h1>
+          {meta ? <p className="mt-1 text-sm text-white/80 wrap-anywhere">{meta}</p> : null}
+        </div>
+        {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      </div>
+      {summary ? (
+        <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white/12 px-3.5 py-2.5">
+          {summary.leading}
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold">{summary.title}</p>
+            {summary.detail ? <p className="text-[13px] text-white/80">{summary.detail}</p> : null}
+          </div>
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
+/** A small white ring for the band: how much of something is done. */
+export function ProgressRing({ done, total }: { done: number; total: number }) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const share = total ? Math.min(1, done / total) : 0;
+  return (
+    <span role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} aria-label={`${done} of ${total} done`} className="relative grid size-10 shrink-0 place-items-center">
+      <svg aria-hidden viewBox="0 0 40 40" className="absolute inset-0 -rotate-90">
+        <circle cx="20" cy="20" r={radius} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="4" />
+        <circle cx="20" cy="20" r={radius} fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${circumference * share} ${circumference}`} />
+      </svg>
+      <span aria-hidden className="text-[11px] font-bold">{share === 1 ? "✓" : `${done}/${total}`}</span>
+    </span>
   );
 }
 
@@ -862,10 +920,9 @@ export function FactList({ facts }: { facts: { label: string; value: string | nu
   return (
     <dl className="divide-y divide-border-soft">
       {facts.map((fact) => {
-        const Icon = fact.icon ? factIcons[fact.icon] : null;
         return (
           <div key={fact.label} className="flex gap-3.5 px-5 py-3.5">
-            {Icon ? <Icon aria-hidden className="mt-2.5 size-5 shrink-0" strokeWidth={1.6} /> : null}
+            {fact.icon ? <SolidIcon icon={factIcons[fact.icon]} tone={factTones[fact.icon]} className="mt-1.5" /> : null}
             <div className="min-w-0">
               <dt className="text-sm text-muted-foreground">{fact.label}</dt>
               <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>

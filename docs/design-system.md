@@ -44,8 +44,21 @@ Tailwind palette colours (`emerald-*`, `amber-*`, `gray-*`) in feature code.
 **The accent rule.** Rose appears only on: the primary button, the active nav/tab indicator, focus
 rings, links, selected pills and chart series 1. **Never** on icons, icon tiles, decorative
 backgrounds, card borders, headings or selected controls (checkboxes, choice cards and segmented
-controls use `foreground`). Status colours are small text or pills only. No gradients (except a
-photo scrim), glows, multicolour metric cards or tinted panels.
+controls use `foreground`). Status colours are small text or pills only. No glows, multicolour
+metric cards or tinted panels. Gradients only in the sanctioned places below.
+
+**Colour on flat pages.** Photos stay on the hubs (Today, guest Home); everything else gets colour
+from a small, fixed set of surfaces:
+
+- **Key cards**: the plum stay key card, the wallet of in-house keys and the floor board (staff);
+  the teal guest keycard you can turn over (guest Home). The card form belongs to these; don't
+  reuse it as a page header.
+- **Teal band** (`BandScreen` native, `BandHeader` web): the title of a flat guest page (Profile,
+  Privacy) on the teal gradient, with one summary line inside it.
+- **Solid colour icons** on facts (`FactRow` / `FactList`): a white glyph on a solid square, one
+  colour per kind of fact (`factTones` in `@tattvix/api`). Never a pale tint of the icon's own hue.
+- **Place marks** (`PlaceMark`): a place's initials on its own gradient (`placeTone`), the same in
+  the switcher and on Privacy; Personal is teal.
 
 ## Shape and elevation
 
@@ -240,7 +253,7 @@ action the UI doesn't actually have.
 
 - Built from `@tattvix/ui` + `design-system.tsx` patterns; no route-local primitives.
 - Semantic tokens only; no raw palette classes, no `dark:` variants.
-- Accent only where the accent rule allows; no icon tiles; icons neutral.
+- Accent only where the accent rule allows; icons neutral except fact icons (solid squares) and place marks; never a same-hue tinted tile.
 - Motion uses the tokens, has a purpose, and handles reduced motion.
 - No hero header outside the hub `PhotoHero`, no eyebrow, no box in a box, each fact once, one primary action.
 - Numbers tabular; selects show labels; clickable rows are fully clickable.

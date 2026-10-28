@@ -1,4 +1,5 @@
-// Guest travel profile, read first: each section shows what is saved, and
+// Guest travel profile, read first: a teal band says how ready the guest is
+// for check-in, then each section shows what is saved, and
 // "Edit" opens just that section's fields in a sheet. Then the identity
 // documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
 import {
@@ -6,12 +7,12 @@ import {
   getProfileSections,
   guestProfileKeys,
   profileSectionTitles,
+  readinessLine,
   type ProfileSectionKey,
 } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { BadgeCheck } from "lucide-react-native";
 import { useState, type ComponentProps } from "react";
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
@@ -19,15 +20,13 @@ import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocu
 import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import {
+  BandScreen,
   BottomSheet,
   Button,
-  Card,
   Enter,
   FactRow,
-  LargeTitle,
-  ListRow,
   Panel,
-  Screen,
+  ProgressRing,
   GroupTitle,
   TextField,
   TextLink,
@@ -99,27 +98,15 @@ export default function ProfileScreen() {
   const sections = getProfileSections(profile.data.profile);
 
   return (
-    <Screen refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}>
-      <LargeTitle meta="What a hotel gets when you check in" action={<TextLink label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}>
-        Profile
-      </LargeTitle>
+    <BandScreen
+      title="Profile"
+      meta="What a hotel gets when you check in"
+      action={<TextLink light label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}
+      summary={{ leading: <ProgressRing done={readiness.completed} total={readiness.total} />, ...readinessLine(readiness) }}
+      refreshing={profile.isFetching && !profile.isPending}
+      onRefresh={() => void profile.refetch()}
+    >
       {onboarding === "identity" ? <Text style={[styles.meta, styles.note]}>Next: add a government ID under Identity documents below.</Text> : null}
-
-      <Enter style={styles.first}>
-        {readiness.ready ? (
-          <Panel>
-            <ListRow icon={BadgeCheck} title="Ready for check-in" titleTone="success" detail="Scan a hotel's QR and these details go with you." />
-          </Panel>
-        ) : (
-          <Card>
-            <Text style={styles.cardTitle}>{`${readiness.missing.length} ${readiness.missing.length === 1 ? "thing" : "things"} left before check-in`}</Text>
-            <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: readiness.percent }}>
-              <View style={[styles.fill, { width: `${readiness.percent}%` }]} />
-            </View>
-            <Text style={styles.meta}>{readiness.missing.join(", ")}</Text>
-          </Card>
-        )}
-      </Enter>
 
       {sections.map((section, index) => (
         <Enter key={section.key} index={index + 1} style={styles.section}>
@@ -151,7 +138,7 @@ export default function ProfileScreen() {
           if (!save.isPending) setEditing(null);
         }}
       />
-    </Screen>
+    </BandScreen>
   );
 }
 
@@ -227,13 +214,9 @@ function EditSheet({
 }
 
 const styles = StyleSheet.create({
-  note: { marginTop: space.md },
-  first: { marginTop: space.xl },
-  section: { marginTop: space.xxl, gap: space.md },
-  cardTitle: { ...type.cardTitle, color: colors.foreground },
+  note: { marginTop: space.lg },
+  section: { marginTop: space.xl, gap: space.md },
   meta: { ...type.meta, color: colors.mutedForeground },
-  track: { height: 6, borderRadius: radii.pill, backgroundColor: colors.muted, marginVertical: space.md, overflow: "hidden" },
-  fill: { height: "100%", borderRadius: radii.pill, backgroundColor: colors.primary },
   fields: { gap: space.lg, paddingTop: space.lg, paddingBottom: space.sm },
   error: { ...type.caption, color: colors.destructive },
 });

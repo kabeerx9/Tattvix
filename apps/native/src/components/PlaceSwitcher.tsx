@@ -1,10 +1,11 @@
 import { useAuth } from "@clerk/clerk-expo";
+import { placeInitials, placeTone } from "@tattvix/api";
 import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
-import { BarChart3, BedDouble, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, Star, UserRound } from "lucide-react-native";
+import { BarChart3, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, Star, UserRound } from "lucide-react-native";
 import { useState } from "react";
 
-import { BottomSheet, ConfirmSheet, ListRow, Panel, StatusPill } from "@/src/design-system";
+import { BottomSheet, ConfirmSheet, ListRow, Panel, PlaceMark, StatusPill } from "@/src/design-system";
 import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
 import { describeHotelPlace, getHotelPlaces, hotelHref, isPlatformAdmin } from "@/src/lib/workspace";
@@ -14,8 +15,9 @@ import { Linking, ScrollView, StyleSheet, View, useWindowDimensions } from "reac
 export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string } | { kind: "admin" };
 
 /**
- * The rows of the place switcher: Personal, every hotel the person may open,
- * then account and sign out. Rendered inside the Menu sheet, and as the Menu
+ * The rows of the place switcher: Personal (teal), every hotel the person may
+ * open (each on its own place colour, the same as on Privacy), then account
+ * and sign out. Rendered inside the Menu sheet, and as the Menu
  * tab's own screen when someone lands on it directly.
  */
 export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current: SwitcherCurrent; onNavigate?: () => void; onSignOut: () => void }) {
@@ -31,7 +33,7 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
   return (
     <Panel flat>
       <ListRow
-        icon={UserRound}
+        leading={<PlaceMark tone="teal" icon={UserRound} />}
         title="Personal"
         detail="My stays, profile and privacy"
         trailing={current.kind === "guest" ? <StatusPill tone="success">Current</StatusPill> : undefined}
@@ -42,7 +44,7 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
         return (
           <ListRow
             key={place.key}
-            icon={BedDouble}
+            leading={<PlaceMark tone={placeTone(`${place.organizationSlug}/${place.propertySlug}`)} initials={placeInitials(place.propertyName)} />}
             title={place.propertyName}
             detail={describeHotelPlace(place)}
             trailing={isCurrent ? <StatusPill tone="success">Current</StatusPill> : undefined}
@@ -55,7 +57,7 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
       })}
       {isPlatformAdmin(user.data ?? null) ? (
         <ListRow
-          icon={ShieldCheck}
+          leading={<PlaceMark tone="graphite" icon={ShieldCheck} />}
           title="Platform"
           detail="Every hotel, occupancy and check-ins"
           trailing={current.kind === "admin" ? <StatusPill tone="success">Current</StatusPill> : undefined}

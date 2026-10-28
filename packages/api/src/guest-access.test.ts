@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestStay } from "@tattvix/contracts";
-import { accessActivityLabel, describeGuestAccess, getGuestAccessAction, getGuestAccessSummary, groupAccessEvents, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
+import { accessActivityLabel, describeGuestAccess, getPrivacyHeadline, getGuestAccessAction, getGuestAccessSummary, groupAccessEvents, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
 
 const now = new Date("2026-10-27T12:00:00Z");
 const at = (days: number) => new Date(now.getTime() + days * 86_400_000).toISOString();
@@ -67,4 +67,10 @@ test("access events collapse per record, keeping the latest time", () => {
   assert.deepEqual({ count: groups[0]!.count, lastAt: groups[0]!.lastAt }, { count: 2, lastAt: at(-1) });
   assert.equal(accessActivityLabel(groups[0]!), "Opened your ID details");
   assert.equal(accessActivityLabel(groups[1]!), "Opened the back of your ID");
+});
+
+test("privacy headline counts the hotels that can see the guest's ID now", () => {
+  assert.equal(getPrivacyHeadline(0), "No hotel can see your ID");
+  assert.equal(getPrivacyHeadline(1), "1 hotel can see your ID right now");
+  assert.equal(getPrivacyHeadline(3), "3 hotels can see your ID right now");
 });

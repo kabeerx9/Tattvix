@@ -1,5 +1,5 @@
 // Privacy: which hotels can see the guest's ID right now, and which no longer
-// can. One row per stay with one line of status; the detail (what the hotel
+// can, under a teal band that counts them. Each hotel wears its place colour. One row per stay with one line of status; the detail (what the hotel
 // opened, and stopping sharing) opens in a sheet. Mirrors
 // apps/native/app/(guest)/(tabs)/privacy.tsx.
 import {
@@ -8,7 +8,10 @@ import {
   formatDateTime,
   getGuestAccessAction,
   getGuestAccessSummary,
+  getPrivacyHeadline,
   groupAccessEvents,
+  placeInitials,
+  placeTone,
 } from "@tattvix/api";
 import type { GuestShare } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
@@ -19,7 +22,8 @@ import { ChevronRight, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, ListRow, PageHeader, Panel, GroupTitle } from "@/components/design-system";
+import { BandHeader, ConfirmDialog, EmptyState, ListRow, Panel, GroupTitle } from "@/components/design-system";
+import { PlaceMark } from "@/components/marks";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -65,6 +69,7 @@ export function PrivacyCenterPage() {
                   className="w-full px-5 py-3.5 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
                   <ListRow
+                    leading={<PlaceMark tone={placeTone(`${stay.property.organization.slug}/${stay.property.slug}`)} initials={placeInitials(stay.property.name)} dim={!summary.open} className="size-9 rounded-[10px] text-[13px]" />}
                     title={<span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{stay.property.name}</span>}
                     meta={<span className={cn("text-sm", summary.open ? "text-success" : "text-muted-foreground")}>{summary.text}</span>}
                     trailing={<ChevronRight aria-hidden className="size-4 text-subtle-foreground" />}
@@ -79,9 +84,15 @@ export function PrivacyCenterPage() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-8">
-      <div className="grid gap-4">
-        <PageHeader title="Privacy" meta="Hotels that can see your ID" />
-      </div>
+      <BandHeader
+        title="Privacy"
+        meta="Hotels that can see your ID"
+        summary={{
+          leading: <ShieldCheck aria-hidden className="size-[22px] shrink-0" strokeWidth={1.8} />,
+          title: getPrivacyHeadline(sharing.length),
+          detail: sharing.length ? "Select a hotel to see what it opened, or stop sharing." : undefined,
+        }}
+      />
 
       {data.stays.length ? (
         <>

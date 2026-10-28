@@ -4,10 +4,12 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@tattvix/ui/lib/utils";
-import { Check, ChevronDown, Clock, Plus, Search, ShieldCheck } from "lucide-react";
+import { placeInitials, placeTone } from "@tattvix/api";
+import { Check, ChevronDown, Clock, Plus, Search, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandMark } from "@/components/brand";
+import { PlaceMark } from "@/components/marks";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { getInitials } from "@/lib/initials";
 import {
@@ -24,8 +26,10 @@ export type PlacePerson = { name: string; imageUrl?: string };
 /* ------------------------------------------------------------------ */
 
 /**
- * A place's picture: the property cover (or its initials while there is
- * none), the person's photo or initials, or a neutral shield for Platform.
+ * A place's picture: the property cover, or its initials on the place's own
+ * colour while there is none (the same colour as on Privacy and in the native
+ * Menu); the person's photo or a teal Personal mark; a graphite shield for
+ * Platform.
  */
 export function PlaceThumb({
   place,
@@ -39,14 +43,15 @@ export function PlaceThumb({
   className?: string;
 }) {
   const base = "grid size-8 shrink-0 place-items-center overflow-hidden";
-  if (!place || place.kind === "platform") {
-    // Bare and neutral: the Tattwix mark for "no single place", a shield for platform admin.
+  if (!place) {
+    // Bare and neutral: the Tattwix mark for "no single place".
     return (
       <span aria-hidden className={cn(base, "text-foreground", className)}>
-        {place ? <ShieldCheck className="size-[62%]" strokeWidth={1.75} /> : <BrandMark className="size-[62%]" />}
+        <BrandMark className="size-[62%]" />
       </span>
     );
   }
+  if (place.kind === "platform") return <PlaceMark tone="graphite" icon={ShieldCheck} className={cn("size-8 rounded-lg [&_svg]:size-4", className)} />;
   if (place.kind === "register") {
     // An outline, not a filled tile: this is an invitation, not a place yet.
     const Icon = place.pending ? Clock : Plus;
@@ -60,17 +65,17 @@ export function PlaceThumb({
     return person.imageUrl ? (
       <img src={person.imageUrl} alt="" className={cn(base, "rounded-full object-cover", className)} />
     ) : (
-      <span aria-hidden className={cn(base, "rounded-full bg-foreground text-xs font-semibold text-background", className)}>
-        {getInitials(person.name)}
-      </span>
+      <PlaceMark tone="teal" icon={UserRound} className={cn("size-8 rounded-lg [&_svg]:size-4", className)} />
     );
   }
   return coverUrl ? (
     <img src={coverUrl} alt="" className={cn(base, "rounded-lg object-cover", className)} />
   ) : (
-    <span aria-hidden className={cn(base, "rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground", className)}>
-      {getInitials(place.label)}
-    </span>
+    <PlaceMark
+      tone={placeTone(place.kind === "property" ? `${place.organization.slug}/${place.property.slug}` : place.key)}
+      initials={placeInitials(place.label)}
+      className={cn("size-8 rounded-lg text-[11px]", className)}
+    />
   );
 }
 

@@ -1,4 +1,5 @@
-// Guest travel profile, read first: each section shows what is saved, and
+// Guest travel profile, read first: a teal band says how ready the guest is
+// for check-in, then each section shows what is saved, and
 // "Edit" opens just that section's fields in a sheet. Then the identity
 // documents. Mirrors apps/native/app/(guest)/(tabs)/profile.tsx.
 import {
@@ -6,6 +7,7 @@ import {
   getProfileSections,
   profileSectionFields,
   profileSectionTitles,
+  readinessLine,
   type ProfileSectionKey,
 } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
@@ -15,11 +17,10 @@ import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { FactList, PageHeader, Panel, GroupTitle } from "@/components/design-system";
+import { BandHeader, FactList, Panel, GroupTitle, ProgressRing } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -78,39 +79,16 @@ export function GuestProfilePage() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-8">
-      <div className="grid gap-4">
-        <PageHeader
-          title="Profile"
-          meta="What a hotel gets when you check in"
-          actions={<Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Getting started</Button>}
-        />
-      </div>
-
-      {readiness.ready ? (
-        <Panel className="flex items-start gap-3 p-5">
-          <BadgeCheck aria-hidden className="mt-0.5 size-5 shrink-0" strokeWidth={1.75} />
-          <div>
-            <p className="text-[15px] font-semibold text-success">Ready for check-in</p>
-            <p className="text-sm text-muted-foreground">Scan a hotel&apos;s QR and these details go with you.</p>
-          </div>
-        </Panel>
-      ) : (
-        <Panel className="grid gap-3 p-5">
-          <p className="text-[17px] font-semibold">
-            {readiness.missing.length} {readiness.missing.length === 1 ? "thing" : "things"} left before check-in
-          </p>
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={readiness.percent}
-            className="h-1.5 overflow-hidden rounded-full bg-muted"
-          >
-            <div className="h-full rounded-full bg-primary" style={{ width: `${readiness.percent}%` }} />
-          </div>
-          <p className="text-sm text-muted-foreground">{readiness.missing.join(", ")}</p>
-        </Panel>
-      )}
+      <BandHeader
+        title="Profile"
+        meta="What a hotel gets when you check in"
+        actions={
+          <Link to="/getting-started" className="rounded-sm text-sm font-semibold text-white underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-white">
+            Getting started
+          </Link>
+        }
+        summary={{ leading: <ProgressRing done={readiness.completed} total={readiness.total} />, ...readinessLine(readiness) }}
+      />
 
       {sections.map((section) => (
         <section key={section.key} className="grid gap-3">

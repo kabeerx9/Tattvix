@@ -1,4 +1,4 @@
-import type { FactIcon } from "@tattvix/api";
+import { factTones, type FactIcon } from "@tattvix/api";
 import type { LucideIcon } from "lucide-react-native";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { factIcons } from "./fact-icons";
+import { SolidIcon } from "./Marks";
 import { usePressFeedback } from "./press";
 import { colors, type } from "./theme";
 
@@ -82,17 +83,20 @@ const styles = StyleSheet.create({
   title: { ...type.rowTitle, color: colors.foreground },
   detail: { ...type.caption, color: colors.mutedForeground },
   fact: { alignItems: "flex-start" },
-  factIcon: { marginTop: 10 },
+  factIcon: { marginTop: 6 },
   factValue: { ...type.body, color: colors.foreground },
   factEmpty: { color: colors.subtleForeground },
 });
 
-/** A read-only fact inside a Panel: small label over the value. A null value reads "Not added". */
+/** A read-only fact inside a Panel: small label over the value, its icon on the fact's own colour. A null value reads "Not added". */
 export function FactRow({ label, value, icon }: { label: string; value: string | null; icon?: FactIcon }) {
-  const Icon = icon ? factIcons[icon] : null;
   return (
     <View style={[styles.row, styles.fact]} accessible accessibilityLabel={`${label}: ${value ?? "Not added"}`}>
-      {Icon ? <Icon color={colors.foreground} size={22} strokeWidth={1.6} style={styles.factIcon} /> : null}
+      {icon ? (
+        <View style={styles.factIcon}>
+          <SolidIcon icon={factIcons[icon]} tone={factTones[icon]} />
+        </View>
+      ) : null}
       <View style={styles.copy}>
         <Text style={styles.detail}>{label}</Text>
         <Text style={[styles.factValue, value === null && styles.factEmpty]}>{value ?? "Not added"}</Text>

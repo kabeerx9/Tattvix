@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestProfileInput } from "@tattvix/contracts";
 
-import { avatarTone } from "./guest-format";
-import { companionRowDetail, getCompanionFacts, getProfileReadiness, getProfileSections } from "./guest-profile-view";
+import { avatarTone, placeInitials, placeTone } from "./guest-format";
+import { companionRowDetail, factTones, getCompanionFacts, getProfileReadiness, getProfileSections, readinessLine } from "./guest-profile-view";
 
 const empty: GuestProfileInput = {
   legalFirstName: "", legalLastName: "", phoneNumber: "", dateOfBirth: null, nationality: "",
@@ -47,4 +47,38 @@ test("avatar tone is stable per name and ignores case and spacing", () => {
   assert.equal(avatarTone("Asha Nayak"), avatarTone(" asha nayak "));
   assert.ok([0, 1, 2, 3, 4].includes(avatarTone("Ravi")));
   assert.notEqual(new Set(["Asha", "Ravi", "Meera", "Kabir", "Neha", "Priya"].map(avatarTone)).size, 1);
+});
+
+test("every fact kind has one fixed colour, shared by web and native", () => {
+  assert.equal(factTones.name, "teal");
+  assert.equal(factTones.phone, "blue");
+  assert.equal(factTones.birthday, "rose");
+  assert.equal(factTones.nationality, "amber");
+  for (const tone of Object.values(factTones)) assert.ok(["teal", "blue", "rose", "amber", "green", "plum", "slate"].includes(tone));
+});
+
+test("a place keeps its colour wherever it shows", () => {
+  assert.equal(placeTone("sunrise-hospitality/jaipur"), placeTone("sunrise-hospitality/jaipur"));
+  for (const seed of ["a", "b/c", "sunrise-hospitality/udaipur", ""]) assert.ok(["plum", "midnight", "emerald", "graphite"].includes(placeTone(seed)));
+  // Different places spread over the palette rather than all landing on one colour.
+  const seeds = Array.from({ length: 20 }, (_, index) => `org/property-${index}`);
+  assert.ok(new Set(seeds.map(placeTone)).size >= 3);
+});
+
+test("the readiness line over the profile: done, or what is left", () => {
+  const ready = getProfileReadiness([]);
+  assert.deepEqual(readinessLine(ready), { title: "Ready for check-in", detail: "Scan a hotel's QR and these details go with you." });
+  const one = getProfileReadiness(["phoneNumber"]);
+  assert.deepEqual(readinessLine(one), { title: "1 thing left before check-in", detail: "Phone number" });
+  const two = getProfileReadiness(["phoneNumber", "identityDocuments"]);
+  assert.deepEqual(readinessLine(two), { title: "2 things left before check-in", detail: "Phone number, A government ID" });
+});
+
+test("a place's initials: its first two words, preferring Latin letters and digits", () => {
+  assert.equal(placeInitials("Sunrise Jaipur"), "SJ");
+  assert.equal(placeInitials("Watermark QA नमस्ते"), "WQ");
+  assert.equal(placeInitials("Referral QA Web 20261028"), "RQ");
+  assert.equal(placeInitials("sunrise"), "S");
+  assert.equal(placeInitials("नमस्ते होटल"), "नह");
+  assert.equal(placeInitials("   "), "?");
 });

@@ -44,6 +44,29 @@ export const guestCard = {
   stripe: "#021414",
 } as const;
 
+// Solid fills behind white icons on flat pages (Profile facts and the like),
+// one per kind of fact; factTones in @tattvix/api picks which. Each keeps a
+// white glyph at 4.5:1 or better. Web mirrors these in fact-icons.ts.
+export const toneFills = {
+  teal: "#0f5e5c",
+  blue: "#2f5bb7",
+  rose: "#c2255c",
+  amber: "#b45309",
+  green: "#12804a",
+  plum: "#8c1340",
+  slate: "#5b6472",
+} as const;
+
+// A place's colour in the Menu and on Privacy (placeTone in @tattvix/api picks
+// it); the guest's own Personal place is teal. Web mirrors these in place-mark.tsx.
+export const placeGradients = {
+  teal: guestCard.gradient,
+  plum: keyCard.gradient,
+  midnight: ["#26365e", "#121a33", "#080c1a"] as const,
+  emerald: ["#11704a", "#0a4430", "#04221a"] as const,
+  graphite: ["#4a4a50", "#222226", "#111113"] as const,
+} as const;
+
 export const radii = {
   card: 16,
   sheet: 20,
