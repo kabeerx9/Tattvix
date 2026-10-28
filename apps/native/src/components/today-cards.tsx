@@ -1,50 +1,41 @@
-// The Today page's cards: a guest card per reservation, a ready-room tile, the
+// The Today page's pieces: a row per reservation, a ready-room tile, the
 // housekeeping list and tonight's occupancy. Presentation only; the page owns
 // data and sheets.
-import { formatMoneyWholeRupees, getRoomStats, getStayCardAction, getStayStatus } from "@tattvix/api";
+import { formatMoneyWholeRupees, getReservationDetail, getRoomStats, getStayCardAction } from "@tattvix/api";
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { BrushCleaning } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, InitialsAvatar, PhotoTile, colors, radii, space, type } from "@/src/design-system";
+import { Button, Card, InitialsAvatar, ListRow, Panel, PhotoTile, colors, radii, space, type } from "@/src/design-system";
 import type { DeskScope } from "@/src/lib/desk-scope";
 import { formatDay, formatTime, initialsOf, partyLabel, roomMeta } from "@/src/lib/format";
 
 import { roomPhotoUrl } from "./desk-sheets";
 
-const toneColor = { warning: colors.warning, danger: colors.destructive, primary: colors.mutedForeground, muted: colors.mutedForeground } as const;
-
-export function ReservationCard({ stay, room, todayKey, scope, onOpen }: { stay: HotelStayListItem; room?: HotelRoom; todayKey: string; scope: DeskScope; onOpen: () => void }) {
-  const status = getStayStatus(stay, todayKey);
-  const action = getStayCardAction(stay, todayKey, scope);
-  const detail =
-    stay.operationalStatus === "PENDING_CHECK_IN"
-      ? `${partyLabel(stay)} · checked in on their phone at ${formatTime(stay.submittedAt)}`
-      : stay.operationalStatus === "CHECKED_OUT"
-        ? `${partyLabel(stay)} · left at ${formatTime(stay.checkedOutAt)}`
-        : stay.expectedCheckOutDate
-          ? `${partyLabel(stay)} · due out ${formatDay(stay.expectedCheckOutDate, todayKey, true)}`
-          : `${partyLabel(stay)} · no checkout date`;
-
+/** One-line facts for a reservation row: who, where, and the time that matters. */
+/** Every guest in the tab at once: one row per stay, its one action on the row. */
+export function ReservationList({ stays, rooms, todayKey, scope, onOpen }: { stays: HotelStayListItem[]; rooms: HotelRoom[]; todayKey: string; scope: DeskScope; onOpen: (stayId: string) => void }) {
   return (
-    <Card style={styles.reservation} onPress={onOpen} accessibilityLabel={`${stay.guestName}, ${status.label}`}>
-      <View style={styles.reservationTop}>
-        <Text style={[styles.statusLine, { color: toneColor[status.tone] }]}>{status.label}</Text>
-        <InitialsAvatar initials={initialsOf(stay.guestName)} />
-      </View>
-      <Text style={styles.guestName} numberOfLines={2}>
-        {stay.guestName}
-      </Text>
-      <Text style={[styles.meta, styles.inset]} numberOfLines={1}>
-        {room ? `Room ${room.number}${room.roomType ? ` · ${room.roomType}` : ""}` : "No room yet"}
-      </Text>
-      <Text style={[styles.meta, styles.inset, { marginTop: space.md }]} numberOfLines={2}>
-        {detail}
-      </Text>
-      <View style={styles.reservationAction}>
-        <Button label={action === "assignRoom" ? "Assign room" : action === "checkOut" ? "Check out" : "Details"} variant={action === "view" ? "ghost" : "outline"} onPress={onOpen} />
-      </View>
-    </Card>
+    <Panel>
+      {stays.map((stay) => {
+        const room = stay.room ? rooms.find((candidate) => candidate.id === stay.room!.id) : undefined;
+        const action = getStayCardAction(stay, todayKey, scope);
+        const detail = getReservationDetail(stay, room?.number ?? null, todayKey);
+        return (
+          <ListRow
+            key={stay.id}
+            title={stay.guestName}
+            detail={detail.text}
+            detailTone={detail.overdue ? "destructive" : "muted"}
+            detailLines={2}
+            leading={<InitialsAvatar initials={initialsOf(stay.guestName)} size={40} />}
+            trailing={action === "view" ? undefined : <Button label={action === "assignRoom" ? "Assign room" : "Check out"} variant="outline" size="sm" onPress={() => onOpen(stay.id)} />}
+            chevron={action === "view"}
+            onPress={() => onOpen(stay.id)}
+          />
+        );
+      })}
+    </Panel>
   );
 }
 
@@ -144,13 +135,7 @@ export function Tonight({ rooms, averagePercent, revenueMinor }: { rooms: HotelR
 }
 
 const styles = StyleSheet.create({
-  reservation: { padding: 0, overflow: "hidden" },
-  reservationTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: space.md, paddingHorizontal: space.xl, paddingTop: space.xl },
-  statusLine: { ...type.rowTitle, paddingTop: 4, flex: 1 },
-  guestName: { ...type.cardTitle, color: colors.foreground, paddingHorizontal: space.xl, marginTop: 4 },
   meta: { ...type.meta, color: colors.mutedForeground },
-  inset: { paddingHorizontal: space.xl },
-  reservationAction: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderSoft, padding: space.md, marginTop: space.lg },
   rowTitle: { ...type.rowTitle, color: colors.foreground, fontVariant: ["tabular-nums"] },
   rate: { fontFamily: type.rowTitle.fontFamily, color: colors.foreground },
   cardTitle: { ...type.cardTitle, color: colors.foreground, marginBottom: 2 },

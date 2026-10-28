@@ -1,30 +1,17 @@
 // Display formatting shared by the desk screens. Dates are en-IN like the web.
-import type { HotelRoom, HotelStayListItem } from "@tattvix/contracts";
+import type { HotelRoom } from "@tattvix/contracts";
 import type { ApiError } from "@tattvix/contracts";
 
-const dayFormat = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short" });
-const timeFormat = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" });
+export { formatDay, formatTime, partyLabel } from "@tattvix/api";
+
 const longDateFormat = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long" });
 const mediumDateFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const dateTimeFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
 export const formatLongDate = (value: Date) => longDateFormat.format(value);
 
-/** "Today" / "today" for the current day, else "Sat 25 Oct". Takes an ISO date key. */
-export function formatDay(key: string | null, todayKey: string, inline = false) {
-  if (!key) return "—";
-  if (key === todayKey) return inline ? "today" : "Today";
-  return dayFormat.format(new Date(`${key}T12:00:00`));
-}
-
-export const formatTime = (iso: string | null) => (iso ? timeFormat.format(new Date(iso)) : "—");
 export const formatDate = (key: string | null) => (key ? mediumDateFormat.format(new Date(`${key}T12:00:00`)) : "—");
 export const formatDateTime = (iso: string | null) => (iso ? dateTimeFormat.format(new Date(iso)) : "—");
-
-export function partyLabel(stay: Pick<HotelStayListItem, "companionCount">) {
-  const people = stay.companionCount + 1;
-  return `${people} ${people === 1 ? "guest" : "guests"}`;
-}
 
 /** Up to two initials from a display name. */
 export function initialsOf(name: string) {

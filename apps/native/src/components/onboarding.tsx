@@ -3,7 +3,7 @@ import type { OnboardingAction, OnboardingGuide } from "@tattvix/api";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, ListRow, Panel, Screen, SecondaryHeader, SectionTitle, Spinner, colors, radii, space, type } from "@/src/design-system";
+import { Button, Card, ListRow, Panel, Screen, SecondaryHeader, SectionTitle, Spinner, TextLink, colors, radii, space, type } from "@/src/design-system";
 import { shouldShowOnboardingPrompt } from "@/src/lib/onboarding-paths";
 
 export function OnboardingStatus({ failed, onRetry, onExit }: { failed: boolean; onRetry: () => void; onExit: () => void }) {
@@ -18,8 +18,26 @@ export function OnboardingStatus({ failed, onRetry, onExit }: { failed: boolean;
   </Screen>;
 }
 
-export function OnboardingPrompt({ guide, dismissed, onOpen, onDismiss, readOnly = false }: { guide: OnboardingGuide; dismissed: boolean; onOpen: () => void; onDismiss: () => void; readOnly?: boolean }) {
+/**
+ * Nudge back into setup. `compact` is the quiet one-line row for work screens
+ * (hotel Today), where it sits below the work instead of above it.
+ */
+export function OnboardingPrompt({ guide, dismissed, onOpen, onDismiss, readOnly = false, compact = false }: { guide: OnboardingGuide; dismissed: boolean; onOpen: () => void; onDismiss: () => void; readOnly?: boolean; compact?: boolean }) {
   if (readOnly || !shouldShowOnboardingPrompt({ isComplete: guide.isComplete, dismissed })) return null;
+  const dismissButton = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Dismiss getting started" hitSlop={10} onPress={onDismiss} style={compact ? styles.rowDismiss : styles.dismiss}>
+      <X size={18} color={colors.mutedForeground} strokeWidth={1.8} />
+    </Pressable>
+  );
+  if (compact) {
+    return (
+      <View style={styles.row}>
+        <Text style={styles.rowText} numberOfLines={1}>Finish setup · {guide.completedCount} of {guide.totalCount} done</Text>
+        <TextLink label="Continue" onPress={onOpen} />
+        {dismissButton}
+      </View>
+    );
+  }
   const next = guide.steps.find((step) => step.id === guide.nextStepId);
   return (
     <Card style={styles.prompt}>
@@ -29,9 +47,7 @@ export function OnboardingPrompt({ guide, dismissed, onOpen, onDismiss, readOnly
           <Text style={styles.promptTitle}>{guide.completedCount} of {guide.totalCount} ready</Text>
           <Text style={styles.promptDetail}>{next ? `Next: ${next.title}` : guide.description}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Dismiss getting started" hitSlop={10} onPress={onDismiss} style={styles.dismiss}>
-          <X size={18} color={colors.mutedForeground} strokeWidth={1.8} />
-        </Pressable>
+        {dismissButton}
       </View>
       <Button label="Continue setup" onPress={onOpen} />
     </Card>
@@ -108,6 +124,9 @@ const styles = StyleSheet.create({
   eyebrow: { ...type.caption, color: colors.subtleForeground },
   promptTitle: { ...type.rowTitle, color: colors.foreground },
   promptDetail: { ...type.caption, color: colors.mutedForeground },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 48, paddingLeft: space.lg, backgroundColor: colors.muted, borderRadius: radii.card },
+  rowText: { ...type.meta, color: colors.mutedForeground, flex: 1 },
+  rowDismiss: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   dismiss: { minWidth: 40, minHeight: 40, alignItems: "center", justifyContent: "center", marginTop: -space.sm, marginRight: -space.sm },
   guide: { gap: space.xxxl },
   progress: { gap: space.md, padding: space.xl },

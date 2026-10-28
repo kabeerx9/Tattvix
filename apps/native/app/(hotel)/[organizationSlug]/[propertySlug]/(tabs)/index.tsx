@@ -1,6 +1,7 @@
-// Today: reservation pill tabs over guest cards, a rail of rooms ready for
-// check-in, housekeeping and tonight's occupancy. Actions open in sheets.
-import { getDefaultReservationTab, getHotelOnboarding, getOccupancyTrend, getReadyRooms, getReservationGroups, localDayKey, onboardingStorageKey, type ReservationTab } from "@tattvix/api";
+// Today: reservation pill tabs over a list of guests, a quiet setup nudge, a
+// rail of rooms ready for check-in, housekeeping and tonight's occupancy.
+// Actions open in sheets.
+import { getDefaultReservationTab, getHotelOnboarding, getOccupancyTrend, getReadyRooms, getReservationGroups, localDayKey, onboardingStorageKey, stayStatusLabel, type ReservationTab } from "@tattvix/api";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { BedDouble, DoorOpen, QrCode, Sparkles } from "lucide-react-native";
@@ -9,7 +10,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { RoomSheet, StaySheet } from "@/src/components/desk-sheets";
 import { OnboardingPrompt } from "@/src/components/onboarding";
-import { Housekeeping, ReadyRoomCard, ReservationCard, Tonight } from "@/src/components/today-cards";
+import { Housekeeping, ReadyRoomCard, ReservationList, Tonight } from "@/src/components/today-cards";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { EmptyState, LargeTitle, PillTabs, Rail, Screen, SectionTitle, TextLink, colors, radii, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
@@ -17,15 +18,15 @@ import { useCurrentUser } from "@/src/lib/current-user";
 import { getDeskScope } from "@/src/lib/desk-scope";
 import { formatLongDate } from "@/src/lib/format";
 import { useHotelPlace } from "@/src/lib/hotel-place";
-import { dismissOnboarding, readOnboardingDismissal } from "@/src/lib/onboarding";
+import { dismissOnboarding, readOnboardingDismissal, shouldShowOnboardingPrompt } from "@/src/lib/onboarding";
 
 const tabLabels: Record<ReservationTab, string> = {
+  arriving: stayStatusLabel("PENDING_CHECK_IN"),
   checkingOut: "Checking out",
-  inHouse: "Checked in",
-  arriving: "Arriving",
+  inHouse: stayStatusLabel("CHECKED_IN"),
   checkedOut: "Checked out today",
 };
-const tabOrder: ReservationTab[] = ["checkingOut", "inHouse", "arriving", "checkedOut"];
+const tabOrder: ReservationTab[] = ["arriving", "checkingOut", "inHouse", "checkedOut"];
 
 const emptyCopy: Record<ReservationTab, { icon: typeof QrCode; text: string }> = {
   arriving: { icon: QrCode, text: "No one is waiting for a room. Guests appear here as soon as they scan your check-in QR and share their ID." },
@@ -73,7 +74,6 @@ export default function TodayScreen() {
   const readyRooms = getReadyRooms(rooms);
   const trend = getOccupancyTrend(summaryQuery.data).map((entry) => entry.percent);
   const averagePercent = trend.length ? Math.round(trend.reduce((sum, value) => sum + value, 0) / trend.length) : null;
-  const firstName = user.data?.firstName?.trim();
   const empty = emptyCopy[activeTab];
   const guide = canManageSetup && details.data && !details.isError ? getHotelOnboarding({
     details: details.data,
@@ -85,23 +85,16 @@ export default function TodayScreen() {
   return (
     <Screen refreshing={core.some((query) => query.isFetching && !query.isPending)} onRefresh={refetchAll}>
       <LargeTitle meta={`${formatLongDate(today)} · ${place.propertyName}`} action={<TextLink label="Check-in QR" onPress={() => router.push(`${base}/desk-qr` as Href)} />}>
-        {firstName ? `Welcome back, ${firstName}` : "Today"}
+        Today
       </LargeTitle>
-
-      {guide ? <View style={styles.section}><OnboardingPrompt guide={guide} dismissed={dismissed} readOnly={scope.readOnly} onOpen={() => router.push(`${base}/getting-started` as Href)} onDismiss={() => {
-        if (dismissalKey) dismissOnboarding(dismissalKey);
-        setDismissed(true);
-      }} /></View> : null}
 
       <View style={styles.section}>
         <SectionTitle meta={summaryLine(groups.arriving.length, groups.checkingOut.length)}>Your reservations</SectionTitle>
         <PillTabs items={tabOrder.map((key) => ({ key, label: tabLabels[key], count: groups[key].length }))} value={activeTab} onChange={(key) => setTab(key as ReservationTab)} />
         {shown.length ? (
-          <Rail key={activeTab}>
-            {shown.map((stay) => (
-              <ReservationCard key={stay.id} stay={stay} room={stay.room ? rooms.find((room) => room.id === stay.room!.id) : undefined} todayKey={todayKey} scope={scope} onOpen={() => setStayId(stay.id)} />
-            ))}
-          </Rail>
+          <View style={styles.list}>
+            <ReservationList key={activeTab} stays={shown} rooms={rooms} todayKey={todayKey} scope={scope} onOpen={setStayId} />
+          </View>
         ) : (
           <View style={styles.emptyBox}>
             <EmptyState
@@ -111,6 +104,10 @@ export default function TodayScreen() {
             />
           </View>
         )}
+        {guide && !scope.readOnly && shouldShowOnboardingPrompt({ isComplete: guide.isComplete, dismissed }) ? <View style={styles.setup}><OnboardingPrompt compact guide={guide} dismissed={dismissed} readOnly={scope.readOnly} onOpen={() => router.push(`${base}/getting-started` as Href)} onDismiss={() => {
+          if (dismissalKey) dismissOnboarding(dismissalKey);
+          setDismissed(true);
+        }} /></View> : null}
       </View>
 
       <View style={styles.section}>
@@ -167,6 +164,8 @@ function summaryLine(waiting: number, leaving: number) {
 
 const styles = StyleSheet.create({
   section: { marginTop: space.xxxl },
+  list: { marginTop: space.lg },
+  setup: { marginTop: space.md },
   emptyBox: { marginTop: space.lg, backgroundColor: colors.muted, borderRadius: radii.card, paddingHorizontal: space.lg },
   quiet: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.lg, backgroundColor: colors.muted, borderRadius: radii.card, padding: space.xl },
   quietText: { ...type.meta, color: colors.mutedForeground, flex: 1 },

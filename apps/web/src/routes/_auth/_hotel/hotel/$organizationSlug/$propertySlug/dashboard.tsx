@@ -30,26 +30,25 @@ export const Route = createFileRoute(
 
 function PropertyDashboardRoute() {
   const params = Route.useParams();
-  const { activeMembership, activeProperty, auth } = Route.useRouteContext();
+  const { activeMembership, activeProperty } = Route.useRouteContext();
   const permissions = activeMembership.permissions;
   return (
-    <div className="grid gap-6">
-      <HotelOnboardingPrompt
-        organizationSlug={params.organizationSlug}
-        propertySlug={params.propertySlug}
-        propertyId={activeProperty.id}
-        canManageHotel={permissions.includes("hotel:manage")}
-        canManageRooms={permissions.includes("rooms:manage")}
-      />
-      <HotelTodayPage
+    <HotelTodayPage
       organizationSlug={params.organizationSlug}
       propertySlug={params.propertySlug}
       propertyName={activeProperty.name}
-      firstName={auth.currentUser?.firstName}
       canAssign={permissions.includes("rooms:assign")}
       canCheckout={permissions.includes("stays:update")}
       canManageRooms={permissions.includes("rooms:manage")}
-      />
-    </div>
+      setupPrompt={
+        <HotelOnboardingPrompt
+          organizationSlug={params.organizationSlug}
+          propertySlug={params.propertySlug}
+          propertyId={activeProperty.id}
+          canManageHotel={permissions.includes("hotel:manage")}
+          canManageRooms={permissions.includes("rooms:manage")}
+        />
+      }
+    />
   );
 }

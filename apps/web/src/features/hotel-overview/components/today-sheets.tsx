@@ -29,7 +29,6 @@ export type TodayScope = {
 };
 
 const dayFormat = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short" });
-const timeFormat = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" });
 
 export const statusToneClassName: Record<StayStatusTone, string> = {
   warning: "text-warning",
@@ -38,20 +37,8 @@ export const statusToneClassName: Record<StayStatusTone, string> = {
   muted: "text-muted-foreground",
 };
 
-export function formatDay(key: string | null, todayKey: string, inline = false) {
-  if (!key) return "—";
-  if (key === todayKey) return inline ? "today" : "Today";
-  return dayFormat.format(new Date(`${key}T12:00:00`));
-}
-
-export function formatTime(iso: string | null) {
-  return iso ? timeFormat.format(new Date(iso)) : "—";
-}
-
-export function partyLabel(stay: Pick<HotelStayListItem, "companionCount">) {
-  const people = stay.companionCount + 1;
-  return `${people} ${people === 1 ? "guest" : "guests"}`;
-}
+import { formatDay, formatTime, partyLabel } from "@tattvix/api";
+export { formatDay, formatTime, partyLabel };
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : error ? fallback : null;

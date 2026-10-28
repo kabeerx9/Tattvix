@@ -19,6 +19,7 @@ export function ListRow({
   compact = false,
   titleLines = 1,
   detailLines = 2,
+  detailTone = "muted",
   onPress,
 }: {
   title: string;
@@ -34,6 +35,8 @@ export function ListRow({
   /** Zero lets guidance copy wrap fully instead of truncating instructions. */
   titleLines?: number;
   detailLines?: number;
+  /** Destructive for a line that needs attention, such as an overdue checkout. */
+  detailTone?: "muted" | "destructive";
   onPress?: () => void;
 }) {
   const press = usePressFeedback();
@@ -46,7 +49,7 @@ export function ListRow({
           {title}
         </Text>
         {detail ? (
-          <Text style={styles.detail} numberOfLines={detailLines}>
+          <Text style={[styles.detail, detailTone === "destructive" && { color: colors.destructive }]} numberOfLines={detailLines}>
             {detail}
           </Text>
         ) : null}

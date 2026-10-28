@@ -1,7 +1,9 @@
 // The hotel staff "Today" page (docs/adr/0002-airbnb-style-staff-shell.md):
-// reservation pill tabs with counts over guest cards, a rail of rooms ready
-// for check-in, housekeeping, and tonight's occupancy. Detail and actions
+// reservation pill tabs with counts over a list of guests, a quiet setup
+// nudge, a rail of rooms ready for check-in, housekeeping, and tonight's
+// occupancy. Detail and actions
 // open in a bottom sheet (phones) or dialog (tablet and up).
+import { getReservationDetail, stayStatusLabel } from "@tattvix/api";
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { PillTabs } from "@tattvix/ui/components/pill-tabs";
@@ -10,10 +12,10 @@ import { Skeleton } from "@tattvix/ui/components/skeleton";
 import { cn } from "@tattvix/ui/lib/utils";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BedDouble, BrushCleaning, DoorOpen, QrCode, Sparkles, type LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { BedDouble, BrushCleaning, ChevronRight, DoorOpen, QrCode, Sparkles, type LucideIcon } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
-import { InitialsAvatar, LargeTitle, SectionTitle } from "@/components/design-system";
+import { InitialsAvatar, LargeTitle, ListRow, SectionTitle } from "@/components/design-system";
 import { hotelOperationsQueries } from "@/features/hotel-operations/queries";
 import { getRoomTypePhotoUrl } from "@/features/property-photos/helpers";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
@@ -28,7 +30,6 @@ import {
   getReservationGroups,
   getRoomStats,
   getStayCardAction,
-  getStayStatus,
   localDayKey,
   type ReservationTab,
 } from "../metrics";
@@ -39,25 +40,28 @@ import {
   RoomPhoto,
   RoomSheet,
   StaySheet,
-  statusToneClassName,
   type TodayScope,
 } from "./today-sheets";
 
 const longDate = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
 const tabLabels: Record<ReservationTab, string> = {
+  arriving: stayStatusLabel("PENDING_CHECK_IN"),
   checkingOut: "Checking out",
-  inHouse: "Checked in",
-  arriving: "Arriving",
+  inHouse: stayStatusLabel("CHECKED_IN"),
   checkedOut: "Checked out today",
 };
-const tabOrder: ReservationTab[] = ["checkingOut", "inHouse", "arriving", "checkedOut"];
+const tabOrder: ReservationTab[] = ["arriving", "checkingOut", "inHouse", "checkedOut"];
 
 export function HotelTodayPage({
   propertyName,
-  firstName,
+  setupPrompt,
   ...scope
-}: TodayScope & { propertyName: string; firstName?: string | null }) {
+}: TodayScope & {
+  propertyName: string;
+  /** Quiet getting-started row, shown under the reservations. */
+  setupPrompt?: ReactNode;
+}) {
   const { organizationSlug, propertySlug } = scope;
   const { data: stayData } = useSuspenseQuery(hotelStayQueries.list(organizationSlug, propertySlug));
   const { data: roomData } = useSuspenseQuery(hotelOperationsQueries.rooms(organizationSlug, propertySlug));
@@ -76,10 +80,7 @@ export function HotelTodayPage({
 
   return (
     <div className="grid gap-12">
-      <LargeTitle
-        title={firstName?.trim() ? `Welcome back, ${firstName.trim()}` : "Today"}
-        meta={`${longDate.format(today)} · ${propertyName}`}
-      />
+      <LargeTitle title="Today" meta={`${longDate.format(today)} · ${propertyName}`} />
 
       <section className="grid gap-4">
         <SectionTitle
@@ -93,27 +94,24 @@ export function HotelTodayPage({
           items={tabOrder.map((value) => ({ value, label: tabLabels[value], count: groups[value].length }))}
         />
         {shown.length ? (
-          <Rail
-            key={tab}
-            role="tabpanel"
-            aria-label={tabLabels[tab]}
-            className="mt-1 auto-cols-[84%] sm:auto-cols-[46%] md:grid-flow-row md:grid-cols-2 md:overflow-visible lg:grid-cols-3 2xl:grid-cols-4"
-          >
-            {shown.map((stay, index) => (
-              <ReservationCard
-                key={stay.id}
-                stay={stay}
-                room={stay.room ? roomData.rooms.find((room) => room.id === stay.room!.id) : undefined}
-                todayKey={todayKey}
-                index={index}
-                scope={scope}
-                onOpen={() => setStayId(stay.id)}
-              />
-            ))}
-          </Rail>
+          <div key={tab} role="tabpanel" aria-label={tabLabels[tab]} className="enter-up mt-1">
+            <ul className="divide-y divide-border-soft overflow-hidden rounded-card border border-border bg-card shadow-card">
+              {shown.map((stay) => (
+                <ReservationRow
+                  key={stay.id}
+                  stay={stay}
+                  room={stay.room ? roomData.rooms.find((room) => room.id === stay.room!.id) : undefined}
+                  todayKey={todayKey}
+                  scope={scope}
+                  onOpen={() => setStayId(stay.id)}
+                />
+              ))}
+            </ul>
+          </div>
         ) : (
           <ReservationsEmpty tab={tab} params={params} />
         )}
+        {setupPrompt}
       </section>
 
       <section className="grid gap-4">
@@ -190,60 +188,45 @@ function average(values: number[]) {
   return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
 }
 
-function ReservationCard({
+/** One-line facts for a reservation row: who, where, and the time that matters. */
+/** One guest per row. The whole row opens the stay; the one action sits beside it. */
+function ReservationRow({
   stay,
   room,
   todayKey,
-  index,
   scope,
   onOpen,
 }: {
   stay: HotelStayListItem;
   room?: HotelRoom;
   todayKey: string;
-  index: number;
   scope: TodayScope;
   onOpen: () => void;
 }) {
-  const status = getStayStatus(stay, todayKey);
   const action = getStayCardAction(stay, todayKey, scope);
-  const detail =
-    stay.operationalStatus === "PENDING_CHECK_IN"
-      ? `${partyLabel(stay)} · checked in on their phone at ${formatTime(stay.submittedAt)}`
-      : stay.operationalStatus === "CHECKED_OUT"
-        ? `${partyLabel(stay)} · left at ${formatTime(stay.checkedOutAt)}`
-        : `${partyLabel(stay)} · due out ${formatDay(stay.expectedCheckOutDate, todayKey, true)}`;
-
+  const detail = getReservationDetail(stay, room?.number ?? null, todayKey);
   return (
-    <article
-      className="enter-up flex min-w-0 flex-col rounded-card border border-border bg-card shadow-card"
-      style={{ "--i": index } as React.CSSProperties}
-    >
+    <li className={cn("flex items-center gap-2", action !== "view" && "pr-4")}>
       <button
         type="button"
         onClick={onOpen}
-        className="press flex flex-1 flex-col rounded-t-card p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        className="min-w-0 flex-1 px-4 py-3 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
-        <span className="flex items-start justify-between gap-3">
-          <span className={cn("pt-1 text-sm font-semibold", statusToneClassName[status.tone])}>{status.label}</span>
-          <InitialsAvatar name={stay.guestName} size="md" />
-        </span>
-        <span className="mt-1 block text-lg font-semibold tracking-tight wrap-anywhere">{stay.guestName}</span>
-        <span className="block truncate text-sm text-muted-foreground">
-          {room ? `Room ${room.number}${room.roomType ? ` · ${room.roomType}` : ""}` : "No room yet"}
-        </span>
-        <span className="mt-3 block text-sm text-muted-foreground tabular-nums">{detail}</span>
+        <ListRow
+          leading={<InitialsAvatar name={stay.guestName} size="md" />}
+          title={<span className="text-[15px] font-semibold">{stay.guestName}</span>}
+          meta={<span className={cn("text-sm", detail.overdue ? "text-destructive" : "text-muted-foreground")}>{detail.text}</span>}
+          trailing={
+            action === "view" ? <ChevronRight aria-hidden className="size-4 text-subtle-foreground" /> : undefined
+          }
+        />
       </button>
-      <div className="border-t border-border-soft p-3">
-        <Button
-          variant={action === "view" ? "ghost" : "outline"}
-          className="h-11 w-full rounded-xl text-[15px] font-semibold"
-          onClick={onOpen}
-        >
-          {action === "assignRoom" ? "Assign room" : action === "checkOut" ? "Check out" : "Details"}
+      {action === "view" ? null : (
+        <Button variant="outline" className="h-9 shrink-0 rounded-full px-4 text-sm" onClick={onOpen}>
+          {action === "assignRoom" ? "Assign room" : "Check out"}
         </Button>
-      </div>
-    </article>
+      )}
+    </li>
   );
 }
 
@@ -460,9 +443,9 @@ export function HotelTodaySkeleton() {
             <Skeleton key={width} className="h-10 shrink-0 rounded-full" style={{ width }} />
           ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-px overflow-hidden rounded-card border border-border">
           {[0, 1, 2].map((key) => (
-            <Skeleton key={key} className={cn("h-52 rounded-card", key > 0 && "max-md:hidden")} />
+            <Skeleton key={key} className="h-16 rounded-none" />
           ))}
         </div>
       </div>
