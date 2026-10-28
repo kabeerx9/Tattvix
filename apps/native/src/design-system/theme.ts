@@ -36,6 +36,14 @@ export const keyCard = {
   danger: "#dc2626",
 } as const;
 
+// The guest's stay key card: deep teal with a gold chip, so a guest's card
+// never looks like the hotel's plum ones.
+export const guestCard = {
+  gradient: ["#13615f", "#0a3b3b", "#052222"] as const,
+  chip: ["#e9c98a", "#b98d43"] as const,
+  stripe: "#021414",
+} as const;
+
 export const radii = {
   card: 16,
   sheet: 20,

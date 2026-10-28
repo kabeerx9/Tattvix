@@ -21,5 +21,5 @@ export { TabBar } from "./TabBar";
 export { Splash } from "./Splash";
 export { SecondaryHeader } from "./SecondaryHeader";
 export { BrandMark, BrandLogo } from "./brand";
-export { colors, fonts, keyCard, radii, shadows, space, type, motion, useAppTheme } from "./theme";
+export { colors, fonts, guestCard, keyCard, radii, shadows, space, type, motion, useAppTheme } from "./theme";
 export { Toaster, toast } from "./Toast";

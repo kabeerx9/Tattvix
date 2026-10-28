@@ -1,11 +1,12 @@
-import { formatDateTime, getCurrentGuestStay, stayStatusLabel } from "@tattvix/api";
+import { getCurrentGuestStay, getGuestKeyCard } from "@tattvix/api";
 import { guestProfileMissingFieldSchema, type GuestShare } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Rotate3d } from "lucide-react";
 
 import { Panel, PhotoHero, StatusPill } from "@/components/design-system";
+import { GuestKeyCard } from "@/features/check-in/components/guest-key-card";
 import { checkInQueries } from "@/features/check-in/queries";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { travelImages } from "@/lib/travel-images";
@@ -57,30 +58,22 @@ function GuestHomePage() {
   );
 }
 
+// The stay as a keycard to turn over, with the way into the full stay below it.
 function StayCard({ stay }: { stay: GuestShare }) {
-  const waiting = stay.operationalStatus === "PENDING_CHECK_IN";
-  const when = waiting
-    ? stay.submittedAt ? `Requested ${formatDateTime(stay.submittedAt)}` : null
-    : stay.checkedInAt ? `Checked in ${formatDateTime(stay.checkedInAt)}` : null;
   return (
-    <Link
-      to="/stays/$stayId"
-      params={{ stayId: stay.id }}
-      className="block rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Panel className="flex items-center gap-4 p-5 transition-colors hover:bg-muted/40 sm:p-6">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-subtle-foreground">Your stay</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight [overflow-wrap:anywhere]">{stay.property.name}</h2>
-          <div className="mt-2">
-            <StatusPill tone={waiting ? "warning" : "success"}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>
-          </div>
-          <p className="mt-3 text-sm">{stay.room ? `Room ${stay.room.number}` : "Reception will assign your room."}</p>
-          {when ? <p className="mt-1 text-xs text-muted-foreground">{when}</p> : null}
-        </div>
-        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-      </Panel>
-    </Link>
+    <div className="grid max-w-md gap-2.5">
+      <GuestKeyCard card={getGuestKeyCard(stay)} />
+      <div className="flex items-center justify-between px-1">
+        <p className="flex items-center gap-1.5 text-xs text-subtle-foreground">
+          <Rotate3d aria-hidden className="size-3.5" strokeWidth={1.8} />
+          Click or drag to turn
+        </p>
+        <Link to="/stays/$stayId" params={{ stayId: stay.id }} className="inline-flex items-center gap-0.5 text-sm font-semibold underline-offset-4 hover:underline">
+          Stay details
+          <ChevronRight aria-hidden className="size-4" />
+        </Link>
+      </div>
+    </div>
   );
 }
 

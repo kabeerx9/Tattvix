@@ -38,3 +38,55 @@ export function getGuestStayFacts(
   }
   return facts;
 }
+
+export type GuestKeyCard = {
+  hotel: string;
+  status: string;
+  tone: "success" | "warning" | "muted";
+  room: string | null;
+  since: { label: "Checked in" | "Requested"; when: string } | null;
+  /** "11:00 am", or null when the hotel hasn't set it. */
+  checkOut: string | null;
+  checkIn: string | null;
+  address: string | null;
+  phone: string | null;
+  /** How often reception has opened the guest's ID, in a sentence. */
+  idViews: string;
+};
+
+const clockFormat = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" });
+
+/** "11:00" → "11:00 am"; blank → null. */
+function formatClock(value: string | undefined) {
+  if (!value) return null;
+  const [hours, minutes] = value.split(":").map(Number);
+  return clockFormat.format(new Date(2000, 0, 1, hours, minutes));
+}
+
+/** The text on the guest's flippable stay key card: the stay on the front, the hotel and ID access on the back. */
+export function getGuestKeyCard(
+  stay: Pick<GuestShare, "operationalStatus" | "property" | "room" | "submittedAt" | "checkedInAt" | "accessEvents">,
+  format: (iso: string) => string = formatDateTime,
+): GuestKeyCard {
+  const details = stay.property.details;
+  const since = stay.checkedInAt
+    ? { label: "Checked in" as const, when: format(stay.checkedInAt) }
+    : stay.submittedAt
+      ? { label: "Requested" as const, when: format(stay.submittedAt) }
+      : null;
+  const views = stay.accessEvents.filter((event) => event.action === "DETAILS_VIEWED" || event.action === "DOCUMENT_VIEWED");
+  const last = views.reduce<string | null>((latest, event) => (!latest || event.createdAt > latest ? event.createdAt : latest), null);
+  const times = views.length === 1 ? "once" : `${views.length} times`;
+  return {
+    hotel: stay.property.name,
+    status: stayStatusLabel(stay.operationalStatus),
+    tone: stay.operationalStatus === "CHECKED_IN" ? "success" : stay.operationalStatus === "PENDING_CHECK_IN" ? "warning" : "muted",
+    room: stay.room?.number ?? null,
+    since,
+    checkOut: formatClock(details?.checkOutTime),
+    checkIn: formatClock(details?.checkInTime),
+    address: details?.address.trim() || null,
+    phone: details?.contactPhone.trim() || null,
+    idViews: last ? `Reception opened your ID ${times}, last ${format(last)}` : "Reception hasn't opened your ID yet",
+  };
+}

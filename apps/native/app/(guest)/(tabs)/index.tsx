@@ -1,16 +1,17 @@
-// Guest home, status first: the current stay when there is one, otherwise
+// Guest home, status first: the current stay as a keycard to turn over when there is one, otherwise
 // whether the travel profile is ready for check-in. Mirrors
 // apps/web/src/routes/_auth/guest.tsx. Stays, Profile and Privacy are tabs;
 // Companions has no tab, so its row stays here.
 import { useUser } from "@clerk/clerk-expo";
-import { formatDateTime, getCurrentGuestStay, stayStatusLabel } from "@tattvix/api";
-import { guestProfileMissingFieldSchema, type GuestShare } from "@tattvix/contracts";
+import { getCurrentGuestStay, getGuestKeyCard } from "@tattvix/api";
+import { guestProfileMissingFieldSchema } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
-import { UsersRound } from "lucide-react-native";
+import { Rotate3d, UsersRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, Enter, HeroScreen, ListRow, Panel, Spinner, StatusPill, colors, radii, space, type } from "@/src/design-system";
+import { GuestKeyCard } from "@/src/components/guest-key-card";
+import { Button, Card, Enter, HeroScreen, ListRow, Panel, Spinner, StatusPill, TextLink, colors, radii, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { travelImages } from "@/src/lib/travel-images";
 
@@ -41,7 +42,16 @@ export default function GuestHome() {
             <Spinner color={colors.mutedForeground} />
           </View>
         ) : stay ? (
-          <StayCard stay={stay} onPress={() => router.push(`/(guest)/stays/${stay.id}` as Href)} />
+          <>
+            <GuestKeyCard card={getGuestKeyCard(stay)} />
+            <View style={styles.cardFoot}>
+              <View style={styles.hint}>
+                <Rotate3d color={colors.subtleForeground} size={14} strokeWidth={1.8} />
+                <Text style={styles.hintText}>Tap or swipe to turn</Text>
+              </View>
+              <TextLink label="Stay details" onPress={() => router.push(`/(guest)/stays/${stay.id}` as Href)} />
+            </View>
+          </>
         ) : profile.data ? (
           <ReadinessCard missing={profile.data.readiness.missingFields.length} onOpenProfile={() => router.push("/(guest)/profile" as Href)} />
         ) : (
@@ -60,24 +70,6 @@ export default function GuestHome() {
         </Panel>
       </Enter>
     </HeroScreen>
-  );
-}
-
-function StayCard({ stay, onPress }: { stay: GuestShare; onPress: () => void }) {
-  const waiting = stay.operationalStatus === "PENDING_CHECK_IN";
-  const when = waiting
-    ? stay.submittedAt ? `Requested ${formatDateTime(stay.submittedAt)}` : null
-    : stay.checkedInAt ? `Checked in ${formatDateTime(stay.checkedInAt)}` : null;
-  return (
-    <Card onPress={onPress} accessibilityLabel={`${stay.property.name}, ${stayStatusLabel(stay.operationalStatus)}`}>
-      <Text style={styles.eyebrow}>Your stay</Text>
-      <Text style={styles.title}>{stay.property.name}</Text>
-      <View style={styles.pill}>
-        <StatusPill tone={waiting ? "warning" : "success"}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>
-      </View>
-      <Text style={styles.body}>{stay.room ? `Room ${stay.room.number}` : "Reception will assign your room."}</Text>
-      {when ? <Text style={styles.meta}>{when}</Text> : null}
-    </Card>
   );
 }
 
@@ -113,10 +105,11 @@ const styles = StyleSheet.create({
   first: { gap: space.md },
   section: { marginTop: space.xxl, gap: space.md },
   center: { alignItems: "center", paddingVertical: space.xxxl },
-  eyebrow: { ...type.label, color: colors.subtleForeground },
+  cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: space.xs },
+  hint: { flexDirection: "row", alignItems: "center", gap: 6 },
+  hintText: { ...type.meta, fontSize: 12, color: colors.subtleForeground },
   title: { ...type.cardTitle, color: colors.foreground, marginTop: space.xs },
   gapTop: { marginTop: space.md },
-  pill: { marginTop: space.sm },
   body: { ...type.body, color: colors.foreground, marginTop: space.sm },
   meta: { ...type.meta, color: colors.mutedForeground, marginTop: space.xs },
   track: { height: 6, borderRadius: radii.pill, backgroundColor: colors.muted, marginTop: space.md, overflow: "hidden" },

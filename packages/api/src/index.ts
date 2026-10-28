@@ -68,7 +68,7 @@ export {
 } from "./guest-format";
 export { createGuestProfileApi, createGuestProfileQueries, guestProfileKeys, type GuestProfileApi } from "./guest-profile";
 export { createGuestStayQueries, createGuestStaysApi, type GuestStaysApi } from "./guest-stays";
-export { getCurrentGuestStay, getGuestStayFacts, stayStatusLabel } from "./guest-stay-status";
+export { getCurrentGuestStay, getGuestKeyCard, getGuestStayFacts, stayStatusLabel, type GuestKeyCard } from "./guest-stay-status";
 export { createHotelDetailsApi, createHotelDetailsQueries, hotelDetailsKeys, type HotelDetailsApi } from "./hotel-details";
 export * from "./hotel-metrics";
 export * from "./platform-metrics";
