@@ -111,6 +111,7 @@ buttons, cards, inputs, sheets, pills or empty states.
 | `Card` | White, border, `shadows.card`, radius 16, padding 16 | |
 | `Panel` + `PanelRow` | A `Card` with zero padding whose children are rows divided by `borderSoft` | rows: optional leading icon / avatar, title, detail, trailing (`chevron`, badge, value) |
 | `ListRow` | The row used inside `Panel` and in plain lists | whole row is pressable when `onPress` is given |
+| `FactRow` | Read-only fact inside a `Panel`: 14 muted label over the 16 value; null reads "Not added" | read views with an "Edit" link that opens a sheet (guest Profile) |
 | `StatusPill` | `neutral` · `success` · `warning` · `destructive`; 12/600 text on the `*Tint` fill | `onPhoto`: solid white chip for a badge over a photo |
 | `PillTabs` | Horizontal, scrolling, pick-one tabs with counts; selected = `foreground` fill, white text | the fill slides between pills (220ms `easeInOut`); reduced motion jumps |
 | `Rail` | Horizontal scroll row bleeding to the edge, snap to item, `auto-cols` as a percentage prop | |

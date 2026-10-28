@@ -76,4 +76,19 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   title: { ...type.rowTitle, color: colors.foreground },
   detail: { ...type.caption, color: colors.mutedForeground },
+  fact: { alignItems: "flex-start" },
+  factValue: { ...type.body, color: colors.foreground },
+  factEmpty: { color: colors.subtleForeground },
 });
+
+/** A read-only fact inside a Panel: small label over the value. A null value reads "Not added". */
+export function FactRow({ label, value }: { label: string; value: string | null }) {
+  return (
+    <View style={[styles.row, styles.fact]} accessible accessibilityLabel={`${label}: ${value ?? "Not added"}`}>
+      <View style={styles.copy}>
+        <Text style={styles.detail}>{label}</Text>
+        <Text style={[styles.factValue, value === null && styles.factEmpty]}>{value ?? "Not added"}</Text>
+      </View>
+    </View>
+  );
+}

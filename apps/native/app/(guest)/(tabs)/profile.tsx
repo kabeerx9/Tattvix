@@ -1,39 +1,48 @@
-// Guest travel profile: personal details, home address and emergency contact,
-// then the identity documents. Mirrors
-// apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
-import { guestProfileKeys } from "@tattvix/api";
-import { guestProfileInputSchema, type GuestProfileInput, type GuestProfileMissingField } from "@tattvix/contracts";
+// Guest travel profile, read first: each section shows what is saved, and
+// "Edit" opens just that section's fields in a sheet. Then the identity
+// documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
+import {
+  getProfileReadiness,
+  getProfileSections,
+  guestProfileKeys,
+  profileSectionTitles,
+  type ProfileSectionKey,
+} from "@tattvix/api";
+import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { useEffect, useState, type ComponentProps } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { BadgeCheck } from "lucide-react-native";
+import { useState, type ComponentProps } from "react";
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { Button, Card, HeroAction, HeroScreen, SectionTitle, StatusPill, TextField, colors, space, toast, type } from "@/src/design-system";
+import {
+  BottomSheet,
+  Button,
+  Card,
+  Enter,
+  FactRow,
+  HeroAction,
+  HeroScreen,
+  ListRow,
+  Panel,
+  SectionTitle,
+  TextField,
+  TextLink,
+  colors,
+  radii,
+  space,
+  toast,
+  type,
+} from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 import { travelImages } from "@/src/lib/travel-images";
 
 type Form = Omit<GuestProfileInput, "dateOfBirth"> & { dateOfBirth: string };
 type FormKey = keyof Form;
-
-const missingFieldLabels: Record<GuestProfileMissingField, string> = {
-  legalFirstName: "Legal first name",
-  legalLastName: "Legal last name",
-  phoneNumber: "Phone number",
-  dateOfBirth: "Date of birth",
-  nationality: "Nationality",
-  addressLine1: "Address line 1",
-  city: "City",
-  stateRegion: "State or region",
-  postalCode: "Postal code",
-  country: "Country",
-  identityDocuments: "Government identity document",
-};
-
-const requiredFieldCount = Object.keys(missingFieldLabels).length;
 
 function toForm(profile: GuestProfileInput): Form {
   return { ...profile, dateOfBirth: profile.dateOfBirth ?? "" };
@@ -44,33 +53,32 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { onboarding } = useLocalSearchParams<{ onboarding?: string }>();
   const profile = useQuery(queries.guestProfile.detail());
+  const [editing, setEditing] = useState<ProfileSectionKey | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
-
-  // Seed the form once from the server copy. Later refetches (for example after a
-  // document is added) must not overwrite what the person is typing.
-  useEffect(() => {
-    if (profile.data && form === null) setForm(toForm(profile.data.profile));
-  }, [profile.data, form]);
 
   const save = useMutation({
     mutationFn: (input: GuestProfileInput) => api.guestProfile.update(input),
     onSuccess: (saved) => {
-      setForm(toForm(saved.profile));
+      queryClient.setQueryData(guestProfileKeys.detail(), saved);
       void queryClient.invalidateQueries({ queryKey: guestProfileKeys.detail() });
-      toast("Profile saved");
+      setEditing(null);
+      toast("Saved");
     },
   });
 
-  if (!profile.data || !form) {
+  if (!profile.data) {
     if (profile.isError) return <RetryScreen onRetry={() => void profile.refetch()} retrying={profile.isFetching} error={profile.error} />;
     return <PendingScreen />;
   }
 
-  const set = (key: FormKey) => (value: string) => {
-    setForm((current) => (current ? { ...current, [key]: value } : current));
-    setErrors((current) => ({ ...current, [key]: undefined }));
-  };
+  // Each sheet starts from the saved copy, so a cancelled edit leaves nothing behind.
+  function openEditor(section: ProfileSectionKey) {
+    setForm(toForm(profile.data!.profile));
+    setErrors({});
+    save.reset();
+    setEditing(section);
+  }
 
   function submit() {
     if (!form) return;
@@ -88,103 +96,149 @@ export default function ProfileScreen() {
     save.mutate(parsed.data);
   }
 
-  const missing = profile.data.readiness.missingFields;
-  const completed = requiredFieldCount - missing.length;
-  const percentage = Math.round((completed / requiredFieldCount) * 100);
-  const saveError = save.error ? errorMessage(save.error, "Your profile could not be saved.") : null;
-
-  // Shared field wiring: every field is text, and the error from the last submit shows under it.
-  const text = (key: FormKey, label: string, extra: Partial<ComponentProps<typeof TextField>> = {}) => (
-    <TextField label={label} value={form![key]} onChangeText={set(key)} error={errors[key]} {...extra} />
-  );
+  const readiness = getProfileReadiness(profile.data.readiness.missingFields);
+  const sections = getProfileSections(profile.data.profile);
 
   return (
     <HeroScreen
       image={travelImages.profile}
       size="page"
       title="Profile"
-      subtitle="Keep the essentials ready and choose what is shared at check-in."
+      subtitle="What a hotel gets when you check in"
       action={<HeroAction label="Getting started" onPress={() => router.push("/(guest)/getting-started" as Href)} />}
-      refreshing={profile.isFetching && !profile.isPending} onRefresh={() => void profile.refetch()}
+      refreshing={profile.isFetching && !profile.isPending}
+      onRefresh={() => void profile.refetch()}
     >
+      {onboarding === "identity" ? <Text style={[styles.meta, styles.note]}>Next: add a government ID under Identity documents below.</Text> : null}
 
-      {onboarding === "identity" ? <View style={styles.identityNote}><Text style={styles.meta}>Your next task is in Identity documents below. Add a government ID and its required photos.</Text></View> : null}
-
-      <View style={styles.readiness}>
-        <Card>
-          <Text style={styles.readinessValue}>{percentage}%</Text>
-          <Text style={styles.meta}>
-            {completed} of {requiredFieldCount} requirements
-          </Text>
-          {missing.length ? (
-            <View style={styles.missing}>
-              <Text style={styles.label}>Still needed</Text>
-              {missing.map((field) => (
-                <Text key={field} style={styles.missingItem}>
-                  {missingFieldLabels[field]}
-                </Text>
-              ))}
+      <Enter>
+        {readiness.ready ? (
+          <Panel>
+            <ListRow icon={BadgeCheck} title="Ready for check-in" detail="Scan a hotel's QR and these details go with you." />
+          </Panel>
+        ) : (
+          <Card>
+            <Text style={styles.cardTitle}>{`${readiness.missing.length} ${readiness.missing.length === 1 ? "thing" : "things"} left before check-in`}</Text>
+            <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: readiness.percent }}>
+              <View style={[styles.fill, { width: `${readiness.percent}%` }]} />
             </View>
-          ) : (
-            <View style={styles.missing}>
-              <StatusPill tone="success">Ready for check-in</StatusPill>
-            </View>
-          )}
-          {missing.includes("identityDocuments") ? <Text style={styles.caption}>A complete government identity document is required for full readiness.</Text> : null}
-        </Card>
-      </View>
+            <Text style={styles.meta}>{readiness.missing.join(", ")}</Text>
+          </Card>
+        )}
+      </Enter>
 
-      <View style={styles.section}>
-        <SectionTitle>Personal details</SectionTitle>
-        {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name" })}
-        {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name." })}
-        {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210" })}
-        <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => set("dateOfBirth")(value ?? "")} />
-        <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={set("nationality")} />
-      </View>
+      {sections.map((section, index) => (
+        <Enter key={section.key} index={index + 1} style={styles.section}>
+          <SectionTitle action={<TextLink label={section.facts.every((fact) => fact.value === null) ? "Add" : "Edit"} onPress={() => openEditor(section.key)} />}>{section.title}</SectionTitle>
+          <Panel>
+            {section.facts.map((fact) => (
+              <FactRow key={fact.label} label={fact.label} value={fact.value} />
+            ))}
+          </Panel>
+        </Enter>
+      ))}
 
-      <View style={styles.section}>
-        <SectionTitle>Home address</SectionTitle>
-        {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address" })}
-        {text("addressLine2", "Address line 2", { maxLength: 255 })}
-        {text("city", "City", { maxLength: 120 })}
-        {text("stateRegion", "State or region", { maxLength: 120 })}
-        {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code" })}
-        <CountryField label="Country" value={form.country} error={errors.country} onChange={set("country")} />
-      </View>
-
-      <View style={styles.section}>
-        <SectionTitle>Emergency contact</SectionTitle>
-        {text("emergencyContactName", "Contact name", { maxLength: 150 })}
-        {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad" })}
-      </View>
-
-      {saveError ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {saveError}
-        </Text>
-      ) : null}
-      <View style={styles.save}>
-        <Button label="Save profile" onPress={submit} loading={save.isPending} />
-      </View>
-
-      <View style={styles.section}>
+      <Enter index={sections.length + 1} style={styles.section}>
         <IdentityDocumentsSection />
-      </View>
+      </Enter>
+
+      <EditSheet
+        section={editing}
+        form={form}
+        errors={errors}
+        saving={save.isPending}
+        saveError={save.error ? errorMessage(save.error, "Your profile could not be saved.") : null}
+        onChange={(key, value) => {
+          setForm((current) => (current ? { ...current, [key]: value } : current));
+          setErrors((current) => ({ ...current, [key]: undefined }));
+        }}
+        onSave={submit}
+        onClose={() => {
+          if (!save.isPending) setEditing(null);
+        }}
+      />
     </HeroScreen>
   );
 }
 
+function EditSheet({
+  section,
+  form,
+  errors,
+  saving,
+  saveError,
+  onChange,
+  onSave,
+  onClose,
+}: {
+  section: ProfileSectionKey | null;
+  form: Form | null;
+  errors: Partial<Record<FormKey, string>>;
+  saving: boolean;
+  saveError: string | null;
+  onChange: (key: FormKey, value: string) => void;
+  onSave: () => void;
+  onClose: () => void;
+}) {
+  const { height } = useWindowDimensions();
+  const text = (key: FormKey, label: string, extra: Partial<ComponentProps<typeof TextField>> = {}) =>
+    form ? <TextField label={label} value={form[key]} onChangeText={(value) => onChange(key, value)} error={errors[key]} {...extra} /> : null;
+
+  return (
+    <BottomSheet
+      open={section !== null}
+      onClose={onClose}
+      title={section ? profileSectionTitles[section] : undefined}
+      dragHandleOnly
+      footer={
+        <>
+          {saveError ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {saveError}
+            </Text>
+          ) : null}
+          <Button label="Save" onPress={onSave} loading={saving} />
+        </>
+      }
+    >
+      {form ? (
+        <ScrollView style={{ maxHeight: height * 0.6 }} contentContainerStyle={styles.fields} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {section === "personal" ? (
+            <>
+              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name" })}
+              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here." })}
+              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210" })}
+              <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => onChange("dateOfBirth", value ?? "")} />
+              <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={(value) => onChange("nationality", value)} />
+            </>
+          ) : section === "address" ? (
+            <>
+              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address" })}
+              {text("addressLine2", "Address line 2", { maxLength: 255 })}
+              {text("city", "City", { maxLength: 120 })}
+              {text("stateRegion", "State or region", { maxLength: 120 })}
+              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code" })}
+              <CountryField label="Country" value={form.country} error={errors.country} onChange={(value) => onChange("country", value)} />
+            </>
+          ) : (
+            <>
+              {text("emergencyContactName", "Contact name", { maxLength: 150 })}
+              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad" })}
+            </>
+          )}
+        </ScrollView>
+      ) : null}
+    </BottomSheet>
+  );
+}
+
 const styles = StyleSheet.create({
-  readiness: { marginTop: space.xl },
-  identityNote: { marginTop: space.lg },
-  readinessValue: { ...type.kpiValue, color: colors.foreground, fontVariant: ["tabular-nums"] },
+  note: { marginBottom: space.lg },
+  section: { marginTop: space.xxl, gap: space.md },
+  cardTitle: { ...type.cardTitle, color: colors.foreground },
   meta: { ...type.meta, color: colors.mutedForeground },
-  label: { ...type.label, color: colors.subtleForeground },
-  missing: { marginTop: space.md, gap: space.xs },
-  missingItem: { ...type.caption, color: colors.mutedForeground },
-  caption: { ...type.caption, color: colors.mutedForeground, marginTop: space.md },
-  section: { marginTop: space.xxxl, gap: space.lg },
-  save: { marginTop: space.xl },
-  error: { ...type.caption, color: colors.destructive, marginTop: space.lg },
+  track: { height: 6, borderRadius: radii.pill, backgroundColor: colors.muted, marginVertical: space.md, overflow: "hidden" },
+  fill: { height: "100%", borderRadius: radii.pill, backgroundColor: colors.primary },
+  fields: { gap: space.lg, paddingTop: space.lg, paddingBottom: space.sm },
+  error: { ...type.caption, color: colors.destructive },
 });

@@ -1,88 +1,76 @@
+// Guest travel profile, read first: each section shows what is saved, and
+// "Edit" opens just that section's fields in a sheet. Then the identity
+// documents. Mirrors apps/native/app/(guest)/(tabs)/profile.tsx.
 import {
-  guestProfileInputSchema,
-  type GuestProfileInput,
-  type GuestProfileMissingField,
-} from "@tattvix/contracts";
+  getProfileReadiness,
+  getProfileSections,
+  profileSectionFields,
+  profileSectionTitles,
+  type ProfileSectionKey,
+} from "@tattvix/api";
+import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
+import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
+import { cn } from "@tattvix/ui/lib/utils";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, ContactRound, HeartHandshake, MapPin } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { PageCover, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
-import { travelImages } from "@/lib/travel-images";
+import { PageCover, PageHeader, Panel, SectionTitle } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
 import { ApiError } from "@/lib/api";
+import { travelImages } from "@/lib/travel-images";
 
 import { CountrySelect } from "./country-select";
 
-const missingFieldLabels: Record<GuestProfileMissingField, string> = {
-  legalFirstName: "Legal first name",
-  legalLastName: "Legal last name",
-  phoneNumber: "Phone number",
-  dateOfBirth: "Date of birth",
-  nationality: "Nationality",
-  addressLine1: "Address line 1",
-  city: "City",
-  stateRegion: "State or region",
-  postalCode: "Postal code",
-  country: "Country",
-  identityDocuments: "Government identity document",
-};
-
-const requiredFieldCount = Object.keys(missingFieldLabels).length;
+const editFormId = "profile-section-form";
 
 export function GuestProfilePage() {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(guestProfileQueries.detail());
   const updateMutation = useMutation(guestProfileMutations.update(queryClient));
+  const [editing, setEditing] = useState<ProfileSectionKey | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  function openEditor(section: ProfileSectionKey) {
+    setFieldErrors({});
+    updateMutation.reset();
+    setEditing(section);
+  }
+
+  // The sheet holds one section's fields; the rest come from the saved copy.
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFieldErrors({});
-
+    if (!editing) return;
     const formData = new FormData(event.currentTarget);
-    const parsed = guestProfileInputSchema.safeParse({
-      legalFirstName: formData.get("legalFirstName"),
-      legalLastName: formData.get("legalLastName"),
-      phoneNumber: formData.get("phoneNumber"),
-      dateOfBirth: formData.get("dateOfBirth") || null,
-      nationality: formData.get("nationality"),
-      addressLine1: formData.get("addressLine1"),
-      addressLine2: formData.get("addressLine2"),
-      city: formData.get("city"),
-      stateRegion: formData.get("stateRegion"),
-      postalCode: formData.get("postalCode"),
-      country: formData.get("country"),
-      emergencyContactName: formData.get("emergencyContactName"),
-      emergencyContactPhone: formData.get("emergencyContactPhone"),
-    });
+    const input: Record<string, unknown> = { ...data.profile };
+    for (const key of profileSectionFields[editing]) input[key] = formData.get(key) ?? "";
+    if (editing === "personal") input.dateOfBirth = formData.get("dateOfBirth") || null;
 
+    const parsed = guestProfileInputSchema.safeParse(input);
     if (!parsed.success) {
       const errors: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        errors[issue.path.join(".")] ??= issue.message;
-      }
+      for (const issue of parsed.error.issues) errors[issue.path.join(".")] ??= issue.message;
       setFieldErrors(errors);
       return;
     }
-
+    setFieldErrors({});
     updateMutation.mutate(parsed.data, {
-      onSuccess: () => toast.success("Travel profile saved"),
+      onSuccess: () => {
+        setEditing(null);
+        toast.success("Saved");
+      },
     });
   }
 
-  const missingFields = data.readiness.missingFields;
-  const completedFieldCount = requiredFieldCount - missingFields.length;
-  const completionPercentage = Math.round(
-    (completedFieldCount / requiredFieldCount) * 100,
-  );
+  const readiness = getProfileReadiness(data.readiness.missingFields);
+  const sections = getProfileSections(data.profile);
   const submitError =
     updateMutation.error instanceof ApiError
       ? updateMutation.error.message
@@ -91,169 +79,172 @@ export function GuestProfilePage() {
         : null;
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <PageHeader
-        title="Your travel profile"
-        actions={<Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Getting started</Button>}
-      />
-      <PageCover src={travelImages.profile} />
-
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid gap-6">
-          <form className="grid gap-6" onSubmit={onSubmit}>
-            <Panel><PanelHeader title="Travel profile" />
-            <ProfileSection
-              icon={ContactRound}
-              title="Personal details"
-              description="Use the legal name shown on the identity document you will add next."
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Legal first name" required error={fieldErrors.legalFirstName}>
-                  <Input name="legalFirstName" defaultValue={data.profile.legalFirstName} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(fieldErrors.legalFirstName)} />
-                </Field>
-                <Field label="Legal last name" required error={fieldErrors.legalLastName} hint="For a single legal name, repeat the documented name.">
-                  <Input name="legalLastName" defaultValue={data.profile.legalLastName} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(fieldErrors.legalLastName)} />
-                </Field>
-                <Field label="Phone number" required error={fieldErrors.phoneNumber}>
-                  <Input name="phoneNumber" defaultValue={data.profile.phoneNumber} maxLength={32} type="tel" autoComplete="tel" placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.phoneNumber)} />
-                </Field>
-                <Field label="Date of birth" htmlFor="profile-date-of-birth" required error={fieldErrors.dateOfBirth}>
-                  <Input id="profile-date-of-birth" name="dateOfBirth" defaultValue={data.profile.dateOfBirth ?? ""} type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
-                </Field>
-                <Field label="Nationality" htmlFor="profile-nationality" required error={fieldErrors.nationality}>
-                  <CountrySelect id="profile-nationality" name="nationality" defaultValue={data.profile.nationality} invalid={Boolean(fieldErrors.nationality)} />
-                </Field>
-              </div>
-            </ProfileSection>
-
-            <ProfileSection
-              icon={MapPin}
-              title="Home address"
-              description="This structured address will be available for future consent-based hotel check-ins."
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field className="sm:col-span-2" label="Address line 1" required error={fieldErrors.addressLine1}>
-                  <Input name="addressLine1" defaultValue={data.profile.addressLine1} maxLength={255} autoComplete="address-line1" />
-                </Field>
-                <Field className="sm:col-span-2" label="Address line 2" error={fieldErrors.addressLine2}>
-                  <Input name="addressLine2" defaultValue={data.profile.addressLine2} maxLength={255} autoComplete="address-line2" />
-                </Field>
-                <Field label="City" required error={fieldErrors.city}>
-                  <Input name="city" defaultValue={data.profile.city} maxLength={120} autoComplete="address-level2" />
-                </Field>
-                <Field label="State or region" required error={fieldErrors.stateRegion}>
-                  <Input name="stateRegion" defaultValue={data.profile.stateRegion} maxLength={120} autoComplete="address-level1" />
-                </Field>
-                <Field label="Postal code" required error={fieldErrors.postalCode}>
-                  <Input name="postalCode" defaultValue={data.profile.postalCode} maxLength={20} autoComplete="postal-code" />
-                </Field>
-                <Field label="Country" htmlFor="profile-country" required error={fieldErrors.country}>
-                  <CountrySelect id="profile-country" name="country" defaultValue={data.profile.country} invalid={Boolean(fieldErrors.country)} />
-                </Field>
-              </div>
-            </ProfileSection>
-
-            <ProfileSection
-              icon={HeartHandshake}
-              title="Emergency contact"
-              description="Optional for profile readiness, but useful during a stay-related emergency."
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Contact name" error={fieldErrors.emergencyContactName}>
-                  <Input name="emergencyContactName" defaultValue={data.profile.emergencyContactName} maxLength={150} autoComplete="off" />
-                </Field>
-                <Field label="Contact phone" error={fieldErrors.emergencyContactPhone}>
-                  <Input name="emergencyContactPhone" defaultValue={data.profile.emergencyContactPhone} maxLength={32} type="tel" autoComplete="off" />
-                </Field>
-              </div>
-            </ProfileSection>
-
-            <PanelSection>
-            {submitError ? (
-              <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                {submitError}
-              </p>
-            ) : null}
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Saving profile..." : "Save profile"}
-              </Button>
-            </div>
-            </PanelSection></Panel>
-          </form>
-
-          <div id="identity-documents"><IdentityDocumentsSection /></div>
-        </div>
-
-        <Panel className="sticky top-28 grid gap-5 p-5 sm:p-6">
-          <div>
-            <h2 className="text-sm font-semibold">Check-in readiness</h2>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <p className="text-3xl font-semibold tracking-tight tabular-nums">{completionPercentage}%</p>
-              <p className="text-xs text-muted-foreground">{completedFieldCount} of {requiredFieldCount} requirements</p>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${completionPercentage}%` }} />
-            </div>
-          </div>
-
-          {missingFields.length ? (
-            <div>
-              <h2 className="text-sm font-semibold">Still needed</h2>
-              <ul className="mt-3 grid gap-2">
-                {missingFields.map((field) => (
-                  <li key={field} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="size-1.5 rounded-full bg-muted-foreground/50" />
-                    {missingFieldLabels[field]}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div><StatusPill tone="success">Ready for check-in</StatusPill><p className="mt-1 text-xs leading-5 text-subtle-foreground">Your profile meets the current identity requirements.</p></div>
-          )}
-
-          {missingFields.includes("identityDocuments") ? (
-            <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
-              A complete government identity document is required for full readiness.
-            </p>
-          ) : null}
-        </Panel>
+    <div className="mx-auto grid max-w-3xl gap-8">
+      <div className="grid gap-4">
+        <PageHeader
+          title="Profile"
+          meta="What a hotel gets when you check in"
+          actions={<Button nativeButton={false} variant="outline" render={<Link to="/getting-started" />}>Getting started</Button>}
+        />
+        <PageCover src={travelImages.profile} />
       </div>
+
+      {readiness.ready ? (
+        <Panel className="flex items-start gap-3 p-5">
+          <BadgeCheck aria-hidden className="mt-0.5 size-5 shrink-0" strokeWidth={1.75} />
+          <div>
+            <p className="text-[15px] font-semibold">Ready for check-in</p>
+            <p className="text-sm text-muted-foreground">Scan a hotel&apos;s QR and these details go with you.</p>
+          </div>
+        </Panel>
+      ) : (
+        <Panel className="grid gap-3 p-5">
+          <p className="text-[17px] font-semibold">
+            {readiness.missing.length} {readiness.missing.length === 1 ? "thing" : "things"} left before check-in
+          </p>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={readiness.percent}
+            className="h-1.5 overflow-hidden rounded-full bg-muted"
+          >
+            <div className="h-full rounded-full bg-primary" style={{ width: `${readiness.percent}%` }} />
+          </div>
+          <p className="text-sm text-muted-foreground">{readiness.missing.join(", ")}</p>
+        </Panel>
+      )}
+
+      {sections.map((section) => (
+        <section key={section.key} className="grid gap-3">
+          <SectionTitle
+            title={section.title}
+            action={
+              <button
+                type="button"
+                onClick={() => openEditor(section.key)}
+                className="text-sm font-semibold underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {section.facts.every((fact) => fact.value === null) ? "Add" : "Edit"}
+              </button>
+            }
+          />
+          <Panel>
+            <dl className="divide-y divide-border-soft">
+              {section.facts.map((fact) => (
+                <div key={fact.label} className="px-5 py-3.5">
+                  <dt className="text-sm text-muted-foreground">{fact.label}</dt>
+                  <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
+                    {fact.value ?? "Not added"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Panel>
+        </section>
+      ))}
+
+      <div id="identity-documents"><IdentityDocumentsSection /></div>
+
+      <BottomSheet
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open && !updateMutation.isPending) setEditing(null);
+        }}
+        title={editing ? profileSectionTitles[editing] : ""}
+        footer={
+          <div className="grid gap-3">
+            {submitError ? <p role="alert" className="text-sm text-destructive">{submitError}</p> : null}
+            <Button type="submit" form={editFormId} className="w-full" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        }
+      >
+        {editing ? (
+          <form id={editFormId} className="grid gap-4" onSubmit={onSubmit}>
+            <SectionFields section={editing} profile={data.profile} errors={fieldErrors} />
+          </form>
+        ) : null}
+      </BottomSheet>
     </div>
   );
 }
 
-function ProfileSection({ icon: Icon, title, description, children }: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function SectionFields({ section, profile, errors }: { section: ProfileSectionKey; profile: GuestProfileInput; errors: Record<string, string> }) {
+  if (section === "personal") {
+    return (
+      <>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Legal first name" error={errors.legalFirstName}>
+            <Input name="legalFirstName" defaultValue={profile.legalFirstName} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(errors.legalFirstName)} />
+          </Field>
+          <Field label="Legal last name" error={errors.legalLastName} hint="With a single legal name, repeat it here.">
+            <Input name="legalLastName" defaultValue={profile.legalLastName} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(errors.legalLastName)} />
+          </Field>
+        </div>
+        <Field label="Phone number" error={errors.phoneNumber}>
+          <Input name="phoneNumber" defaultValue={profile.phoneNumber} maxLength={32} type="tel" autoComplete="tel" placeholder="+91 98765 43210" aria-invalid={Boolean(errors.phoneNumber)} />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Date of birth" htmlFor="profile-date-of-birth" error={errors.dateOfBirth}>
+            <Input id="profile-date-of-birth" name="dateOfBirth" defaultValue={profile.dateOfBirth ?? ""} type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(errors.dateOfBirth)} />
+          </Field>
+          <Field label="Nationality" htmlFor="profile-nationality" error={errors.nationality}>
+            <CountrySelect id="profile-nationality" name="nationality" defaultValue={profile.nationality} invalid={Boolean(errors.nationality)} />
+          </Field>
+        </div>
+      </>
+    );
+  }
+  if (section === "address") {
+    return (
+      <>
+        <Field label="Address line 1" error={errors.addressLine1}>
+          <Input name="addressLine1" defaultValue={profile.addressLine1} maxLength={255} autoComplete="address-line1" />
+        </Field>
+        <Field label="Address line 2" error={errors.addressLine2}>
+          <Input name="addressLine2" defaultValue={profile.addressLine2} maxLength={255} autoComplete="address-line2" />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="City" error={errors.city}>
+            <Input name="city" defaultValue={profile.city} maxLength={120} autoComplete="address-level2" />
+          </Field>
+          <Field label="State or region" error={errors.stateRegion}>
+            <Input name="stateRegion" defaultValue={profile.stateRegion} maxLength={120} autoComplete="address-level1" />
+          </Field>
+          <Field label="Postal code" error={errors.postalCode}>
+            <Input name="postalCode" defaultValue={profile.postalCode} maxLength={20} autoComplete="postal-code" />
+          </Field>
+          <Field label="Country" htmlFor="profile-country" error={errors.country}>
+            <CountrySelect id="profile-country" name="country" defaultValue={profile.country} invalid={Boolean(errors.country)} />
+          </Field>
+        </div>
+      </>
+    );
+  }
   return (
-    <PanelSection className="grid gap-5">
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <div><h2 className="text-sm font-semibold">{title}</h2><p className="mt-1 text-xs leading-5 text-subtle-foreground">{description}</p></div>
-      </div>
-      {children}
-    </PanelSection>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Contact name" error={errors.emergencyContactName}>
+        <Input name="emergencyContactName" defaultValue={profile.emergencyContactName} maxLength={150} autoComplete="off" />
+      </Field>
+      <Field label="Contact phone" error={errors.emergencyContactPhone}>
+        <Input name="emergencyContactPhone" defaultValue={profile.emergencyContactPhone} maxLength={32} type="tel" autoComplete="off" />
+      </Field>
+    </div>
   );
 }
 
-function Field({ label, htmlFor, required, error, hint, className, children }: {
+function Field({ label, htmlFor, error, hint, children }: {
   label: string;
   htmlFor?: string;
-  required?: boolean;
   error?: string;
   hint?: string;
-  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`grid gap-2 ${className ?? ""}`}>
-      <Label htmlFor={htmlFor}>{label}{required ? <span className="text-destructive">*</span> : null}</Label>
+    <div className="grid gap-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error ? <p className="text-xs text-destructive">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>

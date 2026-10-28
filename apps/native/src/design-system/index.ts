@@ -7,7 +7,7 @@ export { Spinner } from "./Spinner";
 export { TextField } from "./TextField";
 export { Card } from "./Card";
 export { Panel } from "./Panel";
-export { ListRow, PanelRow } from "./ListRow";
+export { FactRow, ListRow, PanelRow } from "./ListRow";
 export { StatusPill } from "./StatusPill";
 export { PillTabs, type PillTab } from "./PillTabs";
 export { Rail } from "./Rail";

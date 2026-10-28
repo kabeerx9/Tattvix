@@ -109,3 +109,12 @@ export * from "./reviews";
 export * from "./referrals";
 export { countries, countryName, searchCountries, type Country } from "./countries";
 export { formatDay, formatTime, getReservationDetail, getTodayHeadline, partyLabel } from "./desk-format";
+export {
+  getProfileReadiness,
+  getProfileSections,
+  profileMissingFieldLabels,
+  profileSectionFields,
+  profileSectionTitles,
+  type ProfileFact,
+  type ProfileSectionKey,
+} from "./guest-profile-view";
