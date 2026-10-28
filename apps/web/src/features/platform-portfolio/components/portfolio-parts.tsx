@@ -117,7 +117,7 @@ export function PortfolioPropertyCard({ property }: { property: PlatformPortfoli
   const missing = getMissingSetup(property);
 
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border-soft bg-card">
+    <article className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card shadow-card">
       <div className="relative">
         <PhotoTile url={property.coverPhotoUrl} label="No photo yet" className="aspect-[16/9] w-full" />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">

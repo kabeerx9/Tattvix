@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "rea
 import Animated from "react-native-reanimated";
 
 import { usePressFeedback } from "./press";
-import { colors, radii, space } from "./theme";
+import { colors, radii, shadows, space } from "./theme";
 
 // White, 1px border, card shadow, radius 16. Pass onPress to make the whole
 // card the pressable (it scales on press like a Button).
@@ -19,11 +19,11 @@ export function Card({ children, style, onPress, accessibilityLabel }: PropsWith
 
 export const cardStyle = {
   backgroundColor: colors.card,
-  // On the grey canvas a hairline is enough; no shadow.
-  borderWidth: StyleSheet.hairlineWidth,
-  borderColor: colors.borderSoft,
+  borderWidth: 1,
+  borderColor: colors.border,
   borderRadius: radii.card,
   padding: space.lg,
+  ...shadows.card,
 } as const;
 
 const styles = StyleSheet.create({ card: cardStyle });

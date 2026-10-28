@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   eyebrow: { ...type.caption, color: colors.subtleForeground },
   promptTitle: { ...type.rowTitle, color: colors.foreground },
   promptDetail: { ...type.caption, color: colors.mutedForeground },
-  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 48, paddingLeft: space.lg, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, borderRadius: radii.card },
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 48, paddingLeft: space.lg, backgroundColor: colors.muted, borderRadius: radii.card },
   rowText: { ...type.meta, color: colors.mutedForeground, flex: 1 },
   rowDismiss: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   dismiss: { minWidth: 40, minHeight: 40, alignItems: "center", justifyContent: "center", marginTop: -space.sm, marginRight: -space.sm },

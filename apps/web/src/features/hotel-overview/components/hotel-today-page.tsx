@@ -99,7 +99,7 @@ export function HotelTodayPage({
         />
         {shown.length ? (
           <div key={tab} role="tabpanel" aria-label={tabLabels[tab]} className="enter-up mt-1">
-            <ul className="divide-y divide-border-soft overflow-hidden rounded-card border border-border-soft bg-card">
+            <ul className="divide-y divide-border-soft overflow-hidden rounded-card border border-border bg-card shadow-card">
               {shown.map((stay) => (
                 <ReservationRow
                   key={stay.id}
@@ -338,7 +338,7 @@ function Housekeeping({
   const outOfService = rooms.filter((room) => room.isActive && room.status === "MAINTENANCE");
   const list = [...toClean, ...outOfService];
   return (
-    <div className="rounded-card border border-border-soft bg-card p-5 md:p-6">
+    <div className="rounded-card border border-border bg-card p-5 shadow-card md:p-6">
       <h2 className="text-lg font-semibold tracking-tight">Housekeeping</h2>
       <p className="text-sm text-muted-foreground">
         {toClean.length
@@ -392,7 +392,7 @@ function Tonight({
   const stats = getRoomStats(rooms);
   const share = (value: number) => (stats.active ? `${(value / stats.active) * 100}%` : "0%");
   return (
-    <div className="rounded-card border border-border-soft bg-card p-5 md:p-6">
+    <div className="rounded-card border border-border bg-card p-5 shadow-card md:p-6">
       <h2 className="text-lg font-semibold tracking-tight">Tonight</h2>
       <p className="text-sm text-muted-foreground tabular-nums">
         {stats.active ? `${stats.occupied} of ${stats.active} rooms occupied` : "No active rooms yet"}

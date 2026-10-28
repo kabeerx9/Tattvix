@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   section: { marginTop: space.xxxl },
   list: { marginTop: space.lg },
   setup: { marginTop: space.md },
-  emptyBox: { marginTop: space.lg, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, borderRadius: radii.card, paddingHorizontal: space.lg },
-  quiet: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.lg, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.borderSoft, borderRadius: radii.card, padding: space.xl },
+  emptyBox: { marginTop: space.lg, backgroundColor: colors.muted, borderRadius: radii.card, paddingHorizontal: space.lg },
+  quiet: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.lg, backgroundColor: colors.muted, borderRadius: radii.card, padding: space.xl },
   quietText: { ...type.meta, color: colors.mutedForeground, flex: 1 },
 });

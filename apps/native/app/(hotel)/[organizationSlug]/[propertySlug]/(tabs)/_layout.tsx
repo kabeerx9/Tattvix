@@ -15,7 +15,7 @@ export default function HotelTabsLayout() {
 
   return (
     <>
-      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.canvas } }}>
+      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
         <Tabs.Screen name="index" options={{ title: "Today", tabBarIcon: tabIcon(Sun) }} />
         <Tabs.Screen name="stays" options={{ title: "Stays", tabBarIcon: tabIcon(CalendarDays) }} />
         <Tabs.Screen name="rooms" options={{ title: "Rooms", tabBarIcon: tabIcon(BedDouble) }} />

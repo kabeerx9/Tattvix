@@ -36,7 +36,7 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.canvas },
+  root: { flex: 1, backgroundColor: colors.background },
   fixed: { flex: 1, paddingHorizontal: space.xl, paddingBottom: space.xxxl },
   content: { paddingHorizontal: space.xl, paddingTop: space.sm, paddingBottom: space.xxxl },
 });

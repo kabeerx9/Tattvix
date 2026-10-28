@@ -208,7 +208,7 @@ export function RouteErrorState({
  */
 export function KpiStrip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border-soft bg-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
+    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border bg-card shadow-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
       {Children.toArray(children).map((child, index) => (
         <div key={index} className="enter-up min-w-0" style={{ "--i": index } as React.CSSProperties}>
           {child}
@@ -251,7 +251,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-card border border-border-soft bg-card",
+        "overflow-hidden rounded-card border border-border bg-card shadow-card",
         className,
       )}
     >
@@ -330,7 +330,7 @@ const statusPillTones = {
   success: "bg-success-tint text-success",
   warning: "bg-warning-tint text-warning",
   danger: "bg-destructive-tint text-destructive",
-  neutral: "bg-border-soft text-muted-foreground",
+  neutral: "bg-muted text-muted-foreground",
   // Over a photo: a solid white chip so the status reads on any image.
   onPhoto: "bg-background text-success shadow-sm",
 } as const;
@@ -376,7 +376,7 @@ export function PhotoTile({
   return url && url !== failedUrl ? (
     <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(url)} className={cn("bg-muted object-cover", className)} />
   ) : (
-    <div aria-hidden className={cn("grid place-items-center bg-border-soft text-sm text-subtle-foreground", className)}>
+    <div aria-hidden className={cn("grid place-items-center bg-muted text-sm text-subtle-foreground", className)}>
       {label}
     </div>
   );
@@ -404,7 +404,7 @@ export function PhotoHero({
   className?: string;
 }) {
   return (
-    <section className={cn("relative overflow-hidden rounded-lg bg-border-soft", className)}>
+    <section className={cn("relative overflow-hidden rounded-lg bg-muted", className)}>
       <img src={src} alt="" decoding="async" className="h-52 w-full object-cover sm:h-64" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-6">
@@ -715,7 +715,7 @@ export function LargeTitle({
   return (
     <>
       <div
-        className="large-title-bar sticky top-0 z-20 -mx-4 -mt-4 -mb-8 bg-canvas/95 backdrop-blur sm:-mx-8 md:hidden"
+        className="large-title-bar sticky top-0 z-20 -mx-4 -mt-4 -mb-8 bg-background/95 backdrop-blur sm:-mx-8 md:hidden"
         data-collapsed={collapsed ? "" : undefined}
         aria-hidden
       >

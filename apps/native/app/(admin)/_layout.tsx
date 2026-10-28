@@ -18,5 +18,5 @@ export default function AdminGroupLayout() {
   }
   if (!isPlatformAdmin(user.data)) return <Redirect href="/" />;
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas } }} />;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />;
 }

@@ -119,13 +119,13 @@ export function HeroScreen({ image, eyebrow, title, action, refreshing = false, 
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.canvas },
+  root: { flex: 1, backgroundColor: colors.background },
   copy: { position: "absolute", left: space.xl, right: space.xl },
   eyebrow: { ...type.meta, color: "rgba(255,255,255,0.88)" },
   title: { ...type.largeTitle, color: "#ffffff", marginTop: 2 },
   sheet: {
     marginTop: -SHEET_OVERLAP,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.background,
     borderTopLeftRadius: radii.sheet + 4,
     borderTopRightRadius: radii.sheet + 4,
     paddingHorizontal: space.xl,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSoft,
     justifyContent: "center",

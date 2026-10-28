@@ -27,7 +27,7 @@ export default function GuestTabsLayout() {
     <>
       <Tabs
         tabBar={(props) => <TabBar {...props} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.canvas } }}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
       >
         <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: tabIcon(Home) }} />
         <Tabs.Screen name="stays" options={{ title: "Stays", tabBarIcon: tabIcon(CalendarDays) }} />
