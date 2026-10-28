@@ -110,6 +110,9 @@ export * from "./referrals";
 export { countries, countryName, searchCountries, type Country } from "./countries";
 export { formatDay, formatTime, getReservationDetail, getTodayHeadline, partyLabel } from "./desk-format";
 export {
+  companionMissingFieldLabels,
+  companionRowDetail,
+  getCompanionFacts,
   getProfileReadiness,
   getProfileSections,
   profileMissingFieldLabels,

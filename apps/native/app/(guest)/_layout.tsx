@@ -19,7 +19,8 @@ export default function GuestLayout() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="getting-started" />
-      <Stack.Screen name="companions" />
+      <Stack.Screen name="companions/index" />
+      <Stack.Screen name="companions/[companionId]" />
       <Stack.Screen name="account" />
       <Stack.Screen name="referrals" />
     </Stack>

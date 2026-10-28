@@ -1,6 +1,6 @@
 // Read view of the guest travel profile, shared by both clients: what each
 // section shows, which fields its edit sheet holds, and check-in readiness.
-import type { GuestProfileInput, GuestProfileMissingField } from "@tattvix/contracts";
+import type { CompanionProfile, CompanionProfileMissingField, GuestProfileInput, GuestProfileMissingField } from "@tattvix/contracts";
 
 import { countryName } from "./countries";
 import { formatDate } from "./guest-format";
@@ -89,4 +89,32 @@ export function getProfileReadiness(missing: GuestProfileMissingField[]) {
     percent: Math.round((completed / requiredCount) * 100),
     missing: missing.map((field) => profileMissingFieldLabels[field]),
   };
+}
+
+export const companionMissingFieldLabels: Record<CompanionProfileMissingField, string> = {
+  legalFirstName: "Legal first name",
+  legalLastName: "Legal last name",
+  dateOfBirth: "Date of birth",
+  relationship: "Relationship",
+  nationality: "Nationality",
+};
+
+type CompanionView = Pick<CompanionProfile, "legalFirstName" | "legalLastName" | "relationship" | "dateOfBirth" | "nationality" | "isMinor" | "readiness">;
+
+/** A companion's saved details as facts; a null value means "not added yet". */
+export function getCompanionFacts(companion: CompanionView): ProfileFact[] {
+  const born = companion.dateOfBirth ? joined([formatDate(companion.dateOfBirth), companion.isMinor ? "Under 18" : null], " · ") : null;
+  return [
+    { label: "Legal name", value: joined([companion.legalFirstName, companion.legalLastName], " ") },
+    { label: "Relationship", value: joined([companion.relationship], "") },
+    { label: "Date of birth", value: born },
+    { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null },
+  ];
+}
+
+/** The line under a companion's name in the list. */
+export function companionRowDetail(companion: CompanionView) {
+  const missing = companion.readiness.missingFields.length;
+  if (!missing) return companion.relationship.trim() || "Ready for check-in";
+  return joined([companion.relationship, `${missing} ${missing === 1 ? "detail" : "details"} missing`], " · ")!;
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestProfileInput } from "@tattvix/contracts";
 
-import { getProfileReadiness, getProfileSections } from "./guest-profile-view";
+import { companionRowDetail, getCompanionFacts, getProfileReadiness, getProfileSections } from "./guest-profile-view";
 
 const empty: GuestProfileInput = {
   legalFirstName: "", legalLastName: "", phoneNumber: "", dateOfBirth: null, nationality: "",
@@ -30,4 +30,14 @@ test("readiness counts what is left", () => {
   assert.deepEqual(getProfileReadiness([]), { ready: true, completed: 11, total: 11, percent: 100, missing: [] });
   const partial = getProfileReadiness(["phoneNumber", "identityDocuments"]);
   assert.deepEqual({ ready: partial.ready, completed: partial.completed, missing: partial.missing }, { ready: false, completed: 9, missing: ["Phone number", "A government ID"] });
+});
+
+test("companion facts and list line", () => {
+  const companion = {
+    legalFirstName: "Ravi", legalLastName: "Nayak", relationship: "Brother", dateOfBirth: "2012-05-04", nationality: "IN", isMinor: true,
+    readiness: { isReady: false, missingFields: ["nationality"] },
+  } as unknown as Parameters<typeof getCompanionFacts>[0];
+  assert.deepEqual(getCompanionFacts(companion).map((fact) => fact.value), ["Ravi Nayak", "Brother", "4 May 2012 · Under 18", "India"]);
+  assert.equal(companionRowDetail(companion), "Brother · 1 detail missing");
+  assert.equal(companionRowDetail({ ...companion, relationship: "", readiness: { isReady: true, missingFields: [] } }), "Ready for check-in");
 });
