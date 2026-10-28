@@ -177,7 +177,7 @@ export function StaySheet({
           <View style={styles.stack}>
             {!waiting && roomPhotoUrl(photos, room?.roomType) ? <PhotoTile uri={roomPhotoUrl(photos, room?.roomType)} /> : null}
             <View style={styles.identity}>
-              <InitialsAvatar initials={initialsOf(stay.guestName)} />
+              <InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{stay.guestName}</Text>
                 <Text style={styles.hint}>
@@ -347,7 +347,7 @@ export function RoomSheet({
               </Text>
               {waitingStays.map((stay) => (
                 <Pressable key={stay.id} accessibilityRole="button" onPress={() => onAssign(stay.id, room.id)} style={styles.choice}>
-                  <InitialsAvatar initials={initialsOf(stay.guestName)} size={40} />
+                  <InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} size={40} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.rowTitle}>{stay.guestName}</Text>
                     <Text style={styles.hint}>

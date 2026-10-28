@@ -1,7 +1,7 @@
 export { Screen } from "./Screen";
 export { HeroAction, HeroScreen } from "./HeroScreen";
 export { Enter } from "./Enter";
-export { LargeTitle, PageTitle, SectionTitle, TextLink } from "./Titles";
+export { GroupTitle, LargeTitle, PageTitle, SectionTitle, TextLink } from "./Titles";
 export { Button, type ButtonVariant } from "./Button";
 export { Spinner } from "./Spinner";
 export { TextField } from "./TextField";

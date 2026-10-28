@@ -10,7 +10,7 @@ switch screens). Decisions: GitHub issues #46 (stack), #51 (tab bar), #52 (desk 
 
 ## Product character
 
-A calm, precise front-desk tool that also serves guests. White canvas, warm-neutral greys, one
+A calm, precise front-desk tool that also serves guests. Grey `canvas` behind white panels, warm-neutral greys, one
 rose accent used sparingly, real photos where real data has them. **Light theme only**; the app
 forces `userInterfaceStyle: light` and never branches on the device scheme.
 
@@ -29,7 +29,8 @@ forces `userInterfaceStyle: light` and never branches on the device scheme.
 
 | Role | Token | Value |
 |---|---|---|
-| Canvas, cards | `background`, `card` | `#ffffff` |
+| Canvas | `canvas` | `#f5f5f7` |
+| Cards, panels, sheets | `background`, `card` | `#ffffff` |
 | Text | `foreground` | `#222222` |
 | Secondary text | `mutedForeground` | `#6a6a6a` |
 | Labels, meta | `subtleForeground` | `#717171` |
@@ -62,8 +63,7 @@ circles are avatars (`InitialsAvatar`, photo avatars).
 | Photo tiles, list pictures | 12 (`radii.photo`) |
 | Pills, pill tabs, badges | 999 (`radii.pill`) |
 
-Cards: 1px `border` **plus** `shadows.card` = `{ shadowColor:'#000', shadowOpacity:0.06,
-shadowRadius:12, shadowOffset:{0,6}, elevation:2 }`. Sheets and menus: `shadows.raised` =
+Cards: flat, hairline `borderSoft`, no shadow. Sheets and menus: `shadows.raised` =
 `{ shadowOpacity:0.12, shadowRadius:24, shadowOffset:{0,12}, elevation:8 }`. No other shadows.
 **No box in a box**: sections inside a card are separated by `borderSoft` hairlines, never nested
 cards.
@@ -108,7 +108,7 @@ buttons, cards, inputs, sheets, pills or empty states.
 | `LargeTitle` / `PageTitle` / `SectionTitle` | Title + optional meta line + optional trailing `action` (text link) | |
 | `Button` | `primary` (rose) · `outline` (1px foreground border) · `ghost` (muted fill) · `destructive` text | sizes `md` 44 / `sm` 38; `loading` swaps label for a spinner; press scales to 0.97 |
 | `TextField` | Labelled input, 50 tall, `input` outline, focus ring = 2px `primary` at 55% | label above, helper/error below |
-| `Card` | White, border, `shadows.card`, radius 16, padding 16 | |
+| `Card` | White, hairline `borderSoft`, no shadow, radius 16, padding 16 | |
 | `Panel` + `PanelRow` | A `Card` with zero padding whose children are rows divided by `borderSoft` | rows: optional leading icon / avatar, title, detail, trailing (`chevron`, badge, value) |
 | `ListRow` | The row used inside `Panel` and in plain lists | whole row is pressable when `onPress` is given |
 | `FactRow` | Read-only fact inside a `Panel`: 14 muted label over the 16 value; null reads "Not added" | read views with an "Edit" link that opens a sheet (guest Profile) |

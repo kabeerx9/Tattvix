@@ -69,7 +69,7 @@ export default function StayDetailScreen() {
       <SecondaryHeader title="Stay" onBack={() => router.back()} />
 
       <View style={styles.hero}>
-        <InitialsAvatar initials={initialsOf(stay.guestName)} />
+        <InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} />
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={styles.name}>{stay.guestName}</Text>
           <Text style={styles.meta}>

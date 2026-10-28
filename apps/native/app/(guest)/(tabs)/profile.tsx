@@ -28,7 +28,7 @@ import {
   ListRow,
   Panel,
   Screen,
-  SectionTitle,
+  GroupTitle,
   TextField,
   TextLink,
   colors,
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
       <Enter style={styles.first}>
         {readiness.ready ? (
           <Panel>
-            <ListRow icon={BadgeCheck} title="Ready for check-in" detail="Scan a hotel's QR and these details go with you." />
+            <ListRow icon={BadgeCheck} title="Ready for check-in" titleTone="success" detail="Scan a hotel's QR and these details go with you." />
           </Panel>
         ) : (
           <Card>
@@ -123,10 +123,10 @@ export default function ProfileScreen() {
 
       {sections.map((section, index) => (
         <Enter key={section.key} index={index + 1} style={styles.section}>
-          <SectionTitle action={<TextLink label={section.facts.every((fact) => fact.value === null) ? "Add" : "Edit"} onPress={() => openEditor(section.key)} />}>{section.title}</SectionTitle>
+          <GroupTitle action={<TextLink label={section.facts.every((fact) => fact.value === null) ? "Add" : "Edit"} onPress={() => openEditor(section.key)} />}>{section.title}</GroupTitle>
           <Panel>
             {section.facts.map((fact) => (
-              <FactRow key={fact.label} label={fact.label} value={fact.value} />
+              <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} />
             ))}
           </Panel>
         </Enter>

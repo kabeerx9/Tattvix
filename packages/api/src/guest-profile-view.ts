@@ -20,7 +20,10 @@ export const profileSectionTitles: Record<ProfileSectionKey, string> = {
   emergency: "Emergency contact",
 };
 
-export type ProfileFact = { label: string; value: string | null };
+/** Neutral line icon for a fact; each client maps the name to its own Lucide component. */
+export type FactIcon = "name" | "phone" | "birthday" | "nationality" | "address" | "contact" | "relationship" | "room" | "requested" | "checkedIn" | "checkedOut" | "nights";
+
+export type ProfileFact = { label: string; value: string | null; icon: FactIcon };
 
 const joined = (parts: (string | null | undefined)[], separator: string) => parts.map((part) => part?.trim()).filter(Boolean).join(separator) || null;
 
@@ -32,10 +35,10 @@ export function getProfileSections(profile: GuestProfileInput): { key: ProfileSe
       key: "personal",
       title: profileSectionTitles.personal,
       facts: [
-        { label: "Legal name", value: joined([profile.legalFirstName, profile.legalLastName], " ") },
-        { label: "Phone", value: joined([profile.phoneNumber], "") },
-        { label: "Date of birth", value: profile.dateOfBirth ? formatDate(profile.dateOfBirth) : null },
-        { label: "Nationality", value: country(profile.nationality) },
+        { label: "Legal name", value: joined([profile.legalFirstName, profile.legalLastName], " "), icon: "name" },
+        { label: "Phone", value: joined([profile.phoneNumber], ""), icon: "phone" },
+        { label: "Date of birth", value: profile.dateOfBirth ? formatDate(profile.dateOfBirth) : null, icon: "birthday" },
+        { label: "Nationality", value: country(profile.nationality), icon: "nationality" },
       ],
     },
     {
@@ -52,13 +55,14 @@ export function getProfileSections(profile: GuestProfileInput): { key: ProfileSe
             ],
             "\n",
           ),
+          icon: "address",
         },
       ],
     },
     {
       key: "emergency",
       title: profileSectionTitles.emergency,
-      facts: [{ label: "Contact", value: joined([profile.emergencyContactName, profile.emergencyContactPhone], " · ") }],
+      facts: [{ label: "Contact", value: joined([profile.emergencyContactName, profile.emergencyContactPhone], " · "), icon: "contact" }],
     },
   ];
 }
@@ -105,9 +109,9 @@ type CompanionView = Pick<CompanionProfile, "legalFirstName" | "legalLastName" |
 export function getCompanionFacts(companion: CompanionView): ProfileFact[] {
   const born = companion.dateOfBirth ? joined([formatDate(companion.dateOfBirth), companion.isMinor ? "Under 18" : null], " · ") : null;
   return [
-    { label: "Relationship", value: joined([companion.relationship], "") },
-    { label: "Date of birth", value: born },
-    { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null },
+    { label: "Relationship", value: joined([companion.relationship], ""), icon: "relationship" },
+    { label: "Date of birth", value: born, icon: "birthday" },
+    { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null, icon: "nationality" },
   ];
 }
 

@@ -8,7 +8,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, FactList, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, FactList, PageHeader, Panel, GroupTitle } from "@/components/design-system";
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -53,7 +53,7 @@ export function CompanionPage({ companionId }: { companionId: string }) {
       />
 
       <section className="grid gap-3">
-        <SectionTitle
+        <GroupTitle
           title="Details"
           action={
             <button

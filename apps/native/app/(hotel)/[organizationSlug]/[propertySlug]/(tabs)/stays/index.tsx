@@ -81,7 +81,7 @@ export default function StaysScreen() {
               return (
                 <ListRow
                   key={stay.id}
-                  leading={<InitialsAvatar initials={initialsOf(stay.guestName)} size={40} />}
+                  leading={<InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} size={40} />}
                   title={stay.guestName}
                   detail={[stay.room ? `Room ${stay.room.number}` : null, partyLabel(stay), status.tone === "danger" ? status.label : when].filter(Boolean).join(" · ")}
                   trailing={<StatusPill tone={pillTone[stay.operationalStatus]}>{stayStatusLabel(stay.operationalStatus)}</StatusPill>}

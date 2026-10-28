@@ -34,6 +34,18 @@ export function SectionTitle(props: TitleProps) {
   return <Title {...props} style={type.sectionTitle} metaTop={4} />;
 }
 
+/** Small grey label over a group of rows on detail pages (Profile, a stay, a companion). */
+export function GroupTitle({ children, action }: { children: string; action?: ReactNode }) {
+  return (
+    <View style={[styles.wrap, styles.group]}>
+      <Text accessibilityRole="header" style={styles.groupText}>
+        {children}
+      </Text>
+      {action}
+    </View>
+  );
+}
+
 /** Text link used as a trailing action on a title. */
 export function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -48,6 +60,8 @@ const styles = StyleSheet.create({
   copy: { flex: 1 },
   largeTop: { marginTop: 12 },
   pageTop: { marginTop: 8 },
+  group: { paddingHorizontal: 4, alignItems: "center" },
+  groupText: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18, color: colors.mutedForeground },
   meta: { ...type.meta, color: colors.mutedForeground },
   link: {
     fontFamily: fonts.semibold,

@@ -7,6 +7,7 @@ import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@tattvix/ui/components/sheet";
+import { cn } from "@tattvix/ui/lib/utils";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, Plus, UsersRound } from "lucide-react";
@@ -59,7 +60,7 @@ export function CompanionsPage() {
                   <ListRow
                     leading={<InitialsAvatar name={personName(companion, "?")} size="md" />}
                     title={<span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{personName(companion, "Unnamed companion")}</span>}
-                    meta={<span className="text-sm text-muted-foreground">{companionRowDetail(companion)}</span>}
+                    meta={<span className={cn("text-sm", companion.readiness.missingFields.length ? "text-warning" : "text-muted-foreground")}>{companionRowDetail(companion)}</span>}
                     trailing={<ChevronRight aria-hidden className="size-4 text-subtle-foreground" />}
                   />
                 </Link>

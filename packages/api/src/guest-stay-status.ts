@@ -28,13 +28,13 @@ export function getGuestStayFacts(
   bill: Pick<StayBill, "roomNights" | "nightlyRateMinor"> | null | undefined,
   format: (iso: string) => string = formatDateTime,
 ): ProfileFact[] {
-  const facts: ProfileFact[] = [{ label: "Room", value: stay.room ? `Room ${stay.room.number}` : "Reception will assign one" }];
-  if (stay.checkedInAt) facts.push({ label: "Checked in", value: format(stay.checkedInAt) });
-  else if (stay.submittedAt) facts.push({ label: "Requested", value: format(stay.submittedAt) });
-  if (stay.checkedOutAt) facts.push({ label: "Checked out", value: format(stay.checkedOutAt) });
+  const facts: ProfileFact[] = [{ label: "Room", value: stay.room ? `Room ${stay.room.number}` : "Reception will assign one", icon: "room" }];
+  if (stay.checkedInAt) facts.push({ label: "Checked in", value: format(stay.checkedInAt), icon: "checkedIn" });
+  else if (stay.submittedAt) facts.push({ label: "Requested", value: format(stay.submittedAt), icon: "requested" });
+  if (stay.checkedOutAt) facts.push({ label: "Checked out", value: format(stay.checkedOutAt), icon: "checkedOut" });
   if (bill?.roomNights != null) {
     const nights = `${bill.roomNights} ${bill.roomNights === 1 ? "night" : "nights"}`;
-    facts.push({ label: "Nights", value: bill.nightlyRateMinor != null ? `${nights} at ${formatMoneyMinor(bill.nightlyRateMinor)} a night` : nights });
+    facts.push({ label: "Nights", value: bill.nightlyRateMinor != null ? `${nights} at ${formatMoneyMinor(bill.nightlyRateMinor)} a night` : nights, icon: "nights" });
   }
   return facts;
 }

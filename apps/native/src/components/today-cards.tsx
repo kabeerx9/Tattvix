@@ -30,7 +30,7 @@ export function ReservationList({ stays, rooms, todayKey, scope, onOpen }: { sta
             detail={detail.text}
             detailTone={detail.overdue ? "destructive" : "muted"}
             detailLines={2}
-            leading={<InitialsAvatar initials={initialsOf(stay.guestName)} size={40} />}
+            leading={<InitialsAvatar initials={initialsOf(stay.guestName)} name={stay.guestName} size={40} />}
             trailing={action === "view" ? undefined : <Button label={action === "assignRoom" ? "Assign room" : "Check out"} variant="outline" size="sm" onPress={() => onOpen(stay.id)} />}
             chevron={action === "view"}
             onPress={() => onOpen(stay.id)}

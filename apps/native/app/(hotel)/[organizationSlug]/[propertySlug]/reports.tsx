@@ -143,7 +143,7 @@ export default function ReportsScreen() {
                 key={entry.stayId}
                 title={entry.guestName}
                 detail={`Room ${entry.roomNumber ?? "—"} · in ${formatTime(entry.checkedInAt)}`}
-                leading={<InitialsAvatar initials={initialsOf(entry.guestName)} size={40} />}
+                leading={<InitialsAvatar initials={initialsOf(entry.guestName)} name={entry.guestName} size={40} />}
               />
             ))}
           </Panel>

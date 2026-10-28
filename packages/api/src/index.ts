@@ -61,6 +61,7 @@ export {
   documentImagesLabel,
   documentLabel,
   documentTypeLabels,
+  avatarTone,
   formatDate,
   formatDateTime,
   personName,
@@ -118,6 +119,7 @@ export {
   profileMissingFieldLabels,
   profileSectionFields,
   profileSectionTitles,
+  type FactIcon,
   type ProfileFact,
   type ProfileSectionKey,
 } from "./guest-profile-view";

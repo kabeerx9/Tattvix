@@ -17,7 +17,7 @@ import { ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, ConfirmSheet, EmptyState, Enter, LargeTitle, Screen, ListRow, Panel, SectionTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, ConfirmSheet, EmptyState, Enter, LargeTitle, Screen, ListRow, Panel, GroupTitle, Spinner, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -46,7 +46,7 @@ export default function PrivacyScreen() {
   const section = (title: string, list: typeof rows, index: number) =>
     list.length ? (
       <Enter index={index} style={styles.section}>
-        <SectionTitle>{title}</SectionTitle>
+        <GroupTitle>{title}</GroupTitle>
         <Panel>
           {list.map(({ stay, summary }) => (
             <ListRow key={stay.id} title={stay.property.name} detail={summary.text} detailTone={summary.open ? "success" : "muted"} chevron onPress={() => setOpenId(stay.id)} />

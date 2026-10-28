@@ -45,7 +45,8 @@ export default function CompanionsScreen() {
                   key={companion.id}
                   title={personName(companion, "Unnamed companion")}
                   detail={companionRowDetail(companion)}
-                  leading={<InitialsAvatar initials={initialsFor(companion)} size={40} />}
+                  detailTone={companion.readiness.missingFields.length ? "warning" : "muted"}
+                  leading={<InitialsAvatar initials={initialsFor(companion)} name={personName(companion, "?")} size={40} />}
                   chevron
                   onPress={() => open(companion)}
                 />

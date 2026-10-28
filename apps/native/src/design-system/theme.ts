@@ -5,6 +5,8 @@ import { Easing } from "react-native-reanimated";
 
 export const colors = {
   background: "#ffffff",
+  // Screen backdrop behind white cards and panels (grouped, iOS-Settings style).
+  canvas: "#f5f5f7",
   card: "#ffffff",
   foreground: "#222222",
   mutedForeground: "#6a6a6a",

@@ -19,7 +19,7 @@ import { ChevronRight, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ConfirmDialog, EmptyState, ListRow, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { ConfirmDialog, EmptyState, ListRow, PageHeader, Panel, GroupTitle } from "@/components/design-system";
 import { checkInMutations } from "@/features/check-in/mutations";
 import { checkInQueries } from "@/features/check-in/queries";
 import { ApiError } from "@/lib/api";
@@ -54,7 +54,7 @@ export function PrivacyCenterPage() {
   const section = (title: string, list: typeof rows) =>
     list.length ? (
       <section className="grid gap-3">
-        <SectionTitle title={title} />
+        <GroupTitle title={title} />
         <Panel>
           <ul className="divide-y divide-border-soft">
             {list.map(({ stay, summary }) => (

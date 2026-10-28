@@ -1,9 +1,11 @@
+import type { FactIcon } from "@tattvix/api";
 import type { LucideIcon } from "lucide-react-native";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
+import { factIcons } from "./fact-icons";
 import { usePressFeedback } from "./press";
 import { colors, type } from "./theme";
 
@@ -20,6 +22,7 @@ export function ListRow({
   titleLines = 1,
   detailLines = 2,
   detailTone = "muted",
+  titleTone,
   onPress,
 }: {
   title: string;
@@ -36,7 +39,9 @@ export function ListRow({
   titleLines?: number;
   detailLines?: number;
   /** Destructive for a line that needs attention, such as an overdue checkout. */
-  detailTone?: "muted" | "success" | "destructive";
+  detailTone?: "muted" | "success" | "warning" | "destructive";
+  /** A status title, such as "Ready for check-in" in green. */
+  titleTone?: "success" | "warning";
   onPress?: () => void;
 }) {
   const press = usePressFeedback();
@@ -45,11 +50,11 @@ export function ListRow({
       {Icon ? <Icon color={colors.foreground} size={22} strokeWidth={1.6} /> : null}
       {leading}
       <View style={styles.copy}>
-        <Text style={styles.title} numberOfLines={titleLines}>
+        <Text style={[styles.title, titleTone && { color: colors[titleTone] }]} numberOfLines={titleLines}>
           {title}
         </Text>
         {detail ? (
-          <Text style={[styles.detail, detailTone !== "muted" && { color: detailTone === "success" ? colors.success : colors.destructive }]} numberOfLines={detailLines}>
+          <Text style={[styles.detail, detailTone !== "muted" && { color: colors[detailTone] }]} numberOfLines={detailLines}>
             {detail}
           </Text>
         ) : null}
@@ -77,14 +82,17 @@ const styles = StyleSheet.create({
   title: { ...type.rowTitle, color: colors.foreground },
   detail: { ...type.caption, color: colors.mutedForeground },
   fact: { alignItems: "flex-start" },
+  factIcon: { marginTop: 10 },
   factValue: { ...type.body, color: colors.foreground },
   factEmpty: { color: colors.subtleForeground },
 });
 
 /** A read-only fact inside a Panel: small label over the value. A null value reads "Not added". */
-export function FactRow({ label, value }: { label: string; value: string | null }) {
+export function FactRow({ label, value, icon }: { label: string; value: string | null; icon?: FactIcon }) {
+  const Icon = icon ? factIcons[icon] : null;
   return (
     <View style={[styles.row, styles.fact]} accessible accessibilityLabel={`${label}: ${value ?? "Not added"}`}>
+      {Icon ? <Icon color={colors.foreground} size={22} strokeWidth={1.6} style={styles.factIcon} /> : null}
       <View style={styles.copy}>
         <Text style={styles.detail}>{label}</Text>
         <Text style={[styles.factValue, value === null && styles.factEmpty]}>{value ?? "Not added"}</Text>

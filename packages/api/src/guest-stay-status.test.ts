@@ -20,8 +20,8 @@ test("stay facts: room, the moments that happened, and nights with the rate", ()
   const base = { room: null, submittedAt: "2026-10-27T09:00:00Z", checkedInAt: null, checkedOutAt: null } as const;
   const waiting = getGuestStayFacts(base, null, (iso) => `<${iso}>`);
   assert.deepEqual(waiting, [
-    { label: "Room", value: "Reception will assign one" },
-    { label: "Requested", value: "<2026-10-27T09:00:00Z>" },
+    { label: "Room", value: "Reception will assign one", icon: "room" },
+    { label: "Requested", value: "<2026-10-27T09:00:00Z>", icon: "requested" },
   ]);
   const done = getGuestStayFacts(
     { ...base, room: { number: "302" } as never, checkedInAt: "2026-10-27T10:00:00Z", checkedOutAt: "2026-10-29T10:00:00Z" },

@@ -304,7 +304,7 @@ export function AppShellView({ shell, children }: { shell: AppShellModel; childr
   );
 
   return (
-    <div className="min-h-dvh bg-background pr-[env(safe-area-inset-right,0px)] pl-[env(safe-area-inset-left,0px)]">
+    <div className="min-h-dvh bg-canvas pr-[env(safe-area-inset-right,0px)] pl-[env(safe-area-inset-left,0px)]">
       <TopNav
         shell={shell}
         person={person}

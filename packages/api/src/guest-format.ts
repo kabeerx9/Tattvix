@@ -38,3 +38,10 @@ export function formatDate(iso: string | null) {
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
+
+/** Which of the five soft avatar tones a person gets: stable per name, the same on web and native. */
+export function avatarTone(name: string): 0 | 1 | 2 | 3 | 4 {
+  let hash = 0;
+  for (const char of name.trim().toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return (hash % 5) as 0 | 1 | 2 | 3 | 4;
+}

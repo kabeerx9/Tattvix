@@ -49,7 +49,7 @@ export function CompanionsStep({
             selected={selected}
             disabled={!ready || (!selected && selectedIds.length >= MAX_COMPANIONS)}
             onPress={() => onToggle(companion.id, !selected)}
-            leading={<InitialsAvatar initials={initialsOf(personName(companion, "?"))} size={40} />}
+            leading={<InitialsAvatar initials={initialsOf(personName(companion, "?"))} name={personName(companion, "?")} size={40} />}
             title={personName(companion, "Unnamed companion")}
             description={ready ? detail : "Add the missing details to bring them along"}
           >

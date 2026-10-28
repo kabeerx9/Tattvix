@@ -16,7 +16,7 @@ export default function GuestLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas } }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="getting-started" />
       <Stack.Screen name="companions/index" />

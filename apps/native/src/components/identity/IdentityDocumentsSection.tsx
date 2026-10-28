@@ -9,7 +9,7 @@ import { BookUser, Car, IdCard, Vote, type LucideIcon } from "lucide-react-nativ
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, EmptyState, ListRow, Panel, SectionTitle, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
+import { Button, EmptyState, ListRow, Panel, GroupTitle, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 
 import { DocumentEditorSheet } from "./DocumentEditorSheet";
@@ -85,7 +85,7 @@ export function IdentityDocumentsSection({ companionId, title = "Identity docume
 
   return (
     <View style={styles.section}>
-      <SectionTitle action={list.length ? <TextLink label="Add document" onPress={() => openEditor(null)} /> : undefined}>{title}</SectionTitle>
+      <GroupTitle action={list.length ? <TextLink label="Add document" onPress={() => openEditor(null)} /> : undefined}>{title}</GroupTitle>
       <View style={styles.body}>{body}</View>
 
       {viewing ? (

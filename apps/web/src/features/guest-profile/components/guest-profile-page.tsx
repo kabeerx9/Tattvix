@@ -19,7 +19,7 @@ import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { FactList, PageHeader, Panel, SectionTitle } from "@/components/design-system";
+import { FactList, PageHeader, Panel, GroupTitle } from "@/components/design-system";
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
@@ -90,7 +90,7 @@ export function GuestProfilePage() {
         <Panel className="flex items-start gap-3 p-5">
           <BadgeCheck aria-hidden className="mt-0.5 size-5 shrink-0" strokeWidth={1.75} />
           <div>
-            <p className="text-[15px] font-semibold">Ready for check-in</p>
+            <p className="text-[15px] font-semibold text-success">Ready for check-in</p>
             <p className="text-sm text-muted-foreground">Scan a hotel&apos;s QR and these details go with you.</p>
           </div>
         </Panel>
@@ -114,7 +114,7 @@ export function GuestProfilePage() {
 
       {sections.map((section) => (
         <section key={section.key} className="grid gap-3">
-          <SectionTitle
+          <GroupTitle
             title={section.title}
             action={
               <button

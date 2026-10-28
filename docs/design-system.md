@@ -9,7 +9,7 @@ Visual reference: `docs/design/reference/`.
 
 ## Product character
 
-A calm, precise front-desk tool. White canvas, warm-neutral greys, one rose accent used sparingly. Density is a
+A calm, precise front-desk tool. Grey `canvas` behind white panels, warm-neutral greys, one rose accent used sparingly. Density is a
 feature: staff use it all day. Imagery adds warmth only where it comes from real data.
 
 **Light theme only** until further notice. Do not add `dark:` variants.
@@ -33,7 +33,7 @@ Tailwind palette colours (`emerald-*`, `amber-*`, `gray-*`) in feature code.
 
 | Role | Token |
 |---|---|
-| Canvas, panels | `background`, `card` (white) |
+| Canvas, panels | `canvas` (`#f5f5f7`) behind `card` (white) panels |
 | Text | `foreground` · `muted-foreground` (secondary) · `subtle-foreground` (labels, meta) |
 | Lines | `border` (panels, controls) · `border-soft` (dividers inside a panel) |
 | Fills | `muted` (table header, neutral pill, empty photo slot) · `accent` (**neutral grey** — generic hover/highlight used by menus and selects) · `primary-tint` (neutral grey, kept for compatibility; accent tints are retired) |
@@ -51,8 +51,8 @@ photo scrim), glows, multicolour metric cards or tinted panels.
 
 - Cards and panels: 16px radius via the `rounded-card` token (`--card-radius`). Controls stay 8px
   (`rounded-lg`); photo tiles 12px (`rounded-xl`); pills and filter tabs fully rounded.
-- Card shadow: `shadow-card` (`--elevation-card`, a soft two-layer shadow) on top of the 1px
-  `border`. Floating surfaces (sheets, menus) use `shadow-raised`. No other shadows.
+- Cards and panels are flat: white on the grey `canvas` (`#f5f5f7`) with a 1px `border-soft`, no
+  shadow. Floating surfaces (sheets, menus) use `shadow-raised`. No other shadows.
 - Change radius and shadows through the tokens in `globals.css`, never with one-off values.
 - **No box in a box.** Sections inside a panel are separated by `border-soft` dividers, never by nested cards.
 

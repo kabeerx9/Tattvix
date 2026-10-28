@@ -29,7 +29,7 @@ export function PhotoTile({ uri, label, width, badge, emptyText = false, aspectR
 }
 
 const styles = StyleSheet.create({
-  tile: { backgroundColor: colors.muted, overflow: "hidden", justifyContent: "center", alignItems: "center" },
+  tile: { backgroundColor: colors.borderSoft, overflow: "hidden", justifyContent: "center", alignItems: "center" },
   label: { position: "absolute", left: 12, bottom: 10, fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20, color: "#ffffff" },
   empty: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: colors.subtleForeground },
   badge: { position: "absolute", left: 10, top: 10 },

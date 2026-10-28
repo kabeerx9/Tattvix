@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestProfileInput } from "@tattvix/contracts";
 
+import { avatarTone } from "./guest-format";
 import { companionRowDetail, getCompanionFacts, getProfileReadiness, getProfileSections } from "./guest-profile-view";
 
 const empty: GuestProfileInput = {
@@ -40,4 +41,10 @@ test("companion facts and list line", () => {
   assert.deepEqual(getCompanionFacts(companion).map((fact) => fact.value), ["Brother", "4 May 2012 · Under 18", "India"]);
   assert.equal(companionRowDetail(companion), "Brother · 1 detail missing");
   assert.equal(companionRowDetail({ ...companion, relationship: "", readiness: { isReady: true, missingFields: [] } }), "Ready for check-in");
+});
+
+test("avatar tone is stable per name and ignores case and spacing", () => {
+  assert.equal(avatarTone("Asha Nayak"), avatarTone(" asha nayak "));
+  assert.ok([0, 1, 2, 3, 4].includes(avatarTone("Ravi")));
+  assert.notEqual(new Set(["Asha", "Ravi", "Meera", "Kabir", "Neha", "Priya"].map(avatarTone)).size, 1);
 });

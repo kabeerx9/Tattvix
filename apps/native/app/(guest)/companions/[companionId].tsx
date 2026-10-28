@@ -10,7 +10,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { CompanionEditorSheet } from "@/src/components/companions/CompanionEditorSheet";
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { PendingScreen } from "@/src/components/status-screens";
-import { Button, ConfirmSheet, EmptyState, Enter, FactRow, InitialsAvatar, Panel, Screen, SecondaryHeader, SectionTitle, TextLink, colors, space, toast, type } from "@/src/design-system";
+import { Button, ConfirmSheet, EmptyState, Enter, FactRow, InitialsAvatar, Panel, Screen, SecondaryHeader, GroupTitle, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -57,7 +57,7 @@ export default function CompanionScreen() {
     <Screen refreshing={query.isFetching && !query.isPending} onRefresh={() => void query.refetch()}>
       <SecondaryHeader title="Companion" onBack={() => router.back()} />
       <View style={styles.head}>
-        <InitialsAvatar initials={initialsFor(name)} size={72} />
+        <InitialsAvatar initials={initialsFor(name)} name={name} size={72} />
         <Text accessibilityRole="header" style={styles.name}>
           {name}
         </Text>
@@ -65,10 +65,10 @@ export default function CompanionScreen() {
       </View>
 
       <Enter style={styles.section}>
-        <SectionTitle action={<TextLink label="Edit" onPress={() => setEditing(true)} />}>Details</SectionTitle>
+        <GroupTitle action={<TextLink label="Edit" onPress={() => setEditing(true)} />}>Details</GroupTitle>
         <Panel>
           {getCompanionFacts(companion).map((fact) => (
-            <FactRow key={fact.label} label={fact.label} value={fact.value} />
+            <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} />
           ))}
         </Panel>
       </Enter>

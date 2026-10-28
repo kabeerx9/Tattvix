@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, type ColorValue } from "react-native";
 import { colors, radii, type } from "./theme";
 
 const tones = {
-  neutral: { backgroundColor: colors.muted, color: colors.foreground },
+  neutral: { backgroundColor: colors.borderSoft, color: colors.foreground },
   success: { backgroundColor: colors.successTint, color: colors.success },
   warning: { backgroundColor: colors.warningTint, color: colors.warning },
   destructive: { backgroundColor: colors.destructiveTint, color: colors.destructive },

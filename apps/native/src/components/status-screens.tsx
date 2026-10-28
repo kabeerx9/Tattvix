@@ -44,5 +44,5 @@ export function RetryScreen({ onRetry, retrying = false, error }: { onRetry: () 
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.canvas },
 });

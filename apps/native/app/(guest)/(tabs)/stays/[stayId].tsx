@@ -66,7 +66,7 @@ export default function GuestStayDetailScreen() {
       <Enter style={styles.section}>
         <Panel>
           {getGuestStayFacts(stay, bill).map((fact) => (
-            <FactRow key={fact.label} label={fact.label} value={fact.value} />
+            <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} />
           ))}
         </Panel>
       </Enter>

@@ -45,7 +45,7 @@ export default function HotelLayout() {
     <HotelPlaceProvider value={place}>
       <View style={styles.root}>
         {isReadOnly(place) ? <ReadOnlyBanner status={place.subscription.status} /> : null}
-        <Stack key={place.key} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack key={place.key} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="desk-qr" options={{ animation: "slide_from_bottom", gestureEnabled: true }} />
           <Stack.Screen name="reports" />
@@ -58,4 +58,4 @@ export default function HotelLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.background } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.canvas } });

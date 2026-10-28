@@ -6,7 +6,6 @@ import {
   BookUser,
   Car,
   ChevronRight,
-  FileKey2,
   FileQuestion,
   IdCard,
   Plus,
@@ -21,7 +20,7 @@ import {
   ConfirmDialog,
   EmptyState,
   Panel,
-  PanelHeader,
+  GroupTitle,
   StatusPill,
 } from "@/components/design-system";
 import { DocumentEditor } from "@/features/identity-documents/components/document-editor";
@@ -180,18 +179,15 @@ export function IdentityDocumentsSection({
           <div className="overflow-hidden rounded-lg border border-border">{body}</div>
         </section>
       ) : (
-        <Panel>
-          <PanelHeader
-            title="Identity documents"
-            icon={FileKey2}
-            meta={documents.length || undefined}
-            actions={documents.length ? addButton : undefined}
-          />
-          <p className="border-b border-border-soft px-5 py-3 text-xs text-subtle-foreground">
-            {intro}
-          </p>
-          {body}
-        </Panel>
+        <section className="grid gap-3">
+          <GroupTitle title="Identity documents" action={documents.length ? addButton : undefined} />
+          <Panel>
+            <p className="border-b border-border-soft px-5 py-3 text-xs text-subtle-foreground">
+              {intro}
+            </p>
+            {body}
+          </Panel>
+        </section>
       )}
 
       <DocumentSheet

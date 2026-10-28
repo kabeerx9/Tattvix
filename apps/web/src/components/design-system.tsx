@@ -9,13 +9,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@tattvix/ui/components/alert-dialog";
-import { describeLoadFailure } from "@tattvix/api";
+import { avatarTone, describeLoadFailure, type FactIcon } from "@tattvix/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useRouter } from "@tanstack/react-router";
 import { Children, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, FileX, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
+import { factIcons } from "@/components/fact-icons";
 import { getInitials } from "@/lib/initials";
 
 /**
@@ -207,7 +208,7 @@ export function RouteErrorState({
  */
 export function KpiStrip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border bg-card shadow-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
+    <div className="grid grid-cols-2 divide-border overflow-hidden rounded-card border border-border-soft bg-card max-lg:*:-mr-px max-lg:*:-mb-px max-lg:*:border-r max-lg:*:border-b max-lg:*:border-border-soft sm:grid-cols-3 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none lg:divide-x">
       {Children.toArray(children).map((child, index) => (
         <div key={index} className="enter-up min-w-0" style={{ "--i": index } as React.CSSProperties}>
           {child}
@@ -250,7 +251,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-card border border-border bg-card shadow-card",
+        "overflow-hidden rounded-card border border-border-soft bg-card",
         className,
       )}
     >
@@ -329,7 +330,7 @@ const statusPillTones = {
   success: "bg-success-tint text-success",
   warning: "bg-warning-tint text-warning",
   danger: "bg-destructive-tint text-destructive",
-  neutral: "bg-muted text-muted-foreground",
+  neutral: "bg-border-soft text-muted-foreground",
   // Over a photo: a solid white chip so the status reads on any image.
   onPhoto: "bg-background text-success shadow-sm",
 } as const;
@@ -375,7 +376,7 @@ export function PhotoTile({
   return url && url !== failedUrl ? (
     <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(url)} className={cn("bg-muted object-cover", className)} />
   ) : (
-    <div aria-hidden className={cn("grid place-items-center bg-muted text-sm text-subtle-foreground", className)}>
+    <div aria-hidden className={cn("grid place-items-center bg-border-soft text-sm text-subtle-foreground", className)}>
       {label}
     </div>
   );
@@ -403,7 +404,7 @@ export function PhotoHero({
   className?: string;
 }) {
   return (
-    <section className={cn("relative overflow-hidden rounded-lg bg-muted", className)}>
+    <section className={cn("relative overflow-hidden rounded-lg bg-border-soft", className)}>
       <img src={src} alt="" decoding="async" className="h-52 w-full object-cover sm:h-64" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-6">
@@ -421,6 +422,14 @@ export function PhotoHero({
 }
 
 /** Initials in a neutral circle (people) or rounded square (places). We never store guest photos. */
+const avatarTones = [
+  ["#e8f1fd", "#1d4f91"],
+  ["#fdeee8", "#9a3412"],
+  ["#eef6ec", "#2f6b2f"],
+  ["#f3edfb", "#5b3b8c"],
+  ["#fdf3d9", "#8a5a00"],
+] as const;
+
 const initialsAvatarSizes = {
   sm: "size-8 text-xs",
   md: "size-11 text-sm",
@@ -436,14 +445,18 @@ export function InitialsAvatar({
   shape?: "circle" | "square";
   size?: keyof typeof initialsAvatarSizes;
 }) {
+  // People get their own soft colour (same palette and hash as native); square
+  // marks (hotels, rooms) stay neutral.
+  const tone = shape === "circle" ? avatarTones[avatarTone(name)] : null;
   return (
     <span
       aria-hidden
       className={cn(
-        "grid shrink-0 place-items-center bg-muted font-semibold",
+        "grid shrink-0 place-items-center font-semibold",
         initialsAvatarSizes[size],
-        shape === "circle" ? "rounded-full" : "rounded-md text-muted-foreground",
+        shape === "circle" ? "rounded-full" : "rounded-md bg-muted text-muted-foreground",
       )}
+      style={tone ? { backgroundColor: tone[0], color: tone[1] } : undefined}
     >
       {getInitials(name)}
     </span>
@@ -702,7 +715,7 @@ export function LargeTitle({
   return (
     <>
       <div
-        className="large-title-bar sticky top-0 z-20 -mx-4 -mt-4 -mb-8 bg-background/95 backdrop-blur sm:-mx-8 md:hidden"
+        className="large-title-bar sticky top-0 z-20 -mx-4 -mt-4 -mb-8 bg-canvas/95 backdrop-blur sm:-mx-8 md:hidden"
         data-collapsed={collapsed ? "" : undefined}
         aria-hidden
       >
@@ -742,6 +755,16 @@ export function SectionTitle({
         <h2 className="text-[22px] leading-tight font-semibold tracking-[-0.02em]">{title}</h2>
         {meta ? <p className="mt-0.5 text-sm text-muted-foreground">{meta}</p> : null}
       </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+/** Small grey label over a group of rows on detail pages (Profile, a stay, a companion). */
+export function GroupTitle({ title, action, className }: { title: string; action?: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex min-w-0 items-center justify-between gap-4 px-1 text-[13px]", className)}>
+      <h2 className="min-w-0 font-semibold text-muted-foreground">{title}</h2>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
@@ -835,17 +858,23 @@ export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; labe
 }
 
 /** Read-only facts inside a Panel: small label over each value; null reads "Not added". */
-export function FactList({ facts }: { facts: { label: string; value: string | null }[] }) {
+export function FactList({ facts }: { facts: { label: string; value: string | null; icon?: FactIcon }[] }) {
   return (
     <dl className="divide-y divide-border-soft">
-      {facts.map((fact) => (
-        <div key={fact.label} className="px-5 py-3.5">
-          <dt className="text-sm text-muted-foreground">{fact.label}</dt>
-          <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
-            {fact.value ?? "Not added"}
-          </dd>
-        </div>
-      ))}
+      {facts.map((fact) => {
+        const Icon = fact.icon ? factIcons[fact.icon] : null;
+        return (
+          <div key={fact.label} className="flex gap-3.5 px-5 py-3.5">
+            {Icon ? <Icon aria-hidden className="mt-2.5 size-5 shrink-0" strokeWidth={1.6} /> : null}
+            <div className="min-w-0">
+              <dt className="text-sm text-muted-foreground">{fact.label}</dt>
+              <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
+                {fact.value ?? "Not added"}
+              </dd>
+            </div>
+          </div>
+        );
+      })}
     </dl>
   );
 }
