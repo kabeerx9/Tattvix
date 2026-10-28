@@ -20,7 +20,7 @@ export default function ReviewsScreen() {
   const query = useQuery({ ...queries.reviews.hotel(place.organizationSlug, place.propertySlug, before), enabled: allowed, placeholderData: keepPreviousData });
   if (!allowed) return <Screen><SecondaryHeader title="Reviews" onBack={() => router.back()} /><Text style={styles.meta}>Only hotel owners can view reviews.</Text></Screen>;
   if (!query.data) {
-    if (query.isError) return <RetryScreen onRetry={() => void query.refetch()} retrying={query.isFetching} />;
+    if (query.isError) return <RetryScreen onRetry={() => void query.refetch()} retrying={query.isFetching} error={query.error} />;
     return <PendingScreen />;
   }
   const data = query.data;

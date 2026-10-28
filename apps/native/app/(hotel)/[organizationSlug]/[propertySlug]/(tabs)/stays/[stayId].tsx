@@ -1,7 +1,7 @@
 // A stay: status and facts, the one action it allows, and the identity the
 // guest shared. Document images are fetched only while shown and never cached
 // to disk (expo-image cachePolicy "none"): this is a shared desk phone.
-import { formatMoneyWholeRupees, getStayStatus, localDayKey, stayStatusLabel } from "@tattvix/api";
+import { describeHotelIdentityAccess, formatMoneyWholeRupees, getStayStatus, localDayKey, stayStatusLabel } from "@tattvix/api";
 import type { HotelStayDetail, IdentityDocumentImageSide } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -36,7 +36,7 @@ export default function StayDetailScreen() {
   const [confirmCheckout, setConfirmCheckout] = useState(false);
 
   if (!stayQuery.data) {
-    if (stayQuery.isError) return <RetryScreen onRetry={() => void stayQuery.refetch()} retrying={stayQuery.isFetching} />;
+    if (stayQuery.isError) return <RetryScreen error={stayQuery.error} onRetry={() => void stayQuery.refetch()} retrying={stayQuery.isFetching} />;
     return <PendingScreen />;
   }
 
@@ -89,7 +89,7 @@ export default function StayDetailScreen() {
 
       {waiting && scope.canAssign ? (
         <View style={styles.action}>
-          <Button label="Assign a room" onPress={() => setAssigning(true)} disabled={!roomQuery.data} />
+          <Button label="Assign room" onPress={() => setAssigning(true)} disabled={!roomQuery.data} />
         </View>
       ) : waiting && scope.readOnly ? (
         <View style={styles.action}>
@@ -155,6 +155,7 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
   const { guest, document, companions, images } = stay.snapshot;
   const address = [guest.addressLine1, guest.addressLine2, guest.city, guest.stateRegion, guest.postalCode, guest.country].filter(Boolean).join(", ");
   const anyImages = images.length > 0 || companions.some((companion) => companion.images.length > 0);
+  const accessLine = describeHotelIdentityAccess(stay);
 
   return (
     <>
@@ -178,8 +179,7 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
           Issued by {document.issuingCountry.toUpperCase()}
           {document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}
         </Text>
-        <Text style={[styles.meta, { marginTop: 4 }]}>Images shared with this property are watermarked for hotel check-in only.</Text>
-        {stay.identityAccess.expiresAt ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access ends {formatDateTime(stay.identityAccess.expiresAt)}</Text> : stay.identityAccess.isActive ? <Text style={[styles.meta, { marginTop: 4 }]}>ID access stays active throughout the stay. The 60-day window starts at checkout.</Text> : null}
+        {accessLine ? <Text style={[styles.meta, { marginTop: 4 }]}>{accessLine}</Text> : null}
         {anyImages && stay.identityAccess.isActive ? (
           <View style={{ marginTop: space.md, alignSelf: "flex-start" }}>
             <TextLink label={imagesVisible ? "Hide images" : "View images"} onPress={() => setImagesVisible((visible) => !visible)} />
@@ -195,8 +195,8 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
         ) : null}
       </Section>
 
-      <Section icon={UsersRound} title="Companions" meta={String(companions.length)}>
-        {companions.length ? (
+      {companions.length ? (
+        <Section icon={UsersRound} title="Companions" meta={String(companions.length)}>
           <View style={{ gap: space.lg }}>
             {companions.map((companion, index) => (
               <View key={`${companion.legalFirstName}-${index}`} style={{ gap: 2 }}>
@@ -223,10 +223,8 @@ function Identity({ stay, scope }: { stay: HotelStayDetail; scope: { organizatio
               </View>
             ))}
           </View>
-        ) : (
-          <Text style={styles.meta}>The guest did not share any companions.</Text>
-        )}
-      </Section>
+        </Section>
+      ) : null}
     </>
   );
 }

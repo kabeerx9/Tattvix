@@ -49,7 +49,7 @@ export default function StaysScreen() {
   const base = `/(hotel)/${organizationSlug}/${propertySlug}`;
 
   if (!stayQuery.data) {
-    if (stayQuery.isError) return <RetryScreen onRetry={() => void stayQuery.refetch()} retrying={stayQuery.isFetching} />;
+    if (stayQuery.isError) return <RetryScreen onRetry={() => void stayQuery.refetch()} retrying={stayQuery.isFetching} error={stayQuery.error} />;
     return <PendingScreen />;
   }
 

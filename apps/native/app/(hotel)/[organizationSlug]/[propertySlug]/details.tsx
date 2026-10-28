@@ -1,23 +1,25 @@
-// Hotel details: the property information form and the photo slots. Staff
-// without hotel:manage see the form read-only and no photo actions. Mirrors
+// Hotel details: one form (name and property information, one Save) and the
+// photo slots. Staff without hotel:manage see the form read-only and no photo
+// actions. Mirrors
 // apps/web/src/features/hotel-details/components/hotel-details-page.tsx.
 import type { PropertyDetails, PropertyDetailsInput, PropertyPhotoSlot } from "@tattvix/contracts";
-import { hotelDetailsKeys } from "@tattvix/api";
+import { propertyNameSchema } from "@tattvix/contracts";
+import { createPropertyNameApi, hotelDetailsKeys, propertyNameMutation, propertyNameQuery } from "@tattvix/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, ConfirmSheet, LargeTitle, Screen, SecondaryHeader, SectionTitle, Spinner, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
 import { PhotoSlot, SavingPhoto, useRemovePhoto, useUploadPhoto } from "@/src/components/photo-slots";
-import { PropertyNameForm } from "@/src/components/property-name-form";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { api, queries } from "@/src/lib/api";
+import { api, apiClient, queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
 import { errorMessage } from "@/src/lib/format";
 import { useHotelPlace } from "@/src/lib/hotel-place";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const nameApi = createPropertyNameApi(apiClient);
 
 type Form = {
   address: string;
@@ -58,6 +60,7 @@ export default function HotelDetailsScreen() {
   const queryClient = useQueryClient();
 
   const details = useQuery(queries.hotelDetails.property(organizationSlug, propertySlug));
+  const name = useQuery(propertyNameQuery(nameApi, organizationSlug, propertySlug));
   const rooms = useQuery(queries.hotelOperations.rooms(organizationSlug, propertySlug));
   const photos = useQuery({ ...queries.propertyPhotos.list(organizationSlug, propertySlug), enabled: canManageHotel });
 
@@ -68,20 +71,25 @@ export default function HotelDetailsScreen() {
   const busy = upload.isPending || remove.isPending;
 
   // Re-sync the form whenever the server copy changes, as the web does.
+  // The name and the details are separate server copies, so each re-syncs on
+  // its own: saving the name must not reset unsaved detail edits.
+  const [nameInput, setNameInput] = useState<string | null>(null);
   useEffect(() => {
     if (details.data) setForm(toForm(details.data));
   }, [details.data]);
+  useEffect(() => {
+    if (name.data) setNameInput(name.data.name);
+  }, [name.data]);
 
+  const saveName = useMutation(propertyNameMutation(nameApi, queryClient, organizationSlug, propertySlug));
   const save = useMutation({
     mutationFn: (input: PropertyDetailsInput) => api.hotelDetails.update(organizationSlug, propertySlug, input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: hotelDetailsKeys.property(organizationSlug, propertySlug) });
-      toast("Hotel details saved");
-    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: hotelDetailsKeys.property(organizationSlug, propertySlug) }),
   });
 
-  if (!details.data || !form) {
-    if (details.isError) return <RetryScreen onRetry={() => void details.refetch()} retrying={details.isFetching} />;
+  if (!details.data || !name.data || !form || nameInput === null) {
+    const failed = details.isError ? details : name.isError ? name : null;
+    if (failed) return <RetryScreen error={failed.error} onRetry={() => { void details.refetch(); void name.refetch(); }} retrying={details.isFetching || name.isFetching} />;
     return <PendingScreen />;
   }
 
@@ -89,18 +97,31 @@ export default function HotelDetailsScreen() {
   const checkInInvalid = timeError(form.checkInTime);
   const checkOutInvalid = timeError(form.checkOutTime);
   const timesValid = !checkInInvalid && !checkOutInvalid;
+  const nameValid = propertyNameSchema.safeParse({ name: nameInput }).success;
+  const nameChanged = nameInput.trim() !== name.data.name;
+  const saving = saveName.isPending || save.isPending;
+  const saveError = saveName.isError ? "The property name could not be saved. Please try again." : errorMessage(save.error, "The hotel details could not be saved.");
   const set = (key: keyof Form) => (value: string) => setForm((current) => (current ? { ...current, [key]: value } : current));
 
-  function submit() {
-    if (!form || !timesValid || phoneInvalid) return;
-    save.mutate({
-      address: form.address.trim(),
-      contactPhone: form.contactPhone.trim(),
-      description: form.description.trim(),
-      amenities: form.amenities.split("\n").map((value) => value.trim()).filter(Boolean),
-      checkInTime: form.checkInTime.trim(),
-      checkOutTime: form.checkOutTime.trim(),
-    });
+  // One Save: the name has its own endpoint, so it is sent first and only when it changed.
+  async function submit() {
+    if (!form || nameInput === null || !timesValid || phoneInvalid || !nameValid) return;
+    saveName.reset();
+    save.reset();
+    try {
+      if (nameChanged) await saveName.mutateAsync({ name: nameInput.trim() });
+      await save.mutateAsync({
+        address: form.address.trim(),
+        contactPhone: form.contactPhone.trim(),
+        description: form.description.trim(),
+        amenities: form.amenities.split("\n").map((value) => value.trim()).filter(Boolean),
+        checkInTime: form.checkInTime.trim(),
+        checkOutTime: form.checkOutTime.trim(),
+      });
+      toast("Hotel details saved");
+    } catch {
+      // The failed mutation's error is shown under the Save button.
+    }
   }
 
   const photoError = upload.error ?? remove.error;
@@ -112,12 +133,20 @@ export default function HotelDetailsScreen() {
   return (
     <Screen refreshing={details.isFetching && !details.isPending} onRefresh={() => void details.refetch()}>
       <SecondaryHeader title="Hotel details" onBack={() => router.back()} />
-      <LargeTitle meta="Property information and photos" action={<TextLink label="Getting started" onPress={() => router.push(`/(hotel)/${organizationSlug}/${propertySlug}/getting-started` as Href)} />}>{place.propertyName}</LargeTitle>
-      <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManageHotel} />
+      <LargeTitle meta="Property information and photos">{place.propertyName}</LargeTitle>
 
       <View style={styles.section}>
         <SectionTitle>Property information</SectionTitle>
         {!canManageHotel ? <Text style={styles.readOnly}>Your role can view these details but cannot edit them.</Text> : null}
+
+        <TextField
+          label="Property name"
+          value={nameInput}
+          onChangeText={setNameInput}
+          editable={canManageHotel && !saving}
+          maxLength={255}
+          error={nameChanged && !nameValid ? "Enter a property name between 1 and 255 characters." : undefined}
+        />
 
         <TextField label="Address" value={form.address} onChangeText={set("address")} editable={canManageHotel} maxLength={1000} multiline />
         <TextField
@@ -158,8 +187,8 @@ export default function HotelDetailsScreen() {
 
         {canManageHotel ? (
           <>
-            <Button label="Save details" onPress={submit} loading={save.isPending} disabled={!timesValid || !!phoneInvalid} />
-            {save.isError ? <Text style={styles.error}>{errorMessage(save.error, "The hotel details could not be saved.")}</Text> : null}
+            <Button label="Save" onPress={() => void submit()} loading={saving} disabled={!timesValid || !!phoneInvalid || !nameValid} />
+            {saveError ? <Text accessibilityRole="alert" style={styles.error}>{saveError}</Text> : null}
           </>
         ) : null}
       </View>

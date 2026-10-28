@@ -4,6 +4,7 @@ import type {
   IdentityDocumentImageAccessResponse,
   IdentityDocumentImageSide,
 } from "@tattvix/contracts";
+import { describeHotelIdentityAccess } from "@tattvix/api";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
@@ -367,7 +368,7 @@ export function HotelStayDetailPage({
               <>
                 <GuestIdentity stay={stay} />
                 <DocumentIdentity stay={stay} imageQueries={imageQueries} />
-                <CompanionIdentity stay={stay} imageQueries={imageQueries.slice(stay.snapshot.images.length)} />
+                {stay.snapshot.companions.length ? <CompanionIdentity stay={stay} imageQueries={imageQueries.slice(stay.snapshot.images.length)} /> : null}
               </>
             ) : <ExpiredIdentity stay={stay} />}
           </Panel>
@@ -561,15 +562,13 @@ function DocumentIdentity({
   const document = snapshot.document;
 
   const [imagesVisible, setImagesVisible] = useState(false);
+  const accessLine = describeHotelIdentityAccess(stay);
 
   return (
     <PanelSection className="app-surface rounded-none border-0 shadow-none">
       <h2 className="flex items-center gap-2 text-sm font-semibold"><FileKey2 className="size-4 text-muted-foreground" />Identity</h2>
       <p className="mt-4 text-sm">{documentTypeLabel(document.documentType)} · {document.documentNumber}</p>
       <p className="mt-1 text-xs text-subtle-foreground">Issued by {document.issuingCountry}{document.expiryDate ? ` · expires ${formatDate(document.expiryDate)}` : ""}</p>
-      <p className="mt-3 text-xs text-subtle-foreground">
-        Images shared with this property are watermarked for hotel check-in only.
-      </p>
       <Button className="stay-print-screen-only mt-2 px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>
         {imagesVisible ? "Hide images" : "View images"}
       </Button>
@@ -580,14 +579,8 @@ function DocumentIdentity({
           ))}
         </div>
       ) : <p className="mt-2 text-xs text-subtle-foreground">No document images were included in this identity package.</p>}
-      {stay.identityAccess.expiresAt ? (
-        <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">
-          ID access ends {formatDateTime(stay.identityAccess.expiresAt)}
-        </p>
-      ) : stay.identityAccess.isActive ? (
-        <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">
-          ID access stays active throughout the stay. The 60-day window starts at checkout.
-        </p>
+      {accessLine ? (
+        <p className="stay-print-screen-only mt-3 text-xs text-subtle-foreground">{accessLine}</p>
       ) : null}
     </PanelSection>
   );
@@ -669,28 +662,26 @@ function CompanionIdentity({
   return (
     <PanelSection className="app-surface rounded-none border-0 shadow-none">
       <h2 className="flex items-center gap-2 text-sm font-semibold"><UsersRound className="size-4 text-muted-foreground" />Companions <span className="font-normal text-subtle-foreground tabular-nums">{companions.length}</span></h2>
-      {companions.length ? (
-        <div className="mt-4 grid gap-4">
-          {companions.map((companion, index) => (
-            <div key={`${companion.legalFirstName}-${index}`}>
-              <p className="text-sm"><span className="font-medium">{companion.legalFirstName} {companion.legalLastName}</span> <span className="text-xs text-subtle-foreground">· {companion.relationship} · {formatDate(companion.dateOfBirth)}</span></p>
-              {companion.document ? (
-                <>
-                  <p className="mt-1 text-xs text-subtle-foreground">{documentTypeLabel(companion.document.documentType)} · {companion.document.documentNumber}</p>
-                  <div className={`stay-print-image-grid mt-3 gap-4 lg:grid-cols-2 ${imagesVisible ? "grid" : "hidden"}`}>
-                    {companion.images.map(({ side }, imageIndex) => (
-                      <DocumentImage key={side} side={side} query={imageQueries[companions.slice(0, index).reduce((total, item) => total + item.images.length, 0) + imageIndex]} />
-                    ))}
-                  </div>
-                </>
-              ) : <p className="mt-1 text-xs text-subtle-foreground">No companion ID shared.</p>}
-            </div>
-          ))}
-          {companions.some((companion) => companion.images.length > 0) ? (
-            <Button className="stay-print-screen-only w-fit px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>{imagesVisible ? "Hide images" : "View images"}</Button>
-          ) : null}
-        </div>
-      ) : <p className="mt-4 text-sm text-muted-foreground">The guest did not share any companions.</p>}
+      <div className="mt-4 grid gap-4">
+        {companions.map((companion, index) => (
+          <div key={`${companion.legalFirstName}-${index}`}>
+            <p className="text-sm"><span className="font-medium">{companion.legalFirstName} {companion.legalLastName}</span> <span className="text-xs text-subtle-foreground">· {companion.relationship} · {formatDate(companion.dateOfBirth)}</span></p>
+            {companion.document ? (
+              <>
+                <p className="mt-1 text-xs text-subtle-foreground">{documentTypeLabel(companion.document.documentType)} · {companion.document.documentNumber}</p>
+                <div className={`stay-print-image-grid mt-3 gap-4 lg:grid-cols-2 ${imagesVisible ? "grid" : "hidden"}`}>
+                  {companion.images.map(({ side }, imageIndex) => (
+                    <DocumentImage key={side} side={side} query={imageQueries[companions.slice(0, index).reduce((total, item) => total + item.images.length, 0) + imageIndex]} />
+                  ))}
+                </div>
+              </>
+            ) : <p className="mt-1 text-xs text-subtle-foreground">No companion ID shared.</p>}
+          </div>
+        ))}
+        {companions.some((companion) => companion.images.length > 0) ? (
+          <Button className="stay-print-screen-only w-fit px-0 text-primary" variant="ghost" size="sm" aria-expanded={imagesVisible} onClick={() => setImagesVisible((visible) => !visible)}>{imagesVisible ? "Hide images" : "View images"}</Button>
+        ) : null}
+      </div>
     </PanelSection>
   );
 }

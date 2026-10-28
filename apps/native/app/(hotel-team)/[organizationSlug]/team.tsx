@@ -61,8 +61,8 @@ export default function TeamScreen() {
     }
   }, [formMember, team.data]);
 
-  if (!currentUser.data) return currentUser.isError ? <RetryScreen onRetry={() => void currentUser.refetch()} retrying={currentUser.isFetching} /> : <PendingScreen />;
-  if (!team.data) return team.isError ? <RetryScreen onRetry={() => void team.refetch()} retrying={team.isFetching} /> : <PendingScreen />;
+  if (!currentUser.data) return currentUser.isError ? <RetryScreen onRetry={() => void currentUser.refetch()} retrying={currentUser.isFetching} error={currentUser.error} /> : <PendingScreen />;
+  if (!team.data) return team.isError ? <RetryScreen onRetry={() => void team.refetch()} retrying={team.isFetching} error={team.error} /> : <PendingScreen />;
   const user = currentUser.data;
 
   function saveForm(input: { role: TeamMember["role"]; propertyIds: number[]; userId?: number; roleChanged: boolean; propertyScopeChanged: boolean }) {

@@ -90,7 +90,7 @@ export default function ReportsScreen() {
   }
 
   if (!registerQuery.data) {
-    if (registerQuery.isError) return <RetryScreen onRetry={() => void registerQuery.refetch()} retrying={registerQuery.isFetching} />;
+    if (registerQuery.isError) return <RetryScreen onRetry={() => void registerQuery.refetch()} retrying={registerQuery.isFetching} error={registerQuery.error} />;
     return <PendingScreen />;
   }
 

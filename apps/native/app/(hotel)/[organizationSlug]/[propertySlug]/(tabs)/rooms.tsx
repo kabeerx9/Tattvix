@@ -1,17 +1,16 @@
-// Rooms: counts, a status filter and the grid. Tapping a room opens its sheet
+// Rooms: a status filter (with counts) and the grid. Tapping a room opens its sheet
 // (status changes apply optimistically; a ready room can take a waiting guest).
 import { getNeedsAction, getRoomStats } from "@tattvix/api";
 import type { HotelRoom } from "@tattvix/contracts";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { BedDouble } from "lucide-react-native";
 import { useState } from "react";
-import { useRouter, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AddRoomSheet } from "@/src/components/add-room-sheet";
 import { RoomSheet, StaySheet, roomPhotoUrl } from "@/src/components/desk-sheets";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { EmptyState, Kpi, KpiRow, LargeTitle, PhotoTile, PillTabs, Screen, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
+import { EmptyState, LargeTitle, PhotoTile, PillTabs, Screen, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { getDeskScope } from "@/src/lib/desk-scope";
 import { roomMeta, roomStatusLabel, roomStatusTone } from "@/src/lib/format";
@@ -29,7 +28,6 @@ const order = new Intl.Collator("en", { numeric: true });
 
 export default function RoomsScreen() {
   const place = useHotelPlace();
-  const router = useRouter();
   const scope = getDeskScope(place);
   const { organizationSlug, propertySlug } = scope;
   const [roomQuery, stayQuery] = useQueries({ queries: [queries.hotelOperations.rooms(organizationSlug, propertySlug), queries.hotelStays.list(organizationSlug, propertySlug)] });
@@ -41,7 +39,7 @@ export default function RoomsScreen() {
   const [addOpen, setAddOpen] = useState(false);
 
   if (!roomQuery.data) {
-    if (roomQuery.isError) return <RetryScreen onRetry={() => void roomQuery.refetch()} retrying={roomQuery.isFetching} />;
+    if (roomQuery.isError) return <RetryScreen error={roomQuery.error} onRetry={() => void roomQuery.refetch()} retrying={roomQuery.isFetching} />;
     return <PendingScreen />;
   }
 
@@ -60,14 +58,6 @@ export default function RoomsScreen() {
       >
         Rooms
       </LargeTitle>
-      {scope.canManageRooms ? <View style={styles.resume}><TextLink label="Getting started" onPress={() => router.push(`/(hotel)/${organizationSlug}/${propertySlug}/getting-started` as Href)} /></View> : null}
-      <View style={styles.kpis}>
-        <KpiRow>
-          <Kpi label="Ready" value={stats.vacant} />
-          <Kpi label="Occupied" value={stats.occupied} />
-          <Kpi label="Cleaning" value={stats.cleaning} />
-        </KpiRow>
-      </View>
       <PillTabs items={filters.map((item) => ({ key: item.key, label: item.label, count: item.key === "ALL" ? rooms.length : count(item.key) }))} value={filter} onChange={(key) => setFilter(key as Filter)} />
 
       {shown.length ? (
@@ -110,8 +100,6 @@ export default function RoomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  kpis: { marginTop: space.xl },
-  resume: { alignItems: "flex-start", marginTop: space.sm },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginTop: space.xl },
   cell: { width: "48%", flexGrow: 1, maxWidth: "49%" },
   cellMeta: { marginTop: space.sm, gap: 6 },

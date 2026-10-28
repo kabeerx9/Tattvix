@@ -1,14 +1,17 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, radii } from "./theme";
 
 // 4:3 photo with a bottom scrim (transparent to 45% black, the only gradient in
-// the kit) and a white label. With no uri it is a muted block.
+// the kit) and a white label. With no uri, or one that fails to load (an
+// expired signed URL), it is a quiet muted block: never an icon or the logo.
 export function PhotoTile({ uri, label, width }: { uri?: string | null; label?: string; width?: number | string }) {
+  const [failedUri, setFailedUri] = useState<string | null>(null);
   return (
     <View style={[styles.tile, { width: width ?? "100%" }]}>
-      {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      {uri && uri !== failedUri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailedUri(uri)} /> : null}
       {label ? (
         <>
           <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]} locations={[0.55, 1]} style={StyleSheet.absoluteFill} />

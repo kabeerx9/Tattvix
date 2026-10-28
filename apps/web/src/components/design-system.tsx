@@ -9,9 +9,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@tattvix/ui/components/alert-dialog";
+import { describeLoadFailure } from "@tattvix/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCanGoBack, useRouter } from "@tanstack/react-router";
 import { Children, useEffect, useRef, useState } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileX, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
@@ -151,6 +153,24 @@ export function RouteErrorState({
   description?: string;
 }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  // A 404/403 will not fix itself on retry: say the page is gone and offer a way back.
+  const failure = describeLoadFailure(error);
+  if (!description && failure.action === "back") {
+    return (
+      <div className="mx-auto grid min-h-[60svh] max-w-xl place-items-center px-5 text-center">
+        <div>
+          <FileX aria-hidden className="mx-auto size-7 text-muted-foreground" strokeWidth={1.5} />
+          <h1 className="mt-4 text-xl font-semibold tracking-tight">{failure.message}</h1>
+          <Button className="mt-6" variant="outline" onClick={() => (canGoBack ? router.history.back() : void router.navigate({ to: "/" }))}>
+            <ArrowLeft />
+            Go back
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const message =
     description ??
     (error instanceof ApiError
@@ -348,8 +368,10 @@ export function PhotoTile({
   label?: string;
   className?: string;
 }) {
-  return url ? (
-    <img src={url} alt="" loading="lazy" decoding="async" className={cn("bg-muted object-cover", className)} />
+  // A URL that fails to load (an expired signed link) falls back to the empty slot.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  return url && url !== failedUrl ? (
+    <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(url)} className={cn("bg-muted object-cover", className)} />
   ) : (
     <div aria-hidden className={cn("grid place-items-center bg-muted text-sm text-subtle-foreground", className)}>
       {label}

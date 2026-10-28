@@ -1,4 +1,6 @@
+import { createPropertyNameApi, propertyNameMutation, propertyNameQuery } from "@tattvix/api";
 import type { PropertyDetails, PropertyDetailsInput } from "@tattvix/contracts";
+import { propertyNameSchema } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
 import { Label } from "@tattvix/ui/components/label";
@@ -8,18 +10,19 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { Building2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
 import { PropertyPhotosPanel } from "@/features/property-photos/components/property-photos-panel";
-import { ApiError } from "@/lib/api";
+import { useHotelSubscription } from "@/features/subscription/use-hotel-subscription";
+import { ApiError, apiClient } from "@/lib/api";
 
 import { hotelDetailsMutations } from "../mutations";
 import { hotelDetailsQueries } from "../queries";
-import { PropertyNameForm } from "./property-name-form";
+
+const nameApi = createPropertyNameApi(apiClient);
 
 function toInput(details: PropertyDetails): PropertyDetailsInput {
   return {
@@ -51,16 +54,36 @@ export function HotelDetailsPage({
   );
   const [input, setInput] = useState(() => toInput(details));
   const updateMutation = useMutation(hotelDetailsMutations.update(queryClient));
+  // The name has its own endpoint (and its own server copy), so it keeps its
+  // own state: saving it must not reset unsaved detail edits.
+  const { data: savedName } = useSuspenseQuery(
+    propertyNameQuery(nameApi, organizationSlug, propertySlug),
+  );
+  const [name, setName] = useState(savedName.name);
+  const nameMutation = useMutation(
+    propertyNameMutation(nameApi, queryClient, organizationSlug, propertySlug),
+  );
+  const subscription = useHotelSubscription(organizationSlug);
+  const nameEditable = canManage && subscription?.entitled === true;
+  const nameValid = propertyNameSchema.safeParse({ name }).success;
+  const nameChanged = name.trim() !== savedName.name;
+  const saving = nameMutation.isPending || updateMutation.isPending;
 
   useEffect(() => {
     setInput(toInput(details));
     setAmenitiesText(details.amenities.join("\n"));
   }, [details]);
+  useEffect(() => setName(savedName.name), [savedName.name]);
 
-  function save(event: React.FormEvent<HTMLFormElement>) {
+  // One Save: the name is sent first and only when it changed.
+  async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    updateMutation.mutate(
-      {
+    if (!nameValid) return;
+    nameMutation.reset();
+    updateMutation.reset();
+    try {
+      if (nameChanged && nameEditable) await nameMutation.mutateAsync({ name: name.trim() });
+      await updateMutation.mutateAsync({
         organizationSlug,
         propertySlug,
         input: {
@@ -70,13 +93,16 @@ export function HotelDetailsPage({
             .map((value) => value.trim())
             .filter(Boolean),
         },
-      },
-      { onSuccess: () => toast.success("Hotel details saved") },
-    );
+      });
+      toast.success("Hotel details saved");
+    } catch {
+      // The failed mutation's error is shown above the Save button.
+    }
   }
 
-  const error =
-    updateMutation.error instanceof ApiError
+  const error = nameMutation.isError
+    ? "The property name could not be saved. Please try again."
+    : updateMutation.error instanceof ApiError
       ? updateMutation.error.message
       : updateMutation.isError
         ? "The hotel details could not be saved."
@@ -84,13 +110,27 @@ export function HotelDetailsPage({
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
-      <PageHeader title="Property settings" actions={<Button nativeButton={false} variant="outline" render={<Link to="/hotel/$organizationSlug/$propertySlug/getting-started" params={{ organizationSlug, propertySlug }} />}>Getting started</Button>} />
-      <PropertyNameForm organizationSlug={organizationSlug} propertySlug={propertySlug} canManage={canManage} />
+      <PageHeader title="Property settings" />
       <form className="grid gap-6" onSubmit={save}>
         <Panel>
           <PanelHeader title="Property information" icon={Building2} />
           <PanelSection>
           <div className="grid gap-5 sm:grid-cols-2">
+            <Field className="sm:col-span-2" label="Property name">
+              <Input
+                disabled={!nameEditable || saving}
+                required
+                maxLength={255}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                aria-invalid={nameChanged && !nameValid}
+              />
+              {nameChanged && !nameValid ? (
+                <span role="alert" className="text-sm font-normal text-destructive">
+                  Enter a property name between 1 and 255 characters.
+                </span>
+              ) : null}
+            </Field>
             <Field label="Address">
               <Input
                 disabled={!canManage}
@@ -176,9 +216,9 @@ export function HotelDetailsPage({
           ) : null}
           {canManage ? (
             <div className="flex justify-end">
-              <Button type="submit" disabled={updateMutation.isPending}>
+              <Button type="submit" disabled={saving || !nameValid}>
                 <Save />
-                {updateMutation.isPending ? "Saving..." : "Save details"}
+                {saving ? "Saving..." : "Save"}
               </Button>
             </div>
           ) : (
