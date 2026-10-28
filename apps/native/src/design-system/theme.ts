@@ -29,6 +29,8 @@ export const colors = {
 // with solid status fills that read on it. Web mirrors these in stay-key-card.tsx.
 export const keyCard = {
   gradient: ["#8c1340", "#4a0d29", "#250716"] as const,
+  // The same plum as one flat colour, for bars and dots (Rooms summary).
+  board: "#6b0f35",
   success: "#12924f",
   warning: "#d97706",
   danger: "#dc2626",

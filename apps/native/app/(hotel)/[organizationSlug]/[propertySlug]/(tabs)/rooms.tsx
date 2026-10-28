@@ -1,30 +1,21 @@
-// Rooms: a status filter (with counts) and the grid. Tapping a room opens its sheet
-// (status changes apply optimistically; a ready room can take a waiting guest).
-import { getNeedsAction, getRoomStats } from "@tattvix/api";
-import type { HotelRoom } from "@tattvix/contracts";
+// Rooms: the floor board. An occupied room opens its stay; any other room opens
+// its sheet (status changes apply optimistically; a ready room can take a waiting guest).
+import { getFloorBoard, getNeedsAction, getRoomStats, localDayKey } from "@tattvix/api";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { BedDouble } from "lucide-react-native";
+import { useRouter, type Href } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { AddRoomSheet } from "@/src/components/add-room-sheet";
-import { RoomSheet, StaySheet, roomPhotoUrl } from "@/src/components/desk-sheets";
+import { RoomSheet, StaySheet } from "@/src/components/desk-sheets";
+import { FloorBoard, RoomStatusStrip } from "@/src/components/floor-board";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { EmptyState, LargeTitle, PhotoTile, PillTabs, Screen, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
+import { EmptyState, LargeTitle, Screen, TextLink, space } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import { getDeskScope } from "@/src/lib/desk-scope";
-import { roomMeta, roomStatusLabel, roomStatusTone } from "@/src/lib/format";
 import { useHotelPlace } from "@/src/lib/hotel-place";
 
-type Filter = "ALL" | HotelRoom["status"];
-const filters: { key: Filter; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "VACANT", label: "Ready" },
-  { key: "OCCUPIED", label: "Occupied" },
-  { key: "CLEANING", label: "Cleaning" },
-  { key: "MAINTENANCE", label: "Maintenance" },
-];
-const order = new Intl.Collator("en", { numeric: true });
 
 export default function RoomsScreen() {
   const place = useHotelPlace();
@@ -32,7 +23,7 @@ export default function RoomsScreen() {
   const { organizationSlug, propertySlug } = scope;
   const [roomQuery, stayQuery] = useQueries({ queries: [queries.hotelOperations.rooms(organizationSlug, propertySlug), queries.hotelStays.list(organizationSlug, propertySlug)] });
   const photos = useQuery(queries.propertyPhotos.list(organizationSlug, propertySlug));
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const router = useRouter();
   const [roomId, setRoomId] = useState<number | null>(null);
   const [stayId, setStayId] = useState<string | null>(null);
   const [assignRoomId, setAssignRoomId] = useState<number | null>(null);
@@ -43,12 +34,11 @@ export default function RoomsScreen() {
     return <PendingScreen />;
   }
 
-  const rooms = [...roomQuery.data.rooms].filter((room) => room.isActive).sort((a, b) => order.compare(a.number, b.number));
+  const rooms = roomQuery.data.rooms.filter((room) => room.isActive);
   const stats = getRoomStats(rooms);
-  const shown = filter === "ALL" ? rooms : rooms.filter((room) => room.status === filter);
   const stays = stayQuery.data?.stays ?? [];
   const waiting = getNeedsAction(stays, []).waiting;
-  const count = (status: HotelRoom["status"]) => rooms.filter((room) => room.status === status).length;
+  const floors = getFloorBoard(rooms, stays, localDayKey(new Date()));
 
   return (
     <Screen refreshing={roomQuery.isFetching && !roomQuery.isPending} onRefresh={() => void roomQuery.refetch()}>
@@ -58,25 +48,17 @@ export default function RoomsScreen() {
       >
         Rooms
       </LargeTitle>
-      <PillTabs items={filters.map((item) => ({ key: item.key, label: item.label, count: item.key === "ALL" ? rooms.length : count(item.key) }))} value={filter} onChange={(key) => setFilter(key as Filter)} />
-
-      {shown.length ? (
-        <View style={styles.grid}>
-          {shown.map((room) => (
-            <Pressable key={room.id} accessibilityRole="button" accessibilityLabel={`Room ${room.number}, ${roomStatusLabel[room.status]}`} onPress={() => setRoomId(room.id)} style={({ pressed }) => [styles.cell, pressed && { opacity: 0.85 }]}>
-              <PhotoTile uri={roomPhotoUrl(photos.data, room.roomType)} label={`Room ${room.number}`} />
-              <View style={styles.cellMeta}>
-                <Text style={styles.cellType} numberOfLines={1}>
-                  {roomMeta(room) || "Standard"}
-                </Text>
-                <StatusPill tone={roomStatusTone[room.status]}>{roomStatusLabel[room.status]}</StatusPill>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+      {rooms.length ? (
+        <>
+          <RoomStatusStrip stats={stats} floors={floors} />
+          <FloorBoard
+            floors={floors}
+            onOpen={(tile) => (tile.stayId ? router.push(`/(hotel)/${organizationSlug}/${propertySlug}/stays/${tile.stayId}` as Href) : setRoomId(tile.room.id))}
+          />
+        </>
       ) : (
         <View style={styles.empty}>
-          <EmptyState icon={BedDouble} text={rooms.length ? `No rooms are ${roomStatusLabel[filter as HotelRoom["status"]]?.toLowerCase() ?? "here"} right now.` : scope.canManageRooms ? "Add the first room to get started." : "This property has no rooms yet. Your owner can add them to get started."} />
+          <EmptyState icon={BedDouble} text={scope.canManageRooms ? "Add the first room to get started." : "This property has no rooms yet. Your owner can add them to get started."} />
         </View>
       )}
 
@@ -100,9 +82,5 @@ export default function RoomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginTop: space.xl },
-  cell: { width: "48%", flexGrow: 1, maxWidth: "49%" },
-  cellMeta: { marginTop: space.sm, gap: 6 },
-  cellType: { ...type.meta, color: colors.mutedForeground },
   empty: { marginTop: space.xl },
 });

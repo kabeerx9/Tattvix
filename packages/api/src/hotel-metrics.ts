@@ -181,3 +181,43 @@ export function getReadyRooms(rooms: HotelRoom[]): HotelRoom[] {
     .filter((room) => room.isActive && room.status === "VACANT")
     .sort((a, b) => roomNumberOrder.compare(a.number, b.number));
 }
+
+export type FloorBoardTile = {
+  room: HotelRoom;
+  kind: "occupied" | "ready" | "cleaning" | "maintenance";
+  /** The guest's first name in an occupied room, else the room's state. */
+  caption: string;
+  /** The checked-in stay in this room, to open from the tile. */
+  stayId: string | null;
+  leavingToday: boolean;
+  overdue: boolean;
+};
+
+export type FloorBoardFloor = { label: string; tiles: FloorBoardTile[] };
+
+const tileKind = { VACANT: "ready", OCCUPIED: "occupied", CLEANING: "cleaning", MAINTENANCE: "maintenance" } as const;
+const tileCaption = { ready: "Ready", occupied: "Occupied", cleaning: "Cleaning", maintenance: "Maintenance" } as const;
+
+/** Rooms on the floor board: active rooms grouped by floor, each with who is in it and who leaves today. */
+export function getFloorBoard(rooms: HotelRoom[], stays: HotelStayListItem[], todayKey: string): FloorBoardFloor[] {
+  const byRoom = new Map(stays.filter((stay) => stay.operationalStatus === "CHECKED_IN" && stay.room).map((stay) => [stay.room!.id, stay]));
+  const floors = new Map<string, FloorBoardTile[]>();
+  for (const room of rooms.filter((entry) => entry.isActive).sort((a, b) => roomNumberOrder.compare(a.number, b.number))) {
+    const kind = tileKind[room.status];
+    const stay = kind === "occupied" ? byRoom.get(room.id) : undefined;
+    const due = stay?.expectedCheckOutDate ?? null;
+    const tile: FloorBoardTile = {
+      room,
+      kind,
+      caption: stay ? (stay.guestName.trim().split(/\s+/)[0] ?? tileCaption[kind]) : tileCaption[kind],
+      stayId: stay?.id ?? null,
+      leavingToday: due === todayKey,
+      overdue: due !== null && due < todayKey,
+    };
+    const floor = room.floor.trim();
+    floors.set(floor, [...(floors.get(floor) ?? []), tile]);
+  }
+  return [...floors.entries()]
+    .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : roomNumberOrder.compare(a, b)))
+    .map(([floor, tiles]) => ({ label: floor === "" ? "Other rooms" : /^\d+$/.test(floor) ? `Floor ${floor}` : floor, tiles }));
+}

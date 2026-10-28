@@ -1,3 +1,4 @@
+import { getFloorBoard, getRoomStats, localDayKey } from "@tattvix/api";
 import type { HotelRoom, HotelRoomCreateInput } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
@@ -7,7 +8,8 @@ import { BedDouble, CircleCheck, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Kpi, KpiStrip, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, rowActionsRevealClassName, StatusPill } from "@/components/design-system";
+import { EmptyState, ListRow, PageHeader, Panel, PanelHeader, PanelSection, ResponsiveTable, rowActionsRevealClassName, StatusPill } from "@/components/design-system";
+import { hotelStayQueries } from "@/features/hotel-stays/queries";
 import { propertyPhotoQueries } from "@/features/property-photos/queries";
 import { getRoomTypePhotoUrl } from "@/features/property-photos/helpers";
 import { ApiError } from "@/lib/api";
@@ -15,6 +17,7 @@ import { formatMoneyMinor, parseMoneyMinor } from "@/lib/money";
 
 import { hotelOperationsMutations } from "../mutations";
 import { hotelOperationsQueries } from "../queries";
+import { FloorBoard, RoomStatusStrip } from "./floor-board";
 
 const EMPTY_ROOM: HotelRoomCreateInput = { number: "", floor: "", roomType: "", nightlyRateMinor: null };
 
@@ -22,6 +25,9 @@ export function HotelRoomsPage({ organizationSlug, propertySlug, canManage }: { 
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(hotelOperationsQueries.rooms(organizationSlug, propertySlug));
   const { data: photos } = useQuery(propertyPhotoQueries.list(organizationSlug, propertySlug));
+  const { data: stayData } = useQuery(hotelStayQueries.list(organizationSlug, propertySlug));
+  const activeRooms = data.rooms.filter((room) => room.isActive);
+  const floors = getFloorBoard(activeRooms, stayData?.stays ?? [], localDayKey(new Date()));
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [roomInput, setRoomInput] = useState(EMPTY_ROOM);
@@ -41,8 +47,8 @@ export function HotelRoomsPage({ organizationSlug, propertySlug, canManage }: { 
       <Field label="Room number"><Input required autoFocus value={roomInput.number} onChange={(event) => setRoomInput((current) => ({ ...current, number: event.target.value }))} placeholder="101" /></Field><Field label="Floor"><Input value={roomInput.floor} onChange={(event) => setRoomInput((current) => ({ ...current, floor: event.target.value }))} placeholder="1" /></Field><Field label="Room type"><Input value={roomInput.roomType} onChange={(event) => setRoomInput((current) => ({ ...current, roomType: event.target.value }))} placeholder="Deluxe" /></Field><Field label="Nightly rate (INR)"><Input value={newRoomRate} onChange={(event) => setNewRoomRate(event.target.value)} placeholder="₹2,500.00" inputMode="decimal" aria-invalid={Boolean(newRoomRate.trim()) && parseMoneyMinor(newRoomRate) === null} /></Field><Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Adding..." : "Save room"}</Button>
     </form></PanelSection></Panel> : null}
     {errorMessage ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{errorMessage}</p> : null}
-    <KpiStrip><Kpi label="Vacant" value={data.rooms.filter((room) => room.status === "VACANT").length} /><Kpi label="Occupied" value={data.rooms.filter((room) => room.status === "OCCUPIED").length} /><Kpi label="Cleaning" value={data.rooms.filter((room) => room.status === "CLEANING").length} /><Kpi label="Maintenance" value={data.rooms.filter((room) => room.status === "MAINTENANCE").length} /></KpiStrip>
-    <Panel><PanelHeader title="Rooms" icon={BedDouble} meta={data.rooms.length} />
+    {activeRooms.length ? <section className="grid gap-6"><RoomStatusStrip stats={getRoomStats(activeRooms)} floors={floors} /><FloorBoard floors={floors} organizationSlug={organizationSlug} propertySlug={propertySlug} /></section> : null}
+    <Panel><PanelHeader title="All rooms" icon={BedDouble} meta={data.rooms.length} />
       {data.rooms.length ? <ResponsiveTable
         label="Rooms"
         rows={data.rooms}

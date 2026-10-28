@@ -15,6 +15,7 @@ import {
   getDailyMovement,
   getInHouse,
   getNeedsAction,
+  getFloorBoard,
   getRoomStats,
   localDayKey,
 } from "./hotel-metrics";
@@ -214,5 +215,35 @@ describe("ready rooms", () => {
     rooms[0]!.number = "110";
     rooms[1]!.number = "12";
     assert.deepEqual(getReadyRooms(rooms).map((entry) => entry.number), ["12", "110"]);
+  });
+});
+
+describe("getFloorBoard", () => {
+  const today = "2026-10-28";
+  const onFloor = (id: number, number: string, floor: string, status: HotelRoom["status"], isActive = true): HotelRoom => ({ ...room(id, status, isActive), number, floor });
+  const guest = (roomId: number, roomNumber: string, guestName: string, expectedCheckOutDate: string | null) =>
+    ({ id: `s${roomId}`, operationalStatus: "CHECKED_IN", room: { id: roomId, number: roomNumber }, guestName, expectedCheckOutDate }) as HotelStayListItem;
+
+  it("groups active rooms by floor in number order, unnamed floors last", () => {
+    const board = getFloorBoard(
+      [onFloor(1, "201", "2", "VACANT"), onFloor(2, "102", "1", "CLEANING"), onFloor(3, "101", "1", "MAINTENANCE"), onFloor(4, "G1", "", "VACANT"), onFloor(5, "110", "1", "VACANT", false), onFloor(6, "10", "10", "VACANT")],
+      [],
+      today,
+    );
+    assert.deepEqual(board.map((floor) => floor.label), ["Floor 1", "Floor 2", "Floor 10", "Other rooms"]);
+    assert.deepEqual(board[0]!.tiles.map((tile) => [tile.room.number, tile.kind, tile.caption]), [["101", "maintenance", "Maintenance"], ["102", "cleaning", "Cleaning"]]);
+    assert.equal(board[1]!.tiles[0]!.caption, "Ready");
+  });
+
+  it("names the guest in an occupied room and flags who leaves today or is late", () => {
+    const rooms = [onFloor(1, "101", "1", "OCCUPIED"), onFloor(2, "102", "1", "OCCUPIED"), onFloor(3, "103", "1", "OCCUPIED"), onFloor(4, "104", "1", "OCCUPIED")];
+    const stays = [guest(1, "101", "Neha Gupta", today), guest(2, "102", "Vikram Singh", "2026-10-26"), guest(3, "103", "Tara Menon", "2026-10-31")];
+    const tiles = getFloorBoard(rooms, stays, today)[0]!.tiles;
+    assert.deepEqual(tiles.map((tile) => [tile.caption, tile.leavingToday, tile.overdue, tile.stayId]), [
+      ["Neha", true, false, "s1"],
+      ["Vikram", false, true, "s2"],
+      ["Tara", false, false, "s3"],
+      ["Occupied", false, false, null],
+    ]);
   });
 });
