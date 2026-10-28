@@ -2,7 +2,8 @@
 // Every module exports pure `keys`, a `create<Feature>Api(client)` and a
 // `create<Feature>Queries(api)`; apps build them once with their own
 // ApiClient (web: cookie + bearer; native: Clerk getToken) and re-export.
-export { classifyApiError, shouldRetryQuery, type ApiFailure } from "./errors";
+export { classifyApiError, describeLoadFailure, shouldRetryQuery, type ApiFailure, type LoadFailure } from "./errors";
+export { describeHotelIdentityAccess } from "./hotel-identity-access";
 export { checkInKeys, createCheckInApi, createCheckInQueries, type CheckInApi } from "./check-in";
 export {
   buildSubmitInput,
@@ -62,7 +63,7 @@ export {
 } from "./guest-format";
 export { createGuestProfileApi, createGuestProfileQueries, guestProfileKeys, type GuestProfileApi } from "./guest-profile";
 export { createGuestStayQueries, createGuestStaysApi, type GuestStaysApi } from "./guest-stays";
-export { stayStatusLabel } from "./guest-stay-status";
+export { getCurrentGuestStay, stayStatusLabel } from "./guest-stay-status";
 export { createHotelDetailsApi, createHotelDetailsQueries, hotelDetailsKeys, type HotelDetailsApi } from "./hotel-details";
 export * from "./hotel-metrics";
 export * from "./platform-metrics";
@@ -102,3 +103,5 @@ export * from "./team";
 export * from "./onboarding";
 export * from "./reviews";
 export * from "./referrals";
+export { countries, countryName, searchCountries, type Country } from "./countries";
+export { formatDay, formatTime, getReservationDetail, partyLabel } from "./desk-format";

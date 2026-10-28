@@ -52,3 +52,23 @@ export function shouldRetryQuery(failureCount: number, error: unknown) {
   if (failure.kind === "network" || failure.kind === "server") return failureCount < 2;
   return false;
 }
+
+/**
+ * What a screen says when the thing it loads cannot be shown. A 404 or 403
+ * will not fix itself, so it offers "Go back"; everything else offers a retry.
+ */
+export type LoadFailure = { message: string; action: "retry" | "back" };
+
+export function describeLoadFailure(error: unknown): LoadFailure {
+  const failure = classifyApiError(error);
+  switch (failure.kind) {
+    case "missing":
+      return { message: "This page is no longer available.", action: "back" };
+    case "forbidden":
+      return { message: "You no longer have access to this page.", action: "back" };
+    case "network":
+      return { message: "Could not reach Tattwix. Check the connection and try again.", action: "retry" };
+    default:
+      return { message: "This page could not load. Try again in a moment.", action: "retry" };
+  }
+}

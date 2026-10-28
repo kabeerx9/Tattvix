@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { ApiError } from "@tattvix/contracts";
 
-import { classifyApiError, shouldRetryQuery } from "./errors";
+import { classifyApiError, describeLoadFailure, shouldRetryQuery } from "./errors";
 
 describe("classifyApiError", () => {
   it("maps 401 to unauthorized", () => {
@@ -55,5 +55,22 @@ describe("shouldRetryQuery", () => {
     for (const status of [400, 401, 402, 403, 404, 409]) {
       assert.equal(shouldRetryQuery(0, new ApiError(status, "x")), false, `status ${status}`);
     }
+  });
+});
+
+describe("describeLoadFailure", () => {
+  it("offers a way back for a missing or forbidden page", () => {
+    assert.deepEqual(describeLoadFailure(new ApiError(404, "Not found.")), { message: "This page is no longer available.", action: "back" });
+    assert.equal(describeLoadFailure(new ApiError(403, "No")).action, "back");
+  });
+  it("keeps the connection message for network failures", () => {
+    assert.deepEqual(describeLoadFailure(new TypeError("Network request failed")), {
+      message: "Could not reach Tattwix. Check the connection and try again.",
+      action: "retry",
+    });
+  });
+  it("offers a retry for server failures without blaming the connection", () => {
+    assert.deepEqual(describeLoadFailure(new ApiError(500, "Boom")), { message: "This page could not load. Try again in a moment.", action: "retry" });
+    assert.equal(describeLoadFailure(undefined).action, "retry");
   });
 });
