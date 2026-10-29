@@ -230,8 +230,10 @@ SUPPORT_WHATSAPP_PHONE = os.environ.get("SUPPORT_WHATSAPP_PHONE", "+910000000000
 
 COMPANION_MINOR_AGE_YEARS =env_positive_int("COMPANION_MINOR_AGE_YEARS", 18)
 HOTEL_QR_TOKEN_TTL_DAYS = env_positive_int("HOTEL_QR_TOKEN_TTL_DAYS", 365)
-# A shared ID stays accessible until operational checkout; only then does this
-# retention window begin. Old submission-cap / post-review settings are retired.
+# A shared ID stays accessible through the stay and for this many days after
+# operational checkout. The same number caps a stay the hotel never checks out
+# (planned checkout + window) or the guest never arrives for (submission +
+# window). Old submission-cap / post-review settings are retired.
 HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS = env_positive_int(
     "HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS", 60,
 )

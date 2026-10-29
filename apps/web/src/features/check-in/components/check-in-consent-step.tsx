@@ -1,4 +1,4 @@
-import { formatPostCheckoutWindow } from "@tattvix/api";
+import { describeConsentAccessWindow } from "@tattvix/api";
 // The consent notice. It is its own step, shown only after Review, and it is
 // the only place consent is captured: an unticked checkbox the guest must
 // tick. Sending stays disabled until then (see buildSubmitInput in steps.ts).
@@ -102,9 +102,8 @@ export function ConsentStep({
 
       <NoticeSection title="For how long">
         <p>
-          Access stays active throughout your stay and ends {formatPostCheckoutWindow(accessPolicy.postCheckoutGraceHours)} after
-          checkout, and the ID photos shared with the hotel are scheduled for deletion. Each time the hotel opens your
-          details it is recorded, and you can see it in Privacy.
+          {describeConsentAccessWindow(accessPolicy.postCheckoutGraceHours)} Each time the hotel opens your details it is
+          recorded, and you can see it in Privacy.
         </p>
       </NoticeSection>
 

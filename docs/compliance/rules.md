@@ -71,7 +71,7 @@ access audit; platform audit log; stays, rooms, charges.
 - Code today: Aadhaar is an accepted document type; the full 12-digit number is stored in the live document and in every stay snapshot indefinitely; the image is purged after the hotel window.
 - Options:
   1. Drop Aadhaar as a document type. Simplest and safest. Cost: most Indian guests carry only Aadhaar, so the product loses its core market.
-  2. Keep Aadhaar as a plain photo, store only the last four digits, never log the number, purge images in 7 days, HTTPS only. Meets reg 6 on its face. No verification claim made anywhere in copy. Recommended for the pilot.
+  2. Keep Aadhaar as a plain photo, store only the last four digits, never log the number, purge images 60 days after checkout, HTTPS only. Meets reg 6 on its face. No verification claim made anywhere in copy. Recommended for the pilot.
   3. Register as an OVSE and verify via secure QR or Aadhaar app. Proper path for a product that claims "verified ID". Later, after the pilot proves demand.
 - Solution: option 2 now, option 3 on the roadmap. Copy must say "share" not "verify". Rules R6 and R7 implement the storage side.
 - Effort: product decision, then S. Owner: you.
@@ -94,7 +94,7 @@ access audit; platform audit log; stays, rooms, charges.
 
 | Data | Keep for | Then | Basis |
 |---|---|---|---|
-| Document images shared with a hotel | until hotel access ends, max 7 days after submit, 24 h after checkout | S3 object deleted by daily cron | our promise in the consent text; "no longer than necessary" |
+| Document images shared with a hotel | until hotel access ends: 60 days after checkout, or 60 days after planned checkout (never checked out) / after submission (never arrived), or on guest revocation after checkout | S3 object deleted by daily cron | our promise in the consent text; "no longer than necessary" |
 | Stay snapshot: name, document type, number, country, expiry | 1 year after stay closes (per-property override, R12) | number and expiry blanked | DPDP r.8(3); Immigration r.17 |
 | Identity access audit, platform audit | 1 year minimum | kept; prune after 2 years | DPDP r.8(3), r.6(1)(e) |
 | Application and request logs | 180 days, stored in India | rolled | CERT-In 2022 direction (iv) |
@@ -194,7 +194,7 @@ access audit; platform audit log; stays, rooms, charges.
 ## E. Lawyer-only items (do not block launch)
 
 - L1. Role allocation: Tattwix as processor for stay data and fiduciary for the reusable profile. Confirms the shape of the hotel addendum in R2.
-- L2. Whether r.8(3)'s one-year minimum reaches the images or only the structured record. Our position: structured record plus logs. If counsel disagrees, the 7-day purge becomes a one-year purge and R8 row one changes.
+- L2. Whether r.8(3)'s one-year minimum reaches the images or only the structured record. Our position: structured record plus logs. If counsel disagrees, the 60-day purge becomes a one-year purge and R8 row one changes.
 - L3. Whether an on-screen acceptance satisfies "sign" in Immigration r.17.
 - L4. OVSE registration scope if we move to option 3 in R5.
 - L5. Significant Data Fiduciary exposure. No thresholds exist yet. Revisit at scale.

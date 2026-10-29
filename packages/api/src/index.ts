@@ -52,6 +52,7 @@ export {
   describeGuestAccess,
   formatPostCheckoutWindow,
   getGuestAccessAction,
+  describeConsentAccessWindow,
   getGuestAccessSummary,
   getPrivacyHeadline,
   groupAccessEvents,

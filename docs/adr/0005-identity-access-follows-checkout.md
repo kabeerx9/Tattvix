@@ -27,6 +27,23 @@ the stay lock; cleanup rechecks access after locking. Checkout retries preserve
 the first timestamp/deadline. Revocation timestamps are captured after locking,
 so a request waiting behind checkout cannot record an earlier effective time.
 
+## Update 2026-10-29: stays the hotel never checks out
+
+The open-ended wait for checkout is replaced by a safety cap on the same
+60-day setting. A checked-in stay lapses 60 days after its planned checkout
+(`checked_in_at` + `billing_nights`); a submitted stay the guest never arrived
+for lapses 60 days after `submitted_at`. Access never comes back: if the cap
+passed before a late checkout, the expiry stays at the cap, so checkout cannot
+reopen a snapshot whose images the cron already purged. Guest revocation after
+checkout is unchanged and immediate. A hotel can still check out and check in
+again if a guest genuinely stays longer than billed plus 60 days.
+
+`hotelAccessExpiresAt` is therefore never null on a submitted stay: it is the
+checkout deadline once checked out, otherwise the current cap. Both clients
+treat a past value as ended regardless of operational status. The purge query
+mirrors the rule in SQL and still re-checks the Python rule under the stay lock.
+Consent text is versioned `2026-10-29` and states the cap.
+
 No data migration is needed. Previously deleted copies cannot be reconstructed;
 guest originals are never used as a fallback. Existing revoked rows are not
 reopened. Pending/active stays have no time-based purge until checkout; uncompleted

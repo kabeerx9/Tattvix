@@ -5,9 +5,11 @@ import { formatDateTime } from "./guest-format";
 type AccessStay = Pick<GuestStay, "status" | "operationalStatus" | "hotelAccessExpiresAt">;
 
 /** Shared guest access/revocation decision for both clients.
- * Operational checkout starts the expiry clock. Identity-review closure and
- * legacy submission deadlines cannot end an active stay. The server enforces
- * the same rule; revoked stays remain terminal.
+ * `hotelAccessExpiresAt` is the server's current deadline: checkout plus the
+ * window once checked out, otherwise the safety cap for a stay the hotel never
+ * closes (planned checkout plus the window, or submission plus the window if
+ * the guest never arrived). A stay can only be revoked after checkout; a
+ * lapsed open stay simply ends. Revoked stays remain terminal.
  */
 export type GuestAccessAction =
   | { kind: "hidden"; accessEndsBy: string | null }
@@ -21,12 +23,14 @@ export function getGuestAccessAction(stay: AccessStay, now: Date | number = Date
     return { kind: "ended", reason: "revoked", endedAt: stay.hotelAccessExpiresAt };
   }
 
-  if (stay.operationalStatus !== "CHECKED_OUT") {
-    return { kind: "hidden", accessEndsBy: null };
-  }
   const nowMs = typeof now === "number" ? now : now.getTime();
   const expiresAt = stay.hotelAccessExpiresAt;
-  if (!expiresAt || new Date(expiresAt).getTime() <= nowMs) {
+  const lapsed = !!expiresAt && new Date(expiresAt).getTime() <= nowMs;
+  if (stay.operationalStatus !== "CHECKED_OUT") {
+    if (lapsed) return { kind: "ended", reason: "expired", endedAt: expiresAt };
+    return { kind: "hidden", accessEndsBy: expiresAt };
+  }
+  if (!expiresAt || lapsed) {
     return { kind: "ended", reason: "expired", endedAt: expiresAt };
   }
   return { kind: "revocable", accessEndsAt: expiresAt };
@@ -44,6 +48,17 @@ export function formatPostCheckoutWindow(hours = 60 * 24): string {
     return `${days} ${days === 1 ? "day" : "days"}`;
   }
   return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
+
+/** The consent screen's "For how long" paragraph, rendered from the live policy so both apps match the server. */
+export function describeConsentAccessWindow(graceHours?: number): string {
+  const window = formatPostCheckoutWindow(graceHours);
+  return (
+    `Access stays active throughout your stay and ends ${window} after checkout. ` +
+    `If the hotel never checks you out, it ends ${window} after your planned checkout instead, ` +
+    `or ${window} after you shared if you never arrive. ` +
+    `The ID photos shared with the hotel are then scheduled for deletion.`
+  );
 }
 
 export function describeGuestAccess(

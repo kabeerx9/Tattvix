@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuestStay } from "@tattvix/contracts";
-import { accessActivityLabel, describeGuestAccess, getPrivacyHeadline, getGuestAccessAction, getGuestAccessSummary, groupAccessEvents, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
+import { accessActivityLabel, describeConsentAccessWindow, describeGuestAccess, getPrivacyHeadline, getGuestAccessAction, getGuestAccessSummary, groupAccessEvents, isHotelAccessOpen, formatPostCheckoutWindow } from "./guest-access";
 
 const now = new Date("2026-10-27T12:00:00Z");
 const at = (days: number) => new Date(now.getTime() + days * 86_400_000).toISOString();
@@ -10,18 +10,25 @@ function stay(overrides: Partial<GuestStay> = {}): GuestStay {
 }
 const format = (iso: string) => `<${iso}>`;
 
-test("pending and checked-in stays remain open with no expiry or revoke action, including legacy expired deadlines", () => {
+test("pending and checked-in stays stay open, with no revoke action, until the server's cap", () => {
   for (const operationalStatus of ["PENDING_CHECK_IN", "CHECKED_IN"] as const) {
-    for (const hotelAccessExpiresAt of [null, at(-90), at(1)]) {
+    for (const hotelAccessExpiresAt of [null, at(1), at(62)]) {
       const action = getGuestAccessAction(stay({ operationalStatus, hotelAccessExpiresAt }), now);
-      assert.deepEqual(action, { kind: "hidden", accessEndsBy: null });
+      assert.deepEqual(action, { kind: "hidden", accessEndsBy: hotelAccessExpiresAt });
       assert.equal(isHotelAccessOpen(action), true);
       assert.equal(describeGuestAccess(action), "The hotel can see your details during your stay and for 60 days after checkout. You can stop sharing after checkout.");
     }
   }
 });
-test("legacy identity-review closure does not end an in-house stay", () => {
-  assert.equal(getGuestAccessAction(stay({ status: "CLOSED", operationalStatus: "CHECKED_IN", hotelAccessExpiresAt: at(-1) }), now).kind, "hidden");
+test("a stay the hotel never checked out ends once its cap passes", () => {
+  for (const operationalStatus of ["PENDING_CHECK_IN", "CHECKED_IN"] as const) {
+    for (const hotelAccessExpiresAt of [at(-1), at(0)]) {
+      const action = getGuestAccessAction(stay({ status: "CLOSED", operationalStatus, hotelAccessExpiresAt }), now);
+      assert.deepEqual(action, { kind: "ended", reason: "expired", endedAt: hotelAccessExpiresAt });
+      assert.equal(isHotelAccessOpen(action), false);
+      assert.equal(getGuestAccessSummary(action, format).text, `Sharing ended <${hotelAccessExpiresAt}>`);
+    }
+  }
 });
 test("checked out inside the window can revoke; actual expiry date is shown", () => {
   const action = getGuestAccessAction(stay({ status: "CLOSED", operationalStatus: "CHECKED_OUT", hotelAccessExpiresAt: at(59) }), now);
@@ -49,6 +56,14 @@ test("post-checkout policy renders days rather than 1440 hours", () => {
   assert.equal(formatPostCheckoutWindow(1), "1 hour");
   assert.equal(formatPostCheckoutWindow(2), "2 hours");
   assert.match(describeGuestAccess({ kind: "hidden", accessEndsBy: null }, { graceHours: 48 }), /2 days after checkout/);
+});
+test("consent copy states the post-checkout window and the never-checked-out cap from the live policy", () => {
+  assert.equal(
+    describeConsentAccessWindow(1440),
+    "Access stays active throughout your stay and ends 60 days after checkout. If the hotel never checks you out, it ends 60 days after your planned checkout instead, or 60 days after you shared if you never arrive. The ID photos shared with the hotel are then scheduled for deletion.",
+  );
+  assert.match(describeConsentAccessWindow(), /60 days after checkout/);
+  assert.match(describeConsentAccessWindow(48), /2 days after your planned checkout/);
 });
 
 test("access summary is one short line for a privacy row, open or ended", () => {

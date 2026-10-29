@@ -6,7 +6,18 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import (
+    Case,
+    DateTimeField,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    IntegerField,
+    Q,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from .companion_profile import build_companion_profile_payload
@@ -35,7 +46,7 @@ from .object_storage import PrivateObjectStorage
 from .shared_identity_images import cleanup_prepared_images, prepare_shared_image
 
 
-CONSENT_VERSION = "2026-10-27"
+CONSENT_VERSION = "2026-10-29"
 CONSENT_DATA_CATEGORIES = [
     "guest_profile",
     "identity_document",
@@ -427,17 +438,41 @@ def close_hotel_stay(*, stay: Stay, actor: ClerkUser) -> Stay:
         return locked_stay
 
 
-def hotel_identity_access_expires_at(stay: Stay):
-    """Checkout starts the clock; legacy submission/review deadlines do not.
+def _post_checkout_window() -> timedelta:
+    return timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS)
 
-    Keep revocation terminal. Deriving completed deadlines also applies the new
-    policy to existing retained copies without reviving previously purged bytes.
+
+def _open_stay_access_lapses_at(stay: Stay):
+    """Safety cap for a stay the hotel never checks out.
+
+    A checked-in stay lapses the window after its planned checkout
+    (check-in time plus billed nights). A submitted stay the guest never
+    arrived for lapses the window after submission. Same setting as the
+    post-checkout window, so one number describes the whole policy.
+    """
+    if stay.checked_in_at is not None:
+        planned_checkout = stay.checked_in_at + timedelta(days=stay.billing_nights or 1)
+        return planned_checkout + _post_checkout_window()
+    if stay.submitted_at is not None:
+        return stay.submitted_at + _post_checkout_window()
+    return None
+
+
+def hotel_identity_access_expires_at(stay: Stay):
+    """Operational checkout starts the clock; while open, the lapse cap applies.
+
+    Revocation is terminal. Access never comes back: if the cap passed before
+    the hotel finally checked the guest out, the expiry stays at the cap, so a
+    late checkout cannot reopen a snapshot whose images were already purged.
     """
     if stay.status == StayStatus.REVOKED:
         return stay.hotel_access_expires_at
+    lapses_at = _open_stay_access_lapses_at(stay)
     if stay.operational_status == OperationalStayStatus.CHECKED_OUT and stay.checked_out_at:
-        return stay.checked_out_at + timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS)
-    return None
+        if lapses_at is not None and lapses_at < stay.checked_out_at:
+            return lapses_at
+        return stay.checked_out_at + _post_checkout_window()
+    return lapses_at
 
 
 def hotel_identity_access_state(stay: Stay) -> dict:
@@ -445,12 +480,37 @@ def hotel_identity_access_state(stay: Stay) -> dict:
         return {"isActive": False, "reason": "REVOKED"}
     if stay.status == StayStatus.DRAFT or stay.submitted_at is None:
         return {"isActive": False, "reason": "NOT_SUBMITTED"}
-    if stay.operational_status != OperationalStayStatus.CHECKED_OUT:
-        return {"isActive": True, "reason": "ACTIVE"}
     expires_at = hotel_identity_access_expires_at(stay)
     if expires_at is None or expires_at <= timezone.now():
         return {"isActive": False, "reason": "EXPIRED"}
     return {"isActive": True, "reason": "ACTIVE"}
+
+
+def _expired_shared_identity_images(now):
+    """DB-side mirror of `hotel_identity_access_expires_at`; the purge loop
+    re-checks the Python rule under the stay lock before deleting."""
+    window = _post_checkout_window()
+    stay = "snapshot__stay__"
+    nights = Coalesce(F(f"{stay}billing_nights"), Value(1), output_field=IntegerField())
+    planned_stay = ExpressionWrapper(nights * Value(timedelta(days=1)), output_field=DurationField())
+    lapses_at = Case(
+        When(
+            **{f"{stay}checked_in_at__isnull": False},
+            then=ExpressionWrapper(
+                F(f"{stay}checked_in_at") + planned_stay + Value(window),
+                output_field=DateTimeField(),
+            ),
+        ),
+        default=ExpressionWrapper(F(f"{stay}submitted_at") + Value(window), output_field=DateTimeField()),
+        output_field=DateTimeField(),
+    )
+    checked_out = Q(**{f"{stay}operational_status": OperationalStayStatus.CHECKED_OUT})
+    return SharedIdentityDocumentImage.objects.annotate(access_lapses_at=lapses_at).filter(
+        Q(**{f"{stay}status": StayStatus.REVOKED})
+        | (checked_out & Q(**{f"{stay}checked_out_at__lte": now - window}))
+        | (checked_out & Q(access_lapses_at__lt=F(f"{stay}checked_out_at")))
+        | (~checked_out & Q(access_lapses_at__lte=now))
+    )
 
 
 def build_guest_stay_payload(stay: Stay) -> dict:
@@ -567,13 +627,7 @@ def purge_expired_shared_identity_images(
         created_at__lte=timezone.now() - timedelta(hours=1),
     ).order_by("created_at").values_list("id", flat=True)[:max(1, batch_size // 2)])
     images = list(
-        SharedIdentityDocumentImage.objects.filter(
-            Q(snapshot__stay__status=StayStatus.REVOKED)
-            | Q(
-                snapshot__stay__operational_status=OperationalStayStatus.CHECKED_OUT,
-                snapshot__stay__checked_out_at__lte=timezone.now() - timedelta(days=settings.HOTEL_IDENTITY_POST_CHECKOUT_ACCESS_DAYS),
-            ),
-        )
+        _expired_shared_identity_images(timezone.now())
         .order_by("id").values_list("id", "snapshot__stay_id")[:max(0, batch_size - len(pending_ids))]
     )
     deleted_count = 0
