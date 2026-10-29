@@ -1,12 +1,20 @@
-// The sign-in form: email + password with Clerk's Device Trust / MFA email
-// code step, or Google through the system browser. Lives on /sign-in; the
-// root index only routes signed-in people to their place.
+// The sign-in screen: a hotel photo under the brand, then a white sheet with
+// Google, or email + password with Clerk's Device Trust / MFA email code step.
+// Errors show under the form, where the person is looking, not in an alert.
+// Mirrors the phone layout of apps/web/src/routes/login.tsx.
 import { useSignIn, useSSO } from "@clerk/clerk-expo";
-import { useCallback, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { Eye, EyeOff } from "lucide-react-native";
+import { useCallback, useState, type ReactNode } from "react";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
-import { BrandLogo, Button, TextField, colors, type } from "@/src/design-system";
+import { BrandLogo, Button, TextField, colors, radii, space, type } from "@/src/design-system";
+import { travelImages } from "@/src/lib/travel-images";
 
 export function SignInForm() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -19,10 +27,13 @@ export function SignInForm() {
   const [codeStep, setCodeStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = useCallback(async () => {
     if (!isLoaded || isSubmitting) return;
     setIsSubmitting(true);
+    setError(null);
     try {
       const result = await signIn.create({ identifier: email.trim(), password });
       if (result.status === "complete" && result.createdSessionId) {
@@ -41,9 +52,9 @@ export function SignInForm() {
         setCodeStep(true);
         return;
       }
-      Alert.alert("One more step needed", "This account requires a sign-in step the app does not support yet. Sign in on the web once, then try again.");
-    } catch (error) {
-      Alert.alert("Could not sign in", clerkErrorMessage(error));
+      setError("This account needs a sign-in step the app does not support yet. Sign in on the web once, then try again.");
+    } catch (failure) {
+      setError(clerkErrorMessage(failure));
     } finally {
       setIsSubmitting(false);
     }
@@ -52,6 +63,7 @@ export function SignInForm() {
   const verify = useCallback(async () => {
     if (!isLoaded || isSubmitting) return;
     setIsSubmitting(true);
+    setError(null);
     try {
       const result = await (signIn.attemptSecondFactor as (params: { strategy: "email_code"; code: string }) => Promise<{ status: string | null; createdSessionId: string | null }>)({
         strategy: "email_code",
@@ -61,9 +73,9 @@ export function SignInForm() {
         await setActive({ session: result.createdSessionId });
         return;
       }
-      Alert.alert("Could not verify", "That code did not work. Check the email and try again.");
-    } catch (error) {
-      Alert.alert("Could not verify", clerkErrorMessage(error));
+      setError("That code did not work. Check the email and try again.");
+    } catch (failure) {
+      setError(clerkErrorMessage(failure));
     } finally {
       setIsSubmitting(false);
     }
@@ -72,50 +84,85 @@ export function SignInForm() {
   const google = useCallback(async () => {
     if (isGoogleSubmitting) return;
     setIsGoogleSubmitting(true);
+    setError(null);
     try {
       const result = await startSSOFlow({ strategy: "oauth_google" });
       if (result.createdSessionId && result.setActive) await result.setActive({ session: result.createdSessionId });
-    } catch (error) {
-      Alert.alert("Could not sign in with Google", clerkErrorMessage(error));
+    } catch (failure) {
+      setError(clerkErrorMessage(failure));
     } finally {
       setIsGoogleSubmitting(false);
     }
   }, [isGoogleSubmitting, startSSOFlow]);
 
+  const alert = error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null;
+
   if (codeStep) {
     return (
-      <View style={styles.page}>
-        <BrandLogo size="md" />
-        <Text style={styles.hero}>Check your email.</Text>
-        <Text style={styles.lede}>We sent a six-digit code to {email.trim()} because this phone is new to your account.</Text>
-        <View style={styles.form}>
-          <TextField autoFocus inputMode="numeric" maxLength={6} enter={verify} onChangeText={setCode} placeholder="Six-digit code" value={code} />
-          <Button label="Verify and sign in" onPress={verify} loading={isSubmitting} disabled={code.trim().length < 6} />
-          <Button label="Back" variant="ghost" onPress={() => { setCodeStep(false); setCode(""); }} />
-        </View>
-      </View>
+      <SignInLayout title="Check your email" lede={`We sent a six-digit code to ${email.trim()} because this phone is new to your account.`}>
+        <TextField label="Code" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} enter={verify} onChangeText={setCode} placeholder="123456" value={code} />
+        {alert}
+        <Button label="Verify and sign in" onPress={verify} loading={isSubmitting} disabled={code.trim().length < 6} />
+        <Button label="Use a different account" variant="ghost" onPress={() => { setCodeStep(false); setCode(""); setError(null); }} />
+      </SignInLayout>
     );
   }
 
   return (
-    <View style={styles.page}>
-      <BrandLogo size="md" />
-      <Text style={styles.hero}>Welcome back.</Text>
-      <Text style={styles.lede}>Sign in with the account you use on the web. Your hotel and your own stays are both here.</Text>
-
-      <View style={styles.form}>
-        <Button label="Continue with Google" variant="outline" onPress={google} loading={isGoogleSubmitting} leading={<GoogleMark />} />
-        <View style={styles.divider}>
-          <View style={styles.line} />
-          <Text style={styles.or}>or</Text>
-          <View style={styles.line} />
-        </View>
-        <TextField autoCapitalize="none" autoComplete="email" inputMode="email" enter="next" onChangeText={setEmail} placeholder="Email address" value={email} />
-        <TextField autoCapitalize="none" enter={submit} onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
-        <Button label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded} />
+    <SignInLayout title="Sign in" lede="Use the account you use on the web. Your hotel and your own stays are both here.">
+      <Button label="Continue with Google" variant="outline" onPress={google} loading={isGoogleSubmitting} leading={<GoogleMark />} />
+      <View style={styles.divider}>
+        <View style={styles.line} />
+        <Text style={styles.or}>or with email</Text>
+        <View style={styles.line} />
       </View>
+      <TextField label="Email" autoCapitalize="none" autoComplete="email" inputMode="email" enter="next" onChangeText={setEmail} placeholder="you@example.com" value={email} />
+      <TextField
+        label="Password"
+        autoCapitalize="none"
+        autoComplete="current-password"
+        enter={submit}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        value={password}
+        trailing={
+          <Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} hitSlop={12} onPress={() => setShowPassword((shown) => !shown)}>
+            {showPassword ? <EyeOff color={colors.mutedForeground} size={20} strokeWidth={1.75} /> : <Eye color={colors.mutedForeground} size={20} strokeWidth={1.75} />}
+          </Pressable>
+        }
+      />
+      {alert}
+      <Button label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded || !email.trim() || !password} />
+    </SignInLayout>
+  );
+}
 
-      <Text style={styles.footer}>By continuing you agree to the Tattwix terms and privacy policy.</Text>
+// Keeps the button under the focused field in view, not just the field.
+const BUTTON_CLEARANCE = 84;
+
+/** The hotel photo with the brand, and the white sheet that rises over its bottom edge. */
+function SignInLayout({ title, lede, children }: { title: string; lede: string; children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const photoHeight = Math.round(Math.min(360, height * 0.4));
+  return (
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <KeyboardAwareScrollView bottomOffset={BUTTON_CLEARANCE} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll} bounces={false}>
+        <View style={{ height: photoHeight }}>
+          <Image source={travelImages.signIn} contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+          <LinearGradient colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]} locations={[0, 0.5]} style={StyleSheet.absoluteFill} />
+          <View style={[styles.brand, { paddingTop: insets.top + space.lg }]}>
+            <BrandLogo tone="inverse" size="md" />
+          </View>
+        </View>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.xxl }]}>
+          <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+          <Text style={styles.lede}>{lede}</Text>
+          <View style={styles.form}>{children}</View>
+          <Text style={styles.footer}>By continuing you agree to the Tattwix terms and privacy policy.</Text>
+        </View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -138,12 +185,25 @@ function clerkErrorMessage(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 24 },
-  hero: { ...type.hero, marginTop: 48, color: colors.foreground },
-  lede: { ...type.body, marginTop: 12, color: colors.mutedForeground },
-  form: { marginTop: 40, gap: 12 },
-  divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4 },
+  root: { flex: 1, backgroundColor: colors.card },
+  scroll: { flexGrow: 1 },
+  brand: { paddingHorizontal: space.xl },
+  // Rises over the photo's bottom edge, like a card laid on it.
+  sheet: {
+    flexGrow: 1,
+    marginTop: -radii.sheet - space.sm,
+    paddingTop: space.xxl + space.xs,
+    paddingHorizontal: space.xl,
+    borderTopLeftRadius: radii.sheet + space.xs,
+    borderTopRightRadius: radii.sheet + space.xs,
+    backgroundColor: colors.card,
+  },
+  title: { ...type.pageTitle, color: colors.foreground },
+  lede: { ...type.body, marginTop: space.sm, color: colors.mutedForeground },
+  form: { marginTop: space.xxl, gap: space.md + 2 },
+  divider: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: space.xs },
   line: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   or: { ...type.caption, color: colors.subtleForeground },
-  footer: { ...type.caption, marginTop: 28, color: colors.subtleForeground, textAlign: "center" },
+  error: { ...type.caption, color: colors.destructive },
+  footer: { ...type.caption, marginTop: space.xxl, color: colors.subtleForeground, textAlign: "center" },
 });

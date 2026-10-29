@@ -66,21 +66,29 @@ export function LoginPage() {
         <div className="relative max-w-lg"><h1 className="mt-4 text-5xl font-semibold leading-[1.08] tracking-[-0.045em]">Every stay starts with a calmer front desk.</h1><p className="mt-5 max-w-md text-sm leading-7 text-white/80">One thoughtful workspace for your team, your properties, and every guest arriving today.</p></div>
         <p className="relative text-xs text-white/70">Secure access powered by Clerk</p>
       </div>
+      <div className="flex flex-col">
+      {/* Phones: the same photo as a band under the brand, with the form rising over its edge. Mirrors apps/native's sign-in. */}
+      <div className="relative h-[min(40svh,18rem)] shrink-0 overflow-hidden bg-muted lg:hidden">
+        <img src={travelImages.hotelOwner} alt="" decoding="async" className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 to-transparent to-50%" />
+        <BrandLogo tone="inverse" className="relative px-5 pt-5" />
+      </div>
       {/* 16px phone gutter: Clerk's card is 100vw - 2.5rem wide, so p-6 caused an 8px horizontal scroll. */}
-      <div className="grid place-items-center px-4 py-6 sm:p-10">
+      <div className="relative -mt-6 grid flex-1 place-items-center rounded-t-3xl bg-background px-4 pt-8 pb-6 sm:p-10 lg:mt-0 lg:rounded-none">
       <div className="grid w-full max-w-md gap-7">
-        <div className="text-center">
-          <BrandLogo size="lg" className="lg:hidden" />
-          <h2 className="mt-6 text-3xl font-semibold tracking-tight lg:mt-2">Sign in to Tattwix</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Continue to your hospitality workspace.</p>
+        <div className="lg:text-center">
+          <h2 className="text-2xl font-semibold tracking-tight lg:text-3xl">Sign in</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Your hotel and your own stays, in one account.</p>
         </div>
         <SignIn
           routing="path"
           path="/login"
           signUpUrl={search.redirect ? `/sign-up?${new URLSearchParams({ redirect: search.redirect })}` : "/sign-up"}
           fallbackRedirectUrl={search.redirect ?? "/guest"}
+          // The page's own heading says this; Clerk's would repeat it.
+          appearance={{ elements: { header: { display: "none" } } }}
         />
-      </div></div>
+      </div></div></div>
     </div>
   );
 }

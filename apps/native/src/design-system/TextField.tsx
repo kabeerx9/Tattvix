@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 
@@ -27,6 +27,7 @@ export function TextField({
   helper,
   error,
   focused,
+  trailing,
   onFocus,
   onBlur,
   ...input
@@ -37,6 +38,8 @@ export function TextField({
   error?: string;
   /** Preview override for the gallery. Normally focus follows the input. */
   focused?: boolean;
+  /** A control at the end of a single-line field, such as show password. */
+  trailing?: ReactNode;
 }) {
   const [inputFocused, setInputFocused] = useState(false);
   const isFocused = focused ?? inputFocused;
@@ -66,6 +69,7 @@ export function TextField({
           {...enterProps(enter)}
           {...input}
         />
+        {trailing && !multiline ? <View style={styles.trailing}>{trailing}</View> : null}
       </View>
       {message ? <Text style={[styles.message, { color: error ? colors.destructive : colors.mutedForeground }]}>{message}</Text> : null}
     </View>
@@ -75,9 +79,10 @@ export function TextField({
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
   label: { ...type.label, color: colors.subtleForeground },
-  frame: { height: 50, borderRadius: radii.control, justifyContent: "center", backgroundColor: colors.card },
+  frame: { height: 50, borderRadius: radii.control, flexDirection: "row", alignItems: "center", backgroundColor: colors.card },
   frameMultiline: { minHeight: 120, paddingVertical: 12, justifyContent: "flex-start", borderRadius: radii.control, backgroundColor: colors.card },
-  input: { ...type.body, color: colors.foreground, padding: 0, height: "100%" },
+  input: { ...type.body, flex: 1, color: colors.foreground, padding: 0, height: "100%" },
+  trailing: { marginLeft: 8 },
   // Fills the frame so a tap anywhere in it focuses the input.
   inputMultiline: { ...type.body, color: colors.foreground, padding: 0, minHeight: 96, textAlignVertical: "top" },
   message: { ...type.caption },
