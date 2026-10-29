@@ -38,36 +38,46 @@ export async function pickImage(source: "library" | "camera"): Promise<ImagePick
 }
 
 /**
- * Returns the saved photo, or null when the person cancels the picker.
- * Throws an Error with a user-facing message for permission and upload failures.
+ * Shrinks, uploads and completes a picked photo for a slot. `onProgress` gets the
+ * whole job's share done, 0 to 1: the bytes in flight carry most of it.
+ * Throws an Error with a user-facing message naming the failed step.
  */
-export async function pickAndUploadPhoto(organizationSlug: string, propertySlug: string, slot: PropertyPhotoSlot) {
-  const asset = await pickImage("library");
-  if (!asset) return null;
-
+export async function uploadPropertyPhoto(
+  organizationSlug: string,
+  propertySlug: string,
+  slot: PropertyPhotoSlot,
+  asset: Pick<ImagePicker.ImagePickerAsset, "uri" | "width" | "height">,
+  onProgress?: (share: number) => void,
+) {
   const jpeg = await runUploadStep("prepare", () => encodeJpeg(asset.uri, asset.width, asset.height));
   const contentLength = new File(jpeg).size;
 
   const { upload } = await runUploadStep("authorize", () =>
     api.propertyPhotos.requestUpload(organizationSlug, propertySlug, { ...slot, contentType: "image/jpeg", contentLength }),
   );
+  onProgress?.(0.05);
 
-  await putSignedUpload(upload.url, upload.headers, jpeg);
+  await putSignedUpload(upload.url, upload.headers, jpeg, (sent) => onProgress?.(0.05 + sent * 0.9));
 
-  return runUploadStep("confirm", () => api.propertyPhotos.complete(organizationSlug, propertySlug, slot));
+  const saved = await runUploadStep("confirm", () => api.propertyPhotos.complete(organizationSlug, propertySlug, slot));
+  onProgress?.(1);
+  return saved;
 }
 
 /**
  * PUTs the bytes to a signed URL as the "send" step. A signed Content-Length is
- * dropped, as the web does: the transport sets it from the body. A non-2xx answer
+ * dropped, as the web does: the transport sets it from the body. `onProgress` gets
+ * the share of bytes sent, 0 to 1. A non-2xx answer
  * throws with storage's error code (from its XML body); a stall cancels the upload.
  */
-export async function putSignedUpload(url: string, headers: Record<string, string>, fileUri: string) {
+export async function putSignedUpload(url: string, headers: Record<string, string>, fileUri: string, onProgress?: (sent: number) => void) {
   const sentHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name.toLowerCase() !== "content-length"));
   const task = createUploadTask(url, fileUri, {
     httpMethod: "PUT",
     headers: sentHeaders,
     uploadType: FileSystemUploadType.BINARY_CONTENT,
+  }, ({ totalBytesSent, totalBytesExpectedToSend }) => {
+    if (totalBytesExpectedToSend > 0) onProgress?.(totalBytesSent / totalBytesExpectedToSend);
   });
   await runUploadStep(
     "send",

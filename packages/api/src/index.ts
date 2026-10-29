@@ -106,6 +106,7 @@ export { createPlatformOversightApi, createPlatformOversightQueries, platformOve
 export { createPlatformPortfolioApi, createPlatformPortfolioQueries, platformPortfolioKeys, type PlatformPortfolioApi } from "./platform-portfolio";
 export { createPlatformUserQueries, createPlatformUsersApi, platformUserKeys, type PlatformUsersApi } from "./platform-users";
 export { createPropertyPhotoQueries, createPropertyPhotosApi, propertyPhotosKeys, type PropertyPhotosApi } from "./property-photos";
+export { photoSavedMessage, photoSlotKey, photoSlotsSummary, propertyPhotoSlots, type PhotoSlotView } from "./property-photo-slots";
 export { createPropertyNameApi, propertyNameQuery, propertyNameMutation, propertyNameKeys } from "./property-name";
 export { createSupportApi, supportContactsQuery, getSupportContacts, SUPPORT_PHONE_PLACEHOLDER } from "./support";
 export { getAccountSettings } from "./account-settings";

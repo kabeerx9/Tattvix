@@ -1,17 +1,17 @@
 // Hotel details: one form (name and property information, one Save) and the
-// photo slots. Staff without hotel:manage see the form read-only and no photo
+// photo grid, which saves each photo on its own. Staff without hotel:manage see the form read-only and no photo
 // actions. Mirrors
 // apps/web/src/features/hotel-details/components/hotel-details-page.tsx.
-import type { PropertyDetails, PropertyDetailsInput, PropertyPhotoSlot } from "@tattvix/contracts";
+import type { PropertyDetails, PropertyDetailsInput } from "@tattvix/contracts";
 import { propertyNameSchema } from "@tattvix/contracts";
-import { createPropertyNameApi, hotelDetailsKeys, propertyNameMutation, propertyNameQuery } from "@tattvix/api";
+import { createPropertyNameApi, hotelDetailsKeys, propertyNameMutation, propertyNameQuery, propertyPhotoSlots } from "@tattvix/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, ConfirmSheet, LargeTitle, Screen, SecondaryHeader, SectionTitle, Spinner, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
-import { PhotoSlot, failureText, slotKey, useRemovePhoto, useUploadPhoto } from "@/src/components/photo-slots";
+import { Button, LargeTitle, Screen, SecondaryHeader, SectionTitle, Spinner, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
+import { PhotoSlots } from "@/src/components/photo-slots";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { api, apiClient, queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
@@ -65,10 +65,6 @@ export default function HotelDetailsScreen() {
   const photos = useQuery({ ...queries.propertyPhotos.list(organizationSlug, propertySlug), enabled: canManageHotel });
 
   const [form, setForm] = useState<Form | null>(null);
-  const [removeSlot, setRemoveSlot] = useState<PropertyPhotoSlot | null>(null);
-  const upload = useUploadPhoto(scope);
-  const remove = useRemovePhoto(scope);
-  const busy = upload.isPending || remove.isPending;
 
   // Re-sync the form whenever the server copy changes, as the web does.
   // The name and the details are separate server copies, so each re-syncs on
@@ -124,18 +120,8 @@ export default function HotelDetailsScreen() {
     }
   }
 
-  // The slot a photo change is running on, or last failed on: its progress and error show there.
-  const savingSlot = upload.isPending ? slotKey(upload.variables) : remove.isPending ? slotKey(remove.variables) : null;
-  const failedSlot = upload.isError ? slotKey(upload.variables) : remove.isError ? slotKey(remove.variables) : null;
-  const photoError = upload.error ?? remove.error;
-  const slotState = (slot: PropertyPhotoSlot) => {
-    const key = slotKey(slot);
-    return { saving: savingSlot === key, error: failedSlot === key && photoError ? failureText(photoError) : null };
-  };
-  const roomTypes = [...new Set((rooms.data?.rooms ?? []).map((room) => room.roomType ?? ""))].sort();
   const photosPending = photos.isPending || rooms.isPending;
   const photosFailed = photos.isError || rooms.isError;
-  const roomPhoto = (roomType: string) => photos.data?.roomTypes.find((photo) => photo.roomType === roomType)?.url;
 
   return (
     <Screen refreshing={details.isFetching && !details.isPending} onRefresh={() => void details.refetch()}>
@@ -218,43 +204,11 @@ export default function HotelDetailsScreen() {
               <TextLink label="Try again" onPress={() => { void photos.refetch(); void rooms.refetch(); }} />
             </View>
           ) : (
-            <>
-              <PhotoSlot
-                label="Cover photo"
-                url={photos.data?.cover?.url}
-                disabled={busy}
-                {...slotState({ kind: "COVER" })}
-                onAdd={() => upload.mutate({ kind: "COVER" })}
-                onRemove={() => setRemoveSlot({ kind: "COVER" })}
-              />
-              {roomTypes.map((roomType) => (
-                <PhotoSlot
-                  key={roomType || "unnamed"}
-                  label={roomType || "Unnamed room type"}
-                  url={roomPhoto(roomType)}
-                  disabled={busy}
-                  {...slotState({ kind: "ROOM_TYPE", roomType })}
-                  onAdd={() => upload.mutate({ kind: "ROOM_TYPE", roomType })}
-                  onRemove={() => setRemoveSlot({ kind: "ROOM_TYPE", roomType })}
-                />
-              ))}
-            </>
+            <PhotoSlots scope={scope} slots={propertyPhotoSlots(photos.data, (rooms.data?.rooms ?? []).map((room) => room.roomType))} />
           )}
         </View>
       ) : null}
 
-      <ConfirmSheet
-        open={removeSlot !== null}
-        onClose={() => setRemoveSlot(null)}
-        title="Remove this photo?"
-        description="Guests will no longer see this photo until you add another."
-        confirmLabel="Remove photo"
-        tone="destructive"
-        loading={remove.isPending}
-        onConfirm={() => {
-          if (removeSlot) remove.mutate(removeSlot, { onSettled: () => setRemoveSlot(null) });
-        }}
-      />
     </Screen>
   );
 }
