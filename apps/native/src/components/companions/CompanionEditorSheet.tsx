@@ -1,7 +1,7 @@
 // Add or edit a travel companion: legal name, date of birth, relationship and
 // nationality. Mirrors the web's CompanionEditor in
 // apps/web/src/features/companions/components/companions-page.tsx, on a full-height sheet.
-import { companionKeys } from "@tattvix/api";
+import { companionFormFields, companionKeys, formErrorSummary } from "@tattvix/api";
 import { companionProfileInputSchema, type CompanionProfile, type CompanionProfileInput } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -68,7 +68,8 @@ export function CompanionEditorSheet({
     },
   });
 
-  const saveError = save.error ? errorMessage(save.error, "The companion could not be saved.") : null;
+  // A refused Save says why beside the button: the field errors may be scrolled out of view.
+  const saveError = save.error ? errorMessage(save.error, "The companion could not be saved.") : formErrorSummary(errors, companionFormFields);
 
   const set = (key: keyof Form) => (value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -103,7 +104,16 @@ export function CompanionEditorSheet({
       onClose={onClose}
       title={companion ? "Edit companion" : "Add a companion"}
       fill
-      footer={<Button label={companion ? "Save changes" : "Add companion"} onPress={submit} loading={save.isPending} />}
+      footer={
+        <>
+          {saveError ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {saveError}
+            </Text>
+          ) : null}
+          <Button label={companion ? "Save changes" : "Add companion"} onPress={submit} loading={save.isPending} />
+        </>
+      }
     >
       <Text style={styles.description}>Save the basics now. Hotels only need companion details when they are part of a future check-in.</Text>
       <View style={styles.fields}>
@@ -125,11 +135,6 @@ export function CompanionEditorSheet({
           helper: "Two-letter country code, such as IN.",
           enter: submit,
         })}
-        {saveError ? (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {saveError}
-          </Text>
-        ) : null}
       </View>
     </BottomSheet>
   );

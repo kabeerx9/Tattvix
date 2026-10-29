@@ -4,7 +4,7 @@
 // fact reads as the action ("Add phone number"), and "Complete profile" opens
 // the form at the first missing detail. Then the identity documents.
 // Mirrors apps/native/app/(guest)/(tabs)/profile.tsx.
-import { firstMissingProfileField, getProfileReadiness, getProfileSections, profileSectionTitles, readinessLine } from "@tattvix/api";
+import { firstMissingProfileField, formErrorSummary, getProfileReadiness, getProfileSections, profileFormFields, profileSectionTitles, readinessLine } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -78,7 +78,8 @@ export function GuestProfilePage() {
       ? updateMutation.error.message
       : updateMutation.isError
         ? "Your profile could not be saved."
-        : null;
+        // A refused Save says why beside the button: the field errors may be scrolled out of view.
+        : formErrorSummary(fieldErrors, profileFormFields);
 
   return (
     <div className="mx-auto grid max-w-3xl gap-8">

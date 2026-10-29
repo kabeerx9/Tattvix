@@ -3,7 +3,7 @@
 // that opens one form holding all the details, focused on that fact; an empty
 // fact reads as the action ("Add phone number"), and "Complete profile" opens
 // the form at the first missing detail. Then the identity documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
-import { firstMissingProfileField, getProfileReadiness, getProfileSections, guestProfileKeys, profileSectionTitles, readinessLine } from "@tattvix/api";
+import { firstMissingProfileField, formErrorSummary, getProfileReadiness, getProfileSections, guestProfileKeys, profileFormFields, profileSectionTitles, readinessLine } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
@@ -129,7 +129,7 @@ export default function ProfileScreen() {
         form={form}
         errors={errors}
         saving={save.isPending}
-        saveError={save.error ? errorMessage(save.error, "Your profile could not be saved.") : null}
+        saveError={save.error ? errorMessage(save.error, "Your profile could not be saved.") : formErrorSummary(errors, profileFormFields)}
         onChange={(key, value) => {
           setForm((current) => (current ? { ...current, [key]: value } : current));
           setErrors((current) => ({ ...current, [key]: undefined }));

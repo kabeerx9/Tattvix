@@ -1,7 +1,7 @@
 // Travel companions: people the signed-in guest travels with, one row each.
 // A row opens that person's page (details, ID documents, remove). Mirrors
 // apps/native/app/(guest)/companions/index.tsx.
-import { companionRowDetail, personName } from "@tattvix/api";
+import { companionFormFields, companionRowDetail, formErrorSummary, personName } from "@tattvix/api";
 import { companionProfileInputSchema, type CompanionProfile, type CompanionProfileInput } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
@@ -159,6 +159,9 @@ function CompanionEditor({
     onSubmit(parsed.data);
   }
 
+  // A refused Save says why beside the button: the field errors may be scrolled out of view.
+  const refusal = submitError ?? formErrorSummary(fieldErrors, companionFormFields);
+
   return (
     <form className="grid min-h-0 flex-1 gap-5 px-4 pb-4" onSubmit={handleSubmit}>
       <div className="grid gap-4">
@@ -179,7 +182,7 @@ function CompanionEditor({
         </EditorField>
       </div>
 
-      {submitError ? <p role="alert" className="text-sm text-destructive">{submitError}</p> : null}
+      {refusal ? <p role="alert" className="text-sm text-destructive">{refusal}</p> : null}
 
       <SheetFooter className="mt-0 border-t px-0 pt-4">
         <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : companion ? "Save" : "Add companion"}</Button>

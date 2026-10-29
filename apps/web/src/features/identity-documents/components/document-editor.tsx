@@ -1,3 +1,4 @@
+import { documentFormFields, formErrorSummary } from "@tattvix/api";
 import {
   identityDocumentInputSchema,
   type IdentityDocument,
@@ -372,7 +373,8 @@ export function DocumentEditor({
           isSaving={isSaving}
           isPreparingImage={isPreparingImage}
           progress={progress}
-          submitError={submitError}
+          // A refused Save says why beside the button: the field errors may be scrolled out of view.
+          submitError={submitError ?? formErrorSummary(fieldErrors, documentFormFields)}
           isNew={isNew}
         />
       }

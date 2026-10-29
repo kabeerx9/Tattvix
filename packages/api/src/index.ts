@@ -132,3 +132,4 @@ export {
   type ProfileFact,
   type ProfileSectionKey,
 } from "./guest-profile-view";
+export { companionFormFields, documentFormFields, formErrorSummary, profileFormFields } from "./form-errors";

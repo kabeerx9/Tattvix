@@ -5,7 +5,9 @@
 import {
   documentNumberFieldProps,
   documentTypeHint,
+  documentFormFields,
   documentTypes,
+  formErrorSummary,
   getExpiryStatus,
   identityDocumentTypeLabels,
   maskDocumentNumber,
@@ -94,7 +96,8 @@ export function DocumentEditorSheet({
   const expiryVisible = showsExpiry(form.type, document?.expiryDate);
   const slots = photoSlots(form.type, Boolean(document?.images.back.isUploaded));
   const expiryValid = ISO_DATE.test(form.expiry) && !Number.isNaN(Date.parse(form.expiry));
-  const submitError = save.error ? saveFailureText(save.error) : null;
+  // A refused Save says why beside the button: the field errors may be scrolled out of view.
+  const submitError = save.error ? saveFailureText(save.error) : formErrorSummary(fieldErrors, documentFormFields);
 
   const set = <K extends keyof Form>(key: K) => (value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -179,7 +182,7 @@ export function DocumentEditorSheet({
               {submitError}
             </Text>
           ) : null}
-          <Button label={save.isPending ? "Saving…" : submitError ? "Try again" : "Save"} onPress={submit} loading={save.isPending} />
+          <Button label={save.isPending ? "Saving…" : save.error ? "Try again" : "Save"} onPress={submit} loading={save.isPending} />
           <Button label="Cancel" variant="ghost" onPress={onClose} disabled={save.isPending} />
         </>
       }
