@@ -2,7 +2,7 @@
 // whether the travel profile is ready for check-in. Mirrors
 // apps/web/src/routes/_auth/guest.tsx. Stays, Profile and Privacy are tabs;
 // Companions has no tab, so its row stays here.
-import { useUser } from "@clerk/clerk-expo";
+import { useUser } from "@clerk/expo";
 import { getCurrentGuestStay, getGuestKeyCard } from "@tattvix/api";
 import { guestProfileMissingFieldSchema } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";

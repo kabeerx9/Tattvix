@@ -11,9 +11,26 @@ import { File } from "expo-file-system";
 import { FileSystemUploadType, createUploadTask } from "expo-file-system/legacy";
 
 import { api } from "./api";
+import { reportError } from "./telemetry";
 
 const MAX_SIDE = 1600;
 export const JPEG_QUALITY = 0.85;
+
+/**
+ * runUploadStep, reporting the failure to Sentry with its step tag before
+ * rethrowing. Callers (a direct try/catch in photo-slots, a wrapping error in
+ * identity-documents) would otherwise swallow the step. Reporting is deduped,
+ * so the mutation cache seeing the same error later sends nothing twice; the
+ * event carries step, status and storage code, never the URL or object key.
+ */
+async function trackedUploadStep<T>(...args: Parameters<typeof runUploadStep<T>>): Promise<T> {
+  try {
+    return await runUploadStep(...args);
+  } catch (error) {
+    reportError(error);
+    throw error;
+  }
+}
 
 /**
  * Opens the library or the camera and returns the picked asset, or null when the
@@ -49,17 +66,17 @@ export async function uploadPropertyPhoto(
   asset: Pick<ImagePicker.ImagePickerAsset, "uri" | "width" | "height">,
   onProgress?: (share: number) => void,
 ) {
-  const jpeg = await runUploadStep("prepare", () => encodeJpeg(asset.uri, asset.width, asset.height));
+  const jpeg = await trackedUploadStep("prepare", () => encodeJpeg(asset.uri, asset.width, asset.height));
   const contentLength = new File(jpeg).size;
 
-  const { upload } = await runUploadStep("authorize", () =>
+  const { upload } = await trackedUploadStep("authorize", () =>
     api.propertyPhotos.requestUpload(organizationSlug, propertySlug, { ...slot, contentType: "image/jpeg", contentLength }),
   );
   onProgress?.(0.05);
 
   await putSignedUpload(upload.url, upload.headers, jpeg, (sent) => onProgress?.(0.05 + sent * 0.9));
 
-  const saved = await runUploadStep("confirm", () => api.propertyPhotos.complete(organizationSlug, propertySlug, slot));
+  const saved = await trackedUploadStep("confirm", () => api.propertyPhotos.complete(organizationSlug, propertySlug, slot));
   onProgress?.(1);
   return saved;
 }
@@ -79,7 +96,7 @@ export async function putSignedUpload(url: string, headers: Record<string, strin
   }, ({ totalBytesSent, totalBytesExpectedToSend }) => {
     if (totalBytesExpectedToSend > 0) onProgress?.(totalBytesSent / totalBytesExpectedToSend);
   });
-  await runUploadStep(
+  await trackedUploadStep(
     "send",
     async () => {
       const response = await task.uploadAsync();

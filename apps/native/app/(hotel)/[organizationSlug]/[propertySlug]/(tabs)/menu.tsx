@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { StyleSheet, View } from "react-native";
 
 import { PlaceSwitcherRows } from "@/src/components/PlaceSwitcher";

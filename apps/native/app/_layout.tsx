@@ -1,9 +1,9 @@
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import { ClerkProvider, useAuth } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { env } from "@tattvix/env/native";
-import { Stack } from "expo-router";
+import { Stack, useNavigationContainerRef } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -18,15 +18,24 @@ import { Toaster } from "@/src/design-system/Toast";
 import { setTokenGetter } from "@/src/lib/api";
 import { setPendingPath } from "@/src/lib/pending-path";
 import { queryClient, setAuthHandlers } from "@/src/lib/query";
+// Side effect: Sentry.init runs at module load, before any screen renders.
+import { registerNavigation, wrap as wrapWithSentry } from "@/src/lib/telemetry";
 
 WebBrowser.maybeCompleteAuthSession();
 // Keep the native splash up until the fonts are in; hidden in the effect below.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function RootLayout() {
+export default wrapWithSentry(RootLayout);
+
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   const ready = fontsLoaded || !!fontError; // a font failure falls back to the system face rather than hanging
   const [introDone, setIntroDone] = useState(false);
+  const navigationRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    registerNavigation(navigationRef);
+  }, [navigationRef]);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});

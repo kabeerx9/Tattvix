@@ -1,4 +1,4 @@
-import { isClerkAPIResponseError, useUser } from "@clerk/clerk-expo";
+import { isClerkAPIResponseError, useUser } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { currentUserKeys } from "@tattvix/api";
 import { Eye, EyeOff } from "lucide-react-native";

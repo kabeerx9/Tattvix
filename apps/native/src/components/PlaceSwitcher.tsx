@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { placeInitials, placeTone } from "@tattvix/api";
 import { useRouter, type Href } from "expo-router";
 import { BarChart3, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, Star, UserRound } from "lucide-react-native";

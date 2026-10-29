@@ -37,8 +37,8 @@ export type DocumentSaveInput = {
 export class IdentityDocumentSaveError extends Error {
   readonly document: IdentityDocument;
 
-  constructor(document: IdentityDocument, message: string) {
-    super(message);
+  constructor(document: IdentityDocument, message: string, cause?: unknown) {
+    super(message, { cause });
     this.name = "IdentityDocumentSaveError";
     this.document = document;
   }
@@ -108,7 +108,7 @@ export function useSaveDocument(companionId?: number) {
           // Keep the saved details even if the recovery read fails.
         }
         const message = error instanceof Error ? error.message : "The photo could not be saved.";
-        throw new IdentityDocumentSaveError(current, message);
+        throw new IdentityDocumentSaveError(current, message, error);
       }
 
       return documents.get(document.id);

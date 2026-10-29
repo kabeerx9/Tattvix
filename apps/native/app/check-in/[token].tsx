@@ -1,7 +1,7 @@
 // The guest QR check-in: the page the hotel's QR opens (the web's
 // /check-in/<token>). Works signed out (welcome, then sign-in resumes here),
 // signed in with a live stay (its status), or signed in without one (the flow).
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { ApiError } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";

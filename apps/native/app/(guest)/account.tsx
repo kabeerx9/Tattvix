@@ -1,4 +1,4 @@
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { env } from "@tattvix/env/native";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";

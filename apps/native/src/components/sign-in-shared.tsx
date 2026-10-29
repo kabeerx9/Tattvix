@@ -2,7 +2,7 @@
 // white sheet rising over it, the password eye, the inline error line, the
 // "Already have an account?" switch line, and Clerk's emailed second-factor
 // step, which a password sign-in and a password reset both run into.
-import type { useSignIn } from "@clerk/clerk-expo";
+import type { useSignIn } from "@clerk/expo/legacy";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -82,9 +82,7 @@ type SignIn = NonNullable<ReturnType<typeof useSignIn>["signIn"]>;
 // when the sign-in comes from a phone it has not seen; MFA returns the same
 // shape. Sends the code and says whether the form should show the code step.
 export async function startEmailSecondFactor(signIn: SignIn, result: SignIn): Promise<boolean> {
-  // The @clerk/shared that clerk-expo 2.20 resolves predates needs_client_trust, hence the cast.
-  const status = result.status as string | null;
-  if (status !== "needs_second_factor" && status !== "needs_client_trust") return false;
+  if (result.status !== "needs_second_factor" && result.status !== "needs_client_trust") return false;
   const factor = (result.supportedSecondFactors ?? []).find((candidate) => candidate.strategy === "email_code");
   if (!factor) return false;
   await signIn.prepareSecondFactor({ strategy: "email_code", emailAddressId: factor.emailAddressId });

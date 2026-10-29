@@ -2,7 +2,8 @@
 // Google, or email + password with Clerk's Device Trust / MFA email code step.
 // Errors show under the form, where the person is looking, not in an alert.
 // Mirrors the phone layout of apps/web/src/routes/login.tsx.
-import { useSignIn, useSSO } from "@clerk/clerk-expo";
+import { useSSO } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo/legacy";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";

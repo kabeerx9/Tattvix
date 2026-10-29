@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { sendTestError, telemetryEnabled } from "@/src/lib/telemetry";
+
 import {
   BottomSheet,
   BrandLogo,
@@ -218,6 +220,18 @@ export default function GalleryRoute() {
             <Button label="Replay splash" variant="ghost" onPress={() => setSplashKey(Date.now())} />
           </View>
         </View>
+
+        {__DEV__ ? (
+          <View style={styles.block}>
+            <SectionTitle>Error reporting</SectionTitle>
+            <Text style={styles.caption}>
+              {telemetryEnabled ? "Sentry is on: the event should appear in the project within a minute." : "Sentry is off: set EXPO_PUBLIC_SENTRY_DSN and restart with --clear."}
+            </Text>
+            <View style={styles.stack}>
+              <Button label="Send test error" variant="outline" onPress={() => sendTestError()} />
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.block}>
           <Card>

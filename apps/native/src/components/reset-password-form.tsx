@@ -2,7 +2,7 @@
 // then (when Device Trust or MFA asks) the second emailed code, then the app.
 // Clerk resets the password and signs the person in as one step, so there is
 // no trip back through the sign-in form.
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn } from "@clerk/expo/legacy";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 

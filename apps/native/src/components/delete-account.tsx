@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { useMutation } from "@tanstack/react-query";
 import { describeAccountDeletionFailure } from "@tattvix/api";
 import { useRouter } from "expo-router";

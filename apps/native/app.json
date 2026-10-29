@@ -94,7 +94,9 @@
         }
       ],
       "expo-image",
-      "expo-sharing"
+      "expo-sharing",
+      ["@sentry/react-native", { "organization": "kabeer-joshi", "project": "tattwix-app" }],
+      ["@clerk/expo", { "appleSignIn": false }]
     ],
     "experiments": {
       "typedRoutes": true,

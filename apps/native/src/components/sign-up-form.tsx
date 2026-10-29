@@ -1,7 +1,7 @@
 // Email sign-up: name, email and password, then the six-digit code Clerk
 // emails to prove the address, then straight into the app. Google sign-up
 // stays on the sign-in screen, where Clerk's SSO flow creates the account.
-import { useSignUp } from "@clerk/clerk-expo";
+import { useSignUp } from "@clerk/expo/legacy";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";

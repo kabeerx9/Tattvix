@@ -102,6 +102,40 @@ still emits hidden maps, but nothing is uploaded and no maps are deleted. Web
 and API releases are tagged with the git commit SHA (`VERCEL_GIT_COMMIT_SHA`),
 and the Sentry environment is `production` or `preview` from `VERCEL_ENV`.
 
+### Native app (EAS)
+
+The app uses `@sentry/react-native` (project `tattwix-app`, org and project
+named in the `@sentry/react-native` plugin block of `apps/native/app.json`;
+change both if the project is renamed). It is off unless
+`EXPO_PUBLIC_SENTRY_DSN` is set, so dev builds and tests need nothing. Set
+these as EAS environment variables (`eas env:create` or the Expo dashboard),
+not in `eas.json`:
+
+| Environment | Variable | Value |
+| --- | --- | --- |
+| `preview`, `production` | `EXPO_PUBLIC_SENTRY_DSN` | Sentry project `tattwix-app` → Client Keys (DSN); plain text, baked into the JS bundle |
+| `preview`, `production` | `SENTRY_AUTH_TOKEN` | **sensitive**; org auth token with `project:releases` and `org:read`; used only at build time to upload source maps and native symbols |
+| optional | `SENTRY_ORG`, `SENTRY_PROJECT` | only needed if removed from the `app.json` plugin block |
+
+Without `SENTRY_AUTH_TOKEN` the build still succeeds; events arrive
+unsymbolicated. Releases are the native `com.tattwix.app@<version>+<versionCode>`
+that the Gradle plugin uploads under, so `release`/`dist` are not overridden
+in JS. The Sentry environment is the EAS Update channel (`preview`,
+`production`) or `development` in the dev client; events also carry
+`expo.updates.channel`, `update_id` and `runtime_version` tags.
+
+Scrubbing (`apps/native/src/lib/telemetry-privacy.ts`, tested): no request
+bodies, headers, cookies or query strings; console breadcrumbs dropped;
+network breadcrumbs reduced to method, URL and status; storage URLs reduced
+to their origin (the path is an identity-document object key); check-in and
+bearer tokens and emails redacted in every string; keys named
+authorization/cookie/token/secret/password/email redacted; no screenshots,
+view hierarchy, session replay or touch labels. Users are the internal
+numeric id only. Reported: 5xx, storage refusals during an upload and
+unexpected exceptions. Not reported: expected 4xx (validation, 401, 403,
+404, lapsed subscription), no-connection, upload timeouts. To verify on a
+device, open `tattwix://gallery` in a dev build and press "Send test error".
+
 Add a secret without it touching the terminal history:
 
 ```sh

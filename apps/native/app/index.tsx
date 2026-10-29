@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut } from "@clerk/clerk-expo";
+import { Show } from "@clerk/expo";
 import { Redirect, type Href } from "expo-router";
 import { useState } from "react";
 
@@ -15,12 +15,12 @@ import { getLanding, hotelHref } from "@/src/lib/workspace";
 export default function WelcomeRoute() {
   return (
     <>
-      <SignedIn>
+      <Show when="signed-in">
         <Landing />
-      </SignedIn>
-      <SignedOut>
+      </Show>
+      <Show when="signed-out">
         <Redirect href="/sign-in" />
-      </SignedOut>
+      </Show>
     </>
   );
 }

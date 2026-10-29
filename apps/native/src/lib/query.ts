@@ -9,9 +9,13 @@
 //   refetching it turns on the read-only banner.
 // - No persisted cache: the phone shares a desk and must never show stale guests
 //   to the next sign-in.
+// - Every failure passes through telemetry: 5xx and unexpected exceptions reach
+//   Sentry, expected 4xx and no-connection do not (src/lib/telemetry-privacy.ts).
 import { classifyApiError, currentUserKeys, shouldRetryQuery } from "@tattvix/api";
 import { MutationCache, QueryCache, QueryClient, focusManager } from "@tanstack/react-query";
 import { AppState, type AppStateStatus } from "react-native";
+
+import { reportError } from "./telemetry";
 
 type AuthHandlers = { signOut: () => Promise<void> | void };
 let authHandlers: AuthHandlers | null = null;
@@ -23,6 +27,9 @@ export function setAuthHandlers(handlers: AuthHandlers | null) {
 }
 
 function handleError(error: unknown) {
+  // 5xx and unexpected exceptions are bugs; expected 4xx and connectivity
+  // loss are filtered inside reportError.
+  reportError(error);
   const failure = classifyApiError(error);
   if (failure.kind === "unauthorized") {
     consecutiveUnauthorized += 1;
