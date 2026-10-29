@@ -1,4 +1,4 @@
-import { documentFormFields, formErrorSummary } from "@tattvix/api";
+import { documentFormFields, formErrorSummary, serverFieldErrors } from "@tattvix/api";
 import {
   identityDocumentInputSchema,
   type IdentityDocument,
@@ -65,6 +65,7 @@ export function DocumentEditor({
   isSaving,
   progress,
   submitError,
+  saveError,
   onSubmit,
   onCancel,
   onOpenPhoto,
@@ -77,6 +78,8 @@ export function DocumentEditor({
   isSaving: boolean;
   progress: IdentityDocumentSaveProgress | null;
   submitError: string | null;
+  /** The save's error, so the server's per-field refusals sit under their inputs. */
+  saveError?: unknown;
   onSubmit: (input: IdentityDocumentSaveInput) => void;
   /** Leaves the editor: back to the document, or closes the sheet for a new one. */
   onCancel: () => void;
@@ -111,6 +114,10 @@ export function DocumentEditor({
   useEffect(() => {
     if (focus === "photos") photosRef.current?.scrollIntoView({ block: "start" });
   }, [focus]);
+
+  // Server refusals clear with the next submit, as the mutation restarts.
+  const refused = serverFieldErrors(saveError, documentFormFields);
+  const errors = { ...refused.fieldErrors, ...fieldErrors };
 
   const requirements = requirementsFor(documentType);
   const slots = photoSlots(documentType, Boolean(document?.images.back.isUploaded));
@@ -241,7 +248,7 @@ export function DocumentEditor({
       <Field
         id={`${formId}-number`}
         label="Document number"
-        error={fieldErrors.documentNumber}
+        error={errors.documentNumber}
         hint={
           documentType === "AADHAAR" && isEditingNumber
             ? "Enter all 12 digits. We keep only the last 4."
@@ -258,7 +265,7 @@ export function DocumentEditor({
             spellCheck={false}
             enterKeyHint="next"
             className="pointer-coarse:h-11 tabular-nums"
-            aria-invalid={Boolean(fieldErrors.documentNumber)}
+            aria-invalid={Boolean(errors.documentNumber)}
             autoFocus={!isNew && Boolean(document?.documentNumber)}
             {...documentNumberFieldProps(documentType)}
           />
@@ -284,7 +291,7 @@ export function DocumentEditor({
         id={`${formId}-name`}
         label="Name on document"
         hint="Exactly as printed."
-        error={fieldErrors.nameOnDocument}
+        error={errors.nameOnDocument}
       >
         <Input
           id={`${formId}-name`}
@@ -295,7 +302,7 @@ export function DocumentEditor({
           autoCapitalize="words"
           enterKeyHint="next"
           className="pointer-coarse:h-11"
-          aria-invalid={Boolean(fieldErrors.nameOnDocument)}
+          aria-invalid={Boolean(errors.nameOnDocument)}
         />
       </Field>
 
@@ -304,7 +311,7 @@ export function DocumentEditor({
           id={`${formId}-country`}
           label="Issuing country"
           hint="Two-letter code, such as IN."
-          error={fieldErrors.issuingCountry}
+          error={errors.issuingCountry}
         >
           <Input
             id={`${formId}-country`}
@@ -317,14 +324,14 @@ export function DocumentEditor({
             spellCheck={false}
             placeholder="IN"
             className="pointer-coarse:h-11 uppercase"
-            aria-invalid={Boolean(fieldErrors.issuingCountry)}
+            aria-invalid={Boolean(errors.issuingCountry)}
           />
         </Field>
         {expiryVisible ? (
           <Field
             id={`${formId}-expiry`}
             label={requirements.expiryDateRequired ? "Expiry date" : "Expiry date (optional)"}
-            error={fieldErrors.expiryDate}
+            error={errors.expiryDate}
           >
             <Input
               id={`${formId}-expiry`}
@@ -332,7 +339,7 @@ export function DocumentEditor({
               value={expiryDate}
               onChange={(event) => setExpiryDate(event.target.value)}
               className="pointer-coarse:h-11"
-              aria-invalid={Boolean(fieldErrors.expiryDate)}
+              aria-invalid={Boolean(errors.expiryDate)}
             />
             <ExpiryHint expiryDate={expiryDate} />
           </Field>
@@ -374,7 +381,7 @@ export function DocumentEditor({
           isPreparingImage={isPreparingImage}
           progress={progress}
           // A refused Save says why beside the button: the field errors may be scrolled out of view.
-          submitError={submitError ?? formErrorSummary(fieldErrors, documentFormFields)}
+          submitError={refused.summary ?? formErrorSummary(errors, documentFormFields) ?? submitError}
           isNew={isNew}
         />
       }

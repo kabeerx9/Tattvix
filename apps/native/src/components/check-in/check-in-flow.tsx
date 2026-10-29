@@ -10,7 +10,10 @@ import {
   guestProfileKeys,
   initialStep,
   nextStep,
+  profileFormFields,
   resolveStep,
+  saveRefusalSummary,
+  serverFieldErrors,
   validateProfileStep,
   type CheckInStep,
   type CheckInSelection,
@@ -134,6 +137,8 @@ function FlowBody({
       queryClient.setQueryData(guestProfileKeys.detail(), saved);
       void queryClient.invalidateQueries({ queryKey: guestProfileKeys.detail() });
     },
+    // The server's per-field refusal lands under the step's inputs, beside any client errors.
+    onError: (error) => setFieldErrors((current) => ({ ...current, ...(serverFieldErrors(error, profileFormFields).fieldErrors as ProfileFieldErrors) })),
   });
   const submit = useMutation({
     mutationFn: (input: GuestCheckInSubmitInput) => api.checkIn.submit(token, input),
@@ -251,7 +256,9 @@ function FlowBody({
   const intro = intros[step];
 
   const saveError =
-    step === "about" || step === "address" ? errorMessage(saveProfile.error, "Your details could not be saved. Check your connection and try again.") : null;
+    step === "about" || step === "address"
+      ? saveRefusalSummary(saveProfile.error, fieldErrors, profileFormFields, "Your details could not be saved. Check your connection and try again.")
+      : null;
   const submitError = step === "consent" ? errorMessage(submit.error, "Your details could not be shared right now. Please try again.") : null;
 
   const footer =

@@ -1,7 +1,7 @@
 // Travel companions: people the signed-in guest travels with, one row each.
 // A row opens that person's page (details, ID documents, remove). Mirrors
 // apps/native/app/(guest)/companions/index.tsx.
-import { companionFormFields, companionRowDetail, formErrorSummary, personName } from "@tattvix/api";
+import { companionFormFields, companionRowDetail, personName, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { companionProfileInputSchema, type CompanionProfile, type CompanionProfileInput } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
@@ -18,7 +18,6 @@ import { EmptyState, InitialsAvatar, ListRow, PageHeader, Panel } from "@/compon
 import { companionMutations } from "@/features/companions/mutations";
 import { companionQueries } from "@/features/companions/queries";
 import { CountrySelect } from "@/features/guest-profile/components/country-select";
-import { ApiError } from "@/lib/api";
 
 export function CompanionsPage() {
   const queryClient = useQueryClient();
@@ -84,15 +83,11 @@ export function CompanionsPage() {
         onOpenChange={setAdding}
         companion={null}
         isSaving={createMutation.isPending}
-        submitError={mutationError(createMutation.error, createMutation.isError)}
+        saveError={createMutation.error}
         onSubmit={add}
       />
     </div>
   );
-}
-
-export function mutationError(error: unknown, isError: boolean) {
-  return error instanceof ApiError ? error.message : isError ? "The companion could not be saved." : null;
 }
 
 export function CompanionEditorSheet({
@@ -124,12 +119,13 @@ export function CompanionEditorSheet({
 function CompanionEditor({
   companion,
   isSaving,
-  submitError,
+  saveError,
   onSubmit,
 }: {
   companion: CompanionProfile | null;
   isSaving: boolean;
-  submitError: string | null;
+  /** The save mutation's error, so the server's per-field refusals sit under their inputs. */
+  saveError: unknown;
   onSubmit: (input: CompanionProfileInput) => void;
 }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -159,26 +155,28 @@ function CompanionEditor({
     onSubmit(parsed.data);
   }
 
+  // Server refusals clear with the next submit, as the mutation restarts.
+  const errors = { ...serverFieldErrors(saveError, companionFormFields).fieldErrors, ...fieldErrors };
   // A refused Save says why beside the button: the field errors may be scrolled out of view.
-  const refusal = submitError ?? formErrorSummary(fieldErrors, companionFormFields);
+  const refusal = saveRefusalSummary(saveError, errors, companionFormFields, "The companion could not be saved.");
 
   return (
     <form className="grid min-h-0 flex-1 gap-5 px-4 pb-4" onSubmit={handleSubmit}>
       <div className="grid gap-4">
-        <EditorField label="Legal first name" htmlFor="companion-legalFirstName" error={fieldErrors.legalFirstName}>
-          <Input id="companion-legalFirstName" name="legalFirstName" defaultValue={companion?.legalFirstName ?? ""} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(fieldErrors.legalFirstName)} />
+        <EditorField label="Legal first name" htmlFor="companion-legalFirstName" error={errors.legalFirstName}>
+          <Input id="companion-legalFirstName" name="legalFirstName" defaultValue={companion?.legalFirstName ?? ""} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(errors.legalFirstName)} />
         </EditorField>
-        <EditorField label="Legal last name" htmlFor="companion-legalLastName" error={fieldErrors.legalLastName} hint="With a single legal name, repeat it here.">
-          <Input id="companion-legalLastName" name="legalLastName" defaultValue={companion?.legalLastName ?? ""} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(fieldErrors.legalLastName)} />
+        <EditorField label="Legal last name" htmlFor="companion-legalLastName" error={errors.legalLastName} hint="With a single legal name, repeat it here.">
+          <Input id="companion-legalLastName" name="legalLastName" defaultValue={companion?.legalLastName ?? ""} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(errors.legalLastName)} />
         </EditorField>
-        <EditorField label="Date of birth" htmlFor="companion-dateOfBirth" error={fieldErrors.dateOfBirth}>
-          <Input id="companion-dateOfBirth" name="dateOfBirth" defaultValue={companion?.dateOfBirth ?? ""} type="date" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
+        <EditorField label="Date of birth" htmlFor="companion-dateOfBirth" error={errors.dateOfBirth}>
+          <Input id="companion-dateOfBirth" name="dateOfBirth" defaultValue={companion?.dateOfBirth ?? ""} type="date" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(errors.dateOfBirth)} />
         </EditorField>
-        <EditorField label="Relationship" htmlFor="companion-relationship" error={fieldErrors.relationship} hint="For example: spouse, child, parent, friend.">
-          <Input id="companion-relationship" name="relationship" defaultValue={companion?.relationship ?? ""} maxLength={100} placeholder="Spouse" aria-invalid={Boolean(fieldErrors.relationship)} />
+        <EditorField label="Relationship" htmlFor="companion-relationship" error={errors.relationship} hint="For example: spouse, child, parent, friend.">
+          <Input id="companion-relationship" name="relationship" defaultValue={companion?.relationship ?? ""} maxLength={100} placeholder="Spouse" aria-invalid={Boolean(errors.relationship)} />
         </EditorField>
-        <EditorField label="Nationality" htmlFor="companion-nationality" error={fieldErrors.nationality}>
-          <CountrySelect id="companion-nationality" name="nationality" defaultValue={companion?.nationality ?? ""} invalid={Boolean(fieldErrors.nationality)} />
+        <EditorField label="Nationality" htmlFor="companion-nationality" error={errors.nationality}>
+          <CountrySelect id="companion-nationality" name="nationality" defaultValue={companion?.nationality ?? ""} invalid={Boolean(errors.nationality)} />
         </EditorField>
       </div>
 

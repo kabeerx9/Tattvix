@@ -2,7 +2,7 @@
 // the stay is in house, the desk's two bill writes (add an extra, void an
 // extra). Charges are idempotent: a request id is kept across a network
 // failure so a retry cannot double-post, and dropped on a definite rejection.
-import { formatMoneyMinor, parseMoneyMinor } from "@tattvix/api";
+import { formatMoneyMinor, parseMoneyMinor, saveRefusalSummary, serverFieldErrors, stayChargeFormFields } from "@tattvix/api";
 import { ApiError, type HotelStayDetail, type StayBill } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -118,6 +118,8 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("");
+  // The server's per-field refusals, cleared as each field is edited.
+  const [errors, setErrors] = useState<Record<string, string>>({});
   // Kept across retries of the same charge; see the file header.
   const requestId = useRef<string | null>(null);
 
@@ -127,9 +129,15 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
   const unitPriceMinor = parseMoneyMinor(unitPrice.trim());
   const valid = trimmed.length > 0 && trimmed.length <= 200 && quantityOk && unitPriceMinor !== null;
 
+  const edit = (key: string, set: (value: string) => void) => (value: string) => {
+    set(value);
+    setErrors(({ [key]: _, ...rest }) => rest);
+  };
+
   function submit() {
     if (!valid || unitPriceMinor === null) return;
     requestId.current ??= randomUuid();
+    setErrors({});
     addCharge.mutate(
       {
         organizationSlug: scope.organizationSlug,
@@ -148,6 +156,7 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
           onClose();
         },
         onError: (error) => {
+          setErrors((current) => ({ ...current, ...serverFieldErrors(error, stayChargeFormFields).fieldErrors }));
           // A definite rejection is safe to correct; an ambiguous network failure must reuse its id.
           if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
             requestId.current = null;
@@ -158,6 +167,8 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
     );
   }
 
+  const saveError = saveRefusalSummary(addCharge.error, errors, stayChargeFormFields, "The charge could not be added.");
+
   return (
     <BottomSheet
       open={open}
@@ -166,10 +177,18 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
       footer={<Button label={addCharge.isPending ? "Adding" : "Add to bill"} onPress={submit} loading={addCharge.isPending} disabled={!valid} />}
     >
       <View style={styles.sheetStack}>
-        <TextField label="Description" placeholder="Minibar, laundry, late checkout" value={description} onChangeText={setDescription} maxLength={200} enter="next" />
+        <TextField
+          label="Description"
+          placeholder="Minibar, laundry, late checkout"
+          value={description}
+          onChangeText={edit("description", setDescription)}
+          error={errors.description}
+          maxLength={200}
+          enter="next"
+        />
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <TextField label="Quantity" inputMode="numeric" value={quantity} onChangeText={setQuantity} maxLength={4} enter="next" />
+            <TextField label="Quantity" inputMode="numeric" value={quantity} onChangeText={edit("quantity", setQuantity)} error={errors.quantity} maxLength={4} enter="next" />
           </View>
           <View style={{ flex: 2 }}>
             <TextField
@@ -177,13 +196,13 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
               placeholder="250.00"
               inputMode="decimal"
               value={unitPrice}
-              onChangeText={setUnitPrice}
+              onChangeText={edit("unitPriceMinor", setUnitPrice)}
               enter={submit}
-              error={unitPrice.trim() && unitPriceMinor === null ? "Enter an amount in rupees" : undefined}
+              error={errors.unitPriceMinor ?? (unitPrice.trim() && unitPriceMinor === null ? "Enter an amount in rupees" : undefined)}
             />
           </View>
         </View>
-        <ErrorText message={addCharge.isError ? errorMessage(addCharge.error, "The charge could not be added.") : null} />
+        <ErrorText message={saveError} />
       </View>
     </BottomSheet>
   );

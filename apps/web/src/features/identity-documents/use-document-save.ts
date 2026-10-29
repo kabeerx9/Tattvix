@@ -62,5 +62,7 @@ export function useDocumentSave(
     isSaving: mutation.isPending,
     progress,
     submitError,
+    /** The refusal itself, unwrapped from a draft save, so the editor can place the server's field messages. */
+    saveError: error instanceof IdentityDocumentSaveError ? error.originalError : error,
   };
 }

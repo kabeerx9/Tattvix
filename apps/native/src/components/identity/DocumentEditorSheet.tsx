@@ -8,6 +8,7 @@ import {
   documentFormFields,
   documentTypes,
   formErrorSummary,
+  serverFieldErrors,
   getExpiryStatus,
   identityDocumentTypeLabels,
   maskDocumentNumber,
@@ -97,7 +98,9 @@ export function DocumentEditorSheet({
   const slots = photoSlots(form.type, Boolean(document?.images.back.isUploaded));
   const expiryValid = ISO_DATE.test(form.expiry) && !Number.isNaN(Date.parse(form.expiry));
   // A refused Save says why beside the button: the field errors may be scrolled out of view.
-  const submitError = save.error ? saveFailureText(save.error) : formErrorSummary(fieldErrors, documentFormFields);
+  const submitError = save.error
+    ? serverFieldErrors(save.error, documentFormFields).summary ?? formErrorSummary(fieldErrors, documentFormFields) ?? saveFailureText(save.error)
+    : formErrorSummary(fieldErrors, documentFormFields);
 
   const set = <K extends keyof Form>(key: K) => (value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -140,6 +143,8 @@ export function DocumentEditorSheet({
         },
         onError: (error) => {
           if (error instanceof IdentityDocumentSaveError) setDraftId(error.document.id);
+          // The server's per-field refusals sit under their inputs like the client's.
+          setFieldErrors((current) => ({ ...current, ...serverFieldErrors(error, documentFormFields).fieldErrors }));
           toast(saveFailureText(error));
         },
       },

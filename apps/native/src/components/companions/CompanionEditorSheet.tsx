@@ -1,7 +1,7 @@
 // Add or edit a travel companion: legal name, date of birth, relationship and
 // nationality. Mirrors the web's CompanionEditor in
 // apps/web/src/features/companions/components/companions-page.tsx, on a full-height sheet.
-import { companionFormFields, companionKeys, formErrorSummary } from "@tattvix/api";
+import { companionFormFields, companionKeys, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { companionProfileInputSchema, type CompanionProfile, type CompanionProfileInput } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -9,7 +9,6 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { BottomSheet, Button, TextField, colors, space, toast, type } from "@/src/design-system";
 import { api } from "@/src/lib/api";
-import { errorMessage } from "@/src/lib/format";
 
 type Form = {
   legalFirstName: string;
@@ -66,10 +65,12 @@ export function CompanionEditorSheet({
       onSaved?.(saved);
       onClose();
     },
+    // The server's per-field refusals sit under their inputs like the client's, and clear as those are edited.
+    onError: (error) => setErrors((current) => ({ ...current, ...serverFieldErrors(error, companionFormFields).fieldErrors })),
   });
 
   // A refused Save says why beside the button: the field errors may be scrolled out of view.
-  const saveError = save.error ? errorMessage(save.error, "The companion could not be saved.") : formErrorSummary(errors, companionFormFields);
+  const saveError = saveRefusalSummary(save.error, errors, companionFormFields, "The companion could not be saved.");
 
   const set = (key: keyof Form) => (value: string) => {
     setForm((current) => ({ ...current, [key]: value }));

@@ -1,3 +1,4 @@
+import { onboardingFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import {
   platformOrganizationOnboardingInputSchema,
   type PlatformOrganizationOnboardingResponse,
@@ -13,7 +14,6 @@ import { useState } from "react";
 
 import { platformOrganizationMutations } from "@/features/platform-organizations/mutations";
 import { UserEmailCombobox } from "@/features/platform-users/components/user-email-combobox";
-import { ApiError } from "@/lib/api";
 import { PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 
 export function OrganizationOnboardingPage() {
@@ -51,6 +51,7 @@ export function OrganizationOnboardingPage() {
       }
       if (!owner) nextErrors.ownerEmail = "Select an existing user account.";
       setFieldErrors(nextErrors);
+      onboardingMutation.reset();
       return;
     }
 
@@ -68,11 +69,11 @@ export function OrganizationOnboardingPage() {
     });
   }
 
-  const submitError = onboardingMutation.error instanceof ApiError
-    ? onboardingMutation.error.message
-    : onboardingMutation.isError
-      ? "The organization could not be created."
-      : null;
+  // Server refusals sit under their fields; client issues win when both exist.
+  // The server collapses nested errors to "organization"/"property", which
+  // have no single input, so those reach the line beside the button instead.
+  const errors = { ...serverFieldErrors(onboardingMutation.error, onboardingFormFields).fieldErrors, ...fieldErrors };
+  const submitError = saveRefusalSummary(onboardingMutation.error, errors, onboardingFormFields, "The organization could not be created.");
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
@@ -82,28 +83,28 @@ export function OrganizationOnboardingPage() {
         <form onSubmit={onSubmit}><Panel>
           <FormSection icon={Building2} title="Organization" description="The hotel business or ownership group.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Organization name" error={fieldErrors["organization.name"]}>
-                <Input name="organizationName" required maxLength={255} autoComplete="organization" aria-invalid={Boolean(fieldErrors["organization.name"])} placeholder="Example Hotels" />
+              <Field label="Organization name" error={errors["organization.name"]}>
+                <Input name="organizationName" required maxLength={255} autoComplete="organization" aria-invalid={Boolean(errors["organization.name"])} placeholder="Example Hotels" />
               </Field>
-              <Field label="Organization slug" error={fieldErrors["organization.slug"]}>
-                <Input name="organizationSlug" required maxLength={255} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autoCapitalize="none" autoComplete="off" aria-invalid={Boolean(fieldErrors["organization.slug"])} placeholder="example-hotels" />
+              <Field label="Organization slug" error={errors["organization.slug"]}>
+                <Input name="organizationSlug" required maxLength={255} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autoCapitalize="none" autoComplete="off" aria-invalid={Boolean(errors["organization.slug"])} placeholder="example-hotels" />
               </Field>
             </div>
           </FormSection>
 
           <FormSection icon={Hotel} title="First property" description="The first physical hotel operated by this organization.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Property name" error={fieldErrors["property.name"]}>
-                <Input name="propertyName" required maxLength={255} autoComplete="off" aria-invalid={Boolean(fieldErrors["property.name"])} placeholder="Example Jaipur" />
+              <Field label="Property name" error={errors["property.name"]}>
+                <Input name="propertyName" required maxLength={255} autoComplete="off" aria-invalid={Boolean(errors["property.name"])} placeholder="Example Jaipur" />
               </Field>
-              <Field label="Property slug" error={fieldErrors["property.slug"]}>
-                <Input name="propertySlug" required maxLength={255} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autoCapitalize="none" autoComplete="off" aria-invalid={Boolean(fieldErrors["property.slug"])} placeholder="jaipur" />
+              <Field label="Property slug" error={errors["property.slug"]}>
+                <Input name="propertySlug" required maxLength={255} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autoCapitalize="none" autoComplete="off" aria-invalid={Boolean(errors["property.slug"])} placeholder="jaipur" />
               </Field>
             </div>
           </FormSection>
 
           <FormSection icon={UserRoundCheck} title="Initial owner" description="Search for and select an existing account. Free-form emails cannot be submitted.">
-            <Field label="Owner account" error={fieldErrors.ownerEmail}>
+            <Field label="Owner account" error={errors.ownerEmail}>
               <UserEmailCombobox
                 key={ownerPickerKey}
                 value={owner}
@@ -111,7 +112,7 @@ export function OrganizationOnboardingPage() {
                   setOwner(user);
                   if (user) setFieldErrors((errors) => ({ ...errors, ownerEmail: "" }));
                 }}
-                invalid={Boolean(fieldErrors.ownerEmail)}
+                invalid={Boolean(errors.ownerEmail)}
               />
             </Field>
           </FormSection>

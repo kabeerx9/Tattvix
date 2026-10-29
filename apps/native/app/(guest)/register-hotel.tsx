@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { Building2 } from "lucide-react-native";
-import { currentUserKeys, formatDateTime, getLatestRejectedRequest, hasPendingHotelRequest, hotelRegistrationKeys } from "@tattvix/api";
+import { currentUserKeys, formatDateTime, getLatestRejectedRequest, hasPendingHotelRequest, hotelRegistrationFormFields, hotelRegistrationKeys, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { ApiError, hotelRegistrationInputSchema, type HotelRegistrationRequest } from "@tattvix/contracts";
 
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
@@ -23,7 +23,6 @@ import {
   type,
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
-import { errorMessage } from "@/src/lib/format";
 
 type Form = { hotelName: string; address: string; contactPhone: string; referralCode: string };
 const emptyForm: Form = { hotelName: "", address: "", contactPhone: "", referralCode: "" };
@@ -39,9 +38,11 @@ export default function RegisterHotelScreen() {
   const submit = useMutation({
     mutationFn: api.hotelRegistration.submitRequest,
     onSuccess: () => client.invalidateQueries({ queryKey: hotelRegistrationKeys.guest() }),
-    // 409: a request is already pending, so show it.
     onError: (error) => {
+      // 409: a request is already pending, so show it.
       if (error instanceof ApiError && error.status === 409) void client.invalidateQueries({ queryKey: hotelRegistrationKeys.guest() });
+      // A refused field keeps its message until that field is edited.
+      setErrors((current) => ({ ...current, ...serverFieldErrors(error, hotelRegistrationFormFields).fieldErrors }));
     },
   });
   const [form, setForm] = useState<Form | null>(null);
@@ -75,6 +76,8 @@ export default function RegisterHotelScreen() {
     if (requests.isError) return <RetryScreen onRetry={() => void requests.refetch()} retrying={requests.isFetching} error={requests.error} />;
     return <PendingScreen />;
   }
+
+  const submitError = saveRefusalSummary(submit.error, errors, hotelRegistrationFormFields, "Your registration request could not be submitted.");
 
   const set = (key: keyof Form) => (value: string) => {
     setForm((current) => ({ ...(current ?? emptyForm), [key]: value }));
@@ -135,7 +138,7 @@ export default function RegisterHotelScreen() {
               helper="Including a code lets that owner see your hotel name and registration status."
               enter={onSubmit}
             />
-            {submit.isError ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage(submit.error, "Your registration request could not be submitted.")}</Text> : null}
+            {submitError ? <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text> : null}
             <Button label="Submit for review" loading={submit.isPending} onPress={onSubmit} />
           </Card>
         </View>

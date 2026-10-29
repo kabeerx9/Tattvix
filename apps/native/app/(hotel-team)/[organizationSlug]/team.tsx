@@ -1,4 +1,4 @@
-import { classifyApiError, createTeamMutations, refreshLostTeamAccess, teamMemberName } from "@tattvix/api";
+import { classifyApiError, createTeamMutations, refreshLostTeamAccess, saveRefusalSummary, teamMemberFormFields, teamMemberName } from "@tattvix/api";
 import type { TeamMember } from "@tattvix/contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
@@ -49,6 +49,9 @@ export default function TeamScreen() {
   const inactiveMembers = team.data?.members.filter((member) => !member.isActive) ?? [];
   const readOnly = !team.data?.subscription.entitled;
   const saveError = add.error ?? mutation.error;
+  // The form's controls live in TeamMemberForm; the server's per-field
+  // refusals (role, property access) are named in this one line instead.
+  const saveErrorLine = saveError ? saveRefusalSummary(saveError, {}, teamMemberFormFields, classifyApiError(saveError).message) : null;
 
   useEffect(() => {
     if (isLostTeamAccess(team.error) || isLostTeamAccess(saveError)) {
@@ -104,13 +107,13 @@ export default function TeamScreen() {
     <View style={styles.content}>
       <Text style={styles.meta}>{team.data.organization.name}</Text>
       {readOnly ? <Text accessibilityRole="alert" style={styles.warning}>Subscription expired. You can review team access, but changes are unavailable.</Text> : <Button label="Add team member" icon={UserPlus} onPress={() => setFormMember(null)} />}
-      {saveError ? <Text accessibilityRole="alert" style={styles.error}>{classifyApiError(saveError).message}</Text> : null}
+      {saveErrorLine ? <Text accessibilityRole="alert" style={styles.error}>{saveErrorLine}</Text> : null}
       <SectionTitle>Active members</SectionTitle>
       {activeMembers.length ? <Panel>{activeMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.role[0] + member.role.slice(1).toLowerCase()} · ${propertyScopeLabel(member, namesById)}\n${member.user.email}`} trailing={<StatusPill tone="success">Active</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel> : <EmptyState icon={UsersRound} text="No one has access to this organization yet." />}
       {inactiveMembers.length ? <><SectionTitle>Inactive members</SectionTitle><Panel>{inactiveMembers.map((member) => <ListRow key={member.id} title={teamMemberName(member)} detail={`${member.role[0] + member.role.slice(1).toLowerCase()} · ${propertyScopeLabel(member, namesById)}\n${member.user.email}`} trailing={<StatusPill tone="neutral">Inactive</StatusPill>} chevron={!readOnly} onPress={readOnly ? undefined : () => setFormMember(member)} />)}</Panel></> : null}
     </View>
-    <TeamMemberForm organizationSlug={organizationSlug} properties={team.data.properties} member={formMember ? team.data.members.find((member) => member.id === formMember.id) : undefined} open={formMember === null || Boolean(formMember && team.data.members.some((member) => member.id === formMember.id))} readOnly={readOnly} onClose={() => setFormMember(undefined)} saving={add.isPending || mutation.isPending} error={!change && saveError ? classifyApiError(saveError).message : undefined} onToggleAccess={toggleAccess} onSubmit={saveForm} />
-    <ConfirmSheet open={Boolean(change)} onClose={() => setChange(null)} title={change?.title ?? "Confirm"} description={change?.description ?? ""} confirmLabel={change?.tone === "destructive" ? "Remove access" : "Confirm"} tone={change?.tone} loading={add.isPending || mutation.isPending} error={change && saveError ? classifyApiError(saveError).message : undefined} onConfirm={confirmChange} />
+    <TeamMemberForm organizationSlug={organizationSlug} properties={team.data.properties} member={formMember ? team.data.members.find((member) => member.id === formMember.id) : undefined} open={formMember === null || Boolean(formMember && team.data.members.some((member) => member.id === formMember.id))} readOnly={readOnly} onClose={() => setFormMember(undefined)} saving={add.isPending || mutation.isPending} error={!change && saveErrorLine ? saveErrorLine : undefined} saveError={!change ? saveError : undefined} onToggleAccess={toggleAccess} onSubmit={saveForm} />
+    <ConfirmSheet open={Boolean(change)} onClose={() => setChange(null)} title={change?.title ?? "Confirm"} description={change?.description ?? ""} confirmLabel={change?.tone === "destructive" ? "Remove access" : "Confirm"} tone={change?.tone} loading={add.isPending || mutation.isPending} error={change && saveErrorLine ? saveErrorLine : undefined} onConfirm={confirmChange} />
   </Screen>;
 }
 

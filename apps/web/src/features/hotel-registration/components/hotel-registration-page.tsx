@@ -1,3 +1,4 @@
+import { hotelRegistrationFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { hotelRegistrationInputSchema, type HotelRegistrationRequest } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { Input } from "@tattvix/ui/components/input";
@@ -10,7 +11,6 @@ import { toast } from "sonner";
 
 import { EmptyState, Kpi, KpiStrip, PageHeader, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
 import { currentUserKeys } from "@/features/current-user/keys";
-import { ApiError } from "@/lib/api";
 
 import { hotelRegistrationMutations } from "../mutations";
 import { hotelRegistrationQueries } from "../queries";
@@ -61,6 +61,7 @@ export function HotelRegistrationPage({ referralCode }: { referralCode?: string 
       const errors: Record<string, string> = {};
       for (const issue of parsed.error.issues) errors[issue.path.join(".")] ??= issue.message;
       setFieldErrors(errors);
+      submitMutation.reset();
       return;
     }
 
@@ -72,11 +73,9 @@ export function HotelRegistrationPage({ referralCode }: { referralCode?: string 
     });
   }
 
-  const submitError = submitMutation.error instanceof ApiError
-    ? submitMutation.error.message
-    : submitMutation.isError
-      ? "Your registration request could not be submitted."
-      : null;
+  // Server refusals sit under their fields; client issues win when both exist.
+  const errors = { ...serverFieldErrors(submitMutation.error, hotelRegistrationFormFields).fieldErrors, ...fieldErrors };
+  const submitError = saveRefusalSummary(submitMutation.error, errors, hotelRegistrationFormFields, "Your registration request could not be submitted.");
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
@@ -102,7 +101,7 @@ export function HotelRegistrationPage({ referralCode }: { referralCode?: string 
                 key={`${latestRejection?.id ?? "new"}/${referralCode ?? ""}`}
                 referralCode={referralCode}
                 latestRejection={latestRejection}
-                fieldErrors={fieldErrors}
+                fieldErrors={errors}
                 submitError={submitError}
                 isSubmitting={submitMutation.isPending}
                 onSubmit={onSubmit}

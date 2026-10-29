@@ -1,3 +1,4 @@
+import { saveRefusalSummary, serverFieldErrors, stayChargeFormFields } from "@tattvix/api";
 import type { HotelStayDetail, StayBill } from "@tattvix/contracts";
 import {
   AlertDialog,
@@ -131,13 +132,17 @@ function BillContents({
     unitPriceMinor >= 0 &&
     unitPriceMinor <= 100_000_000;
   const isFinal = bill.isFinal || stay.operationalStatus !== "CHECKED_IN";
-  const mutationError = chargeMutation.error ?? voidMutation.error;
-  const error =
-    mutationError instanceof ApiError
-      ? mutationError.message
-      : mutationError
+  // The void dialog has no field inputs of its own, so its refusal stays at the top of the panel;
+  // the charge form shows the server's field errors under its inputs and a summary beside Add.
+  const voidError =
+    voidMutation.error instanceof ApiError
+      ? voidMutation.error.message
+      : voidMutation.error
         ? "The bill could not be updated."
         : null;
+  const chargeErrors = serverFieldErrors(chargeMutation.error, stayChargeFormFields).fieldErrors;
+  const chargeError = saveRefusalSummary(chargeMutation.error, chargeErrors, stayChargeFormFields, "The charge could not be added.");
+  const error = voidError ?? (canManage && !isFinal ? null : chargeError);
 
   const canVoid = (item: StayBill["items"][number]) =>
     canManage && !isFinal && item.kind === "EXTRA" && !item.voidedAt;
@@ -259,7 +264,7 @@ function BillContents({
       {canManage && !isFinal ? (
         <PanelSection className="border-t border-border-soft"><form className="grid gap-4" onSubmit={addExtra}>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-[minmax(0,1fr)_100px_140px_auto] sm:items-end">
-            <Field className="col-span-2 sm:col-span-1" label="Description">
+            <Field className="col-span-2 sm:col-span-1" label="Description" error={chargeErrors.description}>
               <Input
                 required
                 value={extra.description}
@@ -271,9 +276,10 @@ function BillContents({
                   }))
                 }
                 placeholder="Airport transfer"
+                aria-invalid={Boolean(chargeErrors.description)}
               />
             </Field>
-            <Field label="Quantity">
+            <Field label="Quantity" error={chargeErrors.quantity}>
               <Input
                 required
                 type="number"
@@ -286,9 +292,10 @@ function BillContents({
                     quantity: event.target.value,
                   }))
                 }
+                aria-invalid={Boolean(chargeErrors.quantity)}
               />
             </Field>
-            <Field label="Unit price (INR)">
+            <Field label="Unit price (INR)" error={chargeErrors.unitPriceMinor}>
               <Input
                 required
                 inputMode="decimal"
@@ -300,6 +307,7 @@ function BillContents({
                   }))
                 }
                 placeholder="₹500.00"
+                aria-invalid={Boolean(chargeErrors.unitPriceMinor)}
               />
             </Field>
             <Button className="col-span-2 sm:col-span-1" type="submit" variant="outline" disabled={!validExtra || chargeMutation.isPending}>
@@ -307,6 +315,11 @@ function BillContents({
               {chargeMutation.isPending ? "Adding..." : "Add charge"}
             </Button>
           </div>
+          {chargeError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {chargeError}
+            </p>
+          ) : null}
         </form></PanelSection>
       ) : null}
 
@@ -388,16 +401,19 @@ function BillItemAction({ item, canVoid, onVoid }: { item: BillItem; canVoid: bo
 function Field({
   label,
   className,
+  error,
   children,
 }: {
   label: string;
   className?: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className={cn("grid gap-2", className)}>
       <Label>{label}</Label>
       {children}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

@@ -23,7 +23,6 @@ import { InitialsAvatar } from "@/components/design-system";
 import { documentLabel, personName } from "@/features/check-in/format";
 import { companionMutations } from "@/features/companions/mutations";
 import { identityDocumentQueries } from "@/features/identity-documents/queries";
-import { ApiError } from "@/lib/api";
 
 import { ChoiceCard } from "./check-in-choice-card";
 import { CompanionForm } from "./check-in-companion-form";
@@ -61,13 +60,7 @@ export function CompanionsStep({
     else if (editor) updateMutation.mutate({ id: editor.id, input }, { onSuccess });
   }
 
-  const mutationError = (createMutation.error ?? updateMutation.error) as unknown;
-  const errorMessage =
-    mutationError instanceof ApiError
-      ? mutationError.message
-      : mutationError
-        ? "The companion could not be saved."
-        : null;
+  const saveError = (createMutation.error ?? updateMutation.error) as unknown;
 
   return (
     <div className="grid gap-3">
@@ -125,7 +118,7 @@ export function CompanionsStep({
               key={editor === "new" ? "new" : editor.id}
               companion={editor === "new" ? null : editor}
               isSaving={createMutation.isPending || updateMutation.isPending}
-              submitError={errorMessage}
+              saveError={saveError}
               onSubmit={save}
             />
           ) : null}

@@ -14,10 +14,15 @@ import {
   getMissingSetup,
   getOccupancyRecent,
   getOccupancyTonight,
+  memberFormFields,
   platformMemberName,
   platformRoleLabel,
+  propertyFormFields,
   roomTypeLabel,
+  saveRefusalSummary,
+  serverFieldErrors,
   subscriptionEventLabel,
+  trialExtensionFormFields,
 } from "@tattvix/api";
 import {
   platformPropertyCreateInputSchema,
@@ -84,10 +89,14 @@ function ExtendTrialSheet({ organizationSlug, subscription, open, onClose }: { o
   const [choice, setChoice] = useState("14");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const chosen = choices.find((item) => item.value === choice) ?? choices[1];
+
+  const clearError = (key: string) => setErrors(({ [key]: _, ...rest }) => rest);
 
   function submit() {
     const trialEndsAt = chosen.date.toISOString();
+    setErrors({});
     extend.mutate(
       { organizationSlug, input: { trialEndsAt, note: note.trim() || undefined } },
       {
@@ -96,11 +105,12 @@ function ExtendTrialSheet({ organizationSlug, subscription, open, onClose }: { o
           setNote("");
           onClose();
         },
+        onError: (failure) => setErrors((current) => ({ ...current, ...serverFieldErrors(failure, trialExtensionFormFields).fieldErrors })),
       },
     );
   }
 
-  const error = errorMessage(extend.error, "The trial could not be extended.");
+  const error = saveRefusalSummary(extend.error, errors, trialExtensionFormFields, "The trial could not be extended.");
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Extend trial" footer={<Button label="Extend trial" onPress={submit} loading={extend.isPending} />}>
@@ -110,16 +120,38 @@ function ExtendTrialSheet({ organizationSlug, subscription, open, onClose }: { o
           valueLabel={chosen.label}
           placeholder="Choose a date"
           helper={`Must be later than the current end${subscription.trialEndsAt ? ` (${formatMediumDate(subscription.trialEndsAt)})` : ""}.`}
+          error={errors.trialEndsAt}
           onPress={() => setPickerOpen(true)}
         />
-        <TextField label="Reason" value={note} onChangeText={setNote} maxLength={500} placeholder="Onboarding took an extra week" enter="done" />
+        <TextField
+          label="Reason"
+          value={note}
+          onChangeText={(value) => {
+            setNote(value);
+            clearError("note");
+          }}
+          error={errors.note}
+          maxLength={500}
+          placeholder="Onboarding took an extra week"
+          enter="done"
+        />
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
           </Text>
         ) : null}
       </View>
-      <PickerSheet open={pickerOpen} onClose={() => setPickerOpen(false)} title="New trial end" options={choices} selected={choice} onSelect={setChoice} />
+      <PickerSheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title="New trial end"
+        options={choices}
+        selected={choice}
+        onSelect={(value) => {
+          setChoice(value);
+          clearError("trialEndsAt");
+        }}
+      />
     </BottomSheet>
   );
 }
@@ -156,6 +188,7 @@ function AddPropertySheet({ organizationSlug, open, onClose }: { organizationSlu
       const next: { name?: string; slug?: string } = {};
       for (const issue of parsed.error.issues) next[issue.path[0] as "name" | "slug"] ??= issue.message;
       setErrors(next);
+      create.reset();
       return;
     }
     setErrors({});
@@ -168,17 +201,42 @@ function AddPropertySheet({ organizationSlug, open, onClose }: { organizationSlu
           setSlug("");
           onClose();
         },
+        onError: (failure) => setErrors((current) => ({ ...current, ...serverFieldErrors(failure, propertyFormFields).fieldErrors })),
       },
     );
   }
 
-  const error = errorMessage(create.error, "The property could not be created.");
+  const error = saveRefusalSummary(create.error, errors, propertyFormFields, "The property could not be created.");
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Add property" footer={<Button label="Save property" onPress={submit} loading={create.isPending} />}>
       <View style={styles.form}>
-        <TextField label="Property name" value={name} onChangeText={setName} error={errors.name} maxLength={255} placeholder="Example Jaipur" enter="next" />
-        <TextField label="Property slug" value={slug} onChangeText={setSlug} error={errors.slug} maxLength={255} autoCapitalize="none" autoCorrect={false} placeholder="jaipur" enter={submit} />
+        <TextField
+          label="Property name"
+          value={name}
+          onChangeText={(value) => {
+            setName(value);
+            setErrors(({ name: _, ...rest }) => rest);
+          }}
+          error={errors.name}
+          maxLength={255}
+          placeholder="Example Jaipur"
+          enter="next"
+        />
+        <TextField
+          label="Property slug"
+          value={slug}
+          onChangeText={(value) => {
+            setSlug(value);
+            setErrors(({ slug: _, ...rest }) => rest);
+          }}
+          error={errors.slug}
+          maxLength={255}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="jaipur"
+          enter={submit}
+        />
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
@@ -320,9 +378,13 @@ function AddMemberSheet({ organizationSlug, open, onClose }: { organizationSlug:
   const [user, setUser] = useState<PlatformUserSearchResult | null>(null);
   const [role, setRole] = useState<PlatformMembershipRole>("RECEPTION");
   const [roleOpen, setRoleOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const clearError = (key: string) => setErrors(({ [key]: _, ...rest }) => rest);
 
   function submit() {
     if (!user) return;
+    setErrors({});
     add.mutate(
       { organizationSlug, input: { email: user.email, role } },
       {
@@ -332,24 +394,43 @@ function AddMemberSheet({ organizationSlug, open, onClose }: { organizationSlug:
           setRole("RECEPTION");
           onClose();
         },
+        onError: (failure) => setErrors((current) => ({ ...current, ...serverFieldErrors(failure, memberFormFields).fieldErrors })),
       },
     );
   }
 
-  const error = errorMessage(add.error, "The member could not be added.");
+  const error = saveRefusalSummary(add.error, errors, memberFormFields, "The member could not be added.");
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Add member" fill footer={<Button label="Add member" onPress={submit} loading={add.isPending} disabled={!user} />}>
       <View style={styles.form}>
-        <UserEmailPicker label="Account" value={user} onChange={setUser} />
-        <PickerTrigger label="Role" valueLabel={platformRoleLabel(role)} placeholder="Choose a role" onPress={() => setRoleOpen(true)} />
+        <UserEmailPicker
+          label="Account"
+          value={user}
+          onChange={(next) => {
+            setUser(next);
+            clearError("email");
+          }}
+          error={errors.email}
+        />
+        <PickerTrigger label="Role" valueLabel={platformRoleLabel(role)} placeholder="Choose a role" error={errors.role} onPress={() => setRoleOpen(true)} />
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
           </Text>
         ) : null}
       </View>
-      <PickerSheet open={roleOpen} onClose={() => setRoleOpen(false)} title="Role" options={roleOptions} selected={role} onSelect={(value) => setRole(value as PlatformMembershipRole)} />
+      <PickerSheet
+        open={roleOpen}
+        onClose={() => setRoleOpen(false)}
+        title="Role"
+        options={roleOptions}
+        selected={role}
+        onSelect={(value) => {
+          setRole(value as PlatformMembershipRole);
+          clearError("role");
+        }}
+      />
     </BottomSheet>
   );
 }

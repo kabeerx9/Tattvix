@@ -1,4 +1,4 @@
-import { createPropertyNameApi, propertyNameMutation, propertyNameQuery } from "@tattvix/api";
+import { createPropertyNameApi, hotelDetailsFormFields, propertyNameMutation, propertyNameQuery, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import type { PropertyDetails, PropertyDetailsInput } from "@tattvix/contracts";
 import { propertyNameSchema } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
 import { PropertyPhotosPanel } from "@/features/property-photos/components/property-photos-panel";
 import { useHotelSubscription } from "@/features/subscription/use-hotel-subscription";
-import { ApiError, apiClient } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 
 import { hotelDetailsMutations } from "../mutations";
 import { hotelDetailsQueries } from "../queries";
@@ -100,13 +100,20 @@ export function HotelDetailsPage({
     }
   }
 
-  const error = nameMutation.isError
-    ? "The property name could not be saved. Please try again."
-    : updateMutation.error instanceof ApiError
-      ? updateMutation.error.message
-      : updateMutation.isError
-        ? "The hotel details could not be saved."
-        : null;
+  // Both mutations are reset on submit and run one after the other, so at
+  // most one holds an error; its per-field refusals sit under the inputs.
+  const saveFailure = nameMutation.error ?? updateMutation.error;
+  const errors: Record<string, string | undefined> = {
+    ...serverFieldErrors(nameMutation.error, hotelDetailsFormFields).fieldErrors,
+    ...serverFieldErrors(updateMutation.error, hotelDetailsFormFields).fieldErrors,
+    ...(nameChanged && !nameValid ? { name: "Enter a property name between 1 and 255 characters." } : {}),
+  };
+  const error = saveRefusalSummary(
+    saveFailure,
+    errors,
+    hotelDetailsFormFields,
+    nameMutation.isError ? "The property name could not be saved. Please try again." : "The hotel details could not be saved.",
+  );
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-6">
@@ -116,24 +123,20 @@ export function HotelDetailsPage({
           <PanelHeader title="Property information" icon={Building2} />
           <PanelSection>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field className="sm:col-span-2" label="Property name">
+            <Field className="sm:col-span-2" label="Property name" error={errors.name}>
               <Input
                 disabled={!nameEditable || saving}
                 required
                 maxLength={255}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                aria-invalid={nameChanged && !nameValid}
+                aria-invalid={Boolean(errors.name)}
               />
-              {nameChanged && !nameValid ? (
-                <span role="alert" className="text-sm font-normal text-destructive">
-                  Enter a property name between 1 and 255 characters.
-                </span>
-              ) : null}
             </Field>
-            <Field label="Address">
+            <Field label="Address" error={errors.address}>
               <Input
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.address)}
                 value={input.address}
                 onChange={(event) =>
                   setInput((current) => ({
@@ -143,9 +146,10 @@ export function HotelDetailsPage({
                 }
               />
             </Field>
-            <Field label="Contact phone">
+            <Field label="Contact phone" error={errors.contactPhone}>
               <Input
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.contactPhone)}
                 type="tel"
                 value={input.contactPhone}
                 onChange={(event) =>
@@ -156,9 +160,10 @@ export function HotelDetailsPage({
                 }
               />
             </Field>
-            <Field className="sm:col-span-2" label="Description">
+            <Field className="sm:col-span-2" label="Description" error={errors.description}>
               <Textarea
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.description)}
                 value={input.description}
                 onChange={(event) =>
                   setInput((current) => ({
@@ -169,9 +174,10 @@ export function HotelDetailsPage({
                 placeholder="A short introduction to the property"
               />
             </Field>
-            <Field label="Check-in time">
+            <Field label="Check-in time" error={errors.checkInTime}>
               <Input
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.checkInTime)}
                 type="time"
                 value={input.checkInTime}
                 onChange={(event) =>
@@ -182,9 +188,10 @@ export function HotelDetailsPage({
                 }
               />
             </Field>
-            <Field label="Check-out time">
+            <Field label="Check-out time" error={errors.checkOutTime}>
               <Input
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.checkOutTime)}
                 type="time"
                 value={input.checkOutTime}
                 onChange={(event) =>
@@ -195,9 +202,10 @@ export function HotelDetailsPage({
                 }
               />
             </Field>
-            <Field className="sm:col-span-2" label="Amenities">
+            <Field className="sm:col-span-2" label="Amenities" error={errors.amenities}>
               <Textarea
                 disabled={!canManage}
+                aria-invalid={Boolean(errors.amenities)}
                 value={amenitiesText}
                 onChange={(event) => setAmenitiesText(event.target.value)}
                 placeholder="Breakfast\nWi-Fi\nParking"
@@ -237,10 +245,12 @@ export function HotelDetailsPage({
 function Field({
   label,
   className,
+  error,
   children,
 }: {
   label: string;
   className?: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -249,6 +259,7 @@ function Field({
         {label}
         {children}
       </Label>
+      {error ? <p role="alert" className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

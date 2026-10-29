@@ -1,7 +1,7 @@
 // Reservation and room sheets shared by Today, Rooms and the stay detail.
 // Every action is a real mutation and is only offered to roles that may
 // perform it; the server still enforces permissions and entitlement.
-import { getReadyRooms, getStayStatus, localDayKey, formatMoneyMinor, formatMoneyWholeRupees, parseMoneyMinor } from "@tattvix/api";
+import { getReadyRooms, getStayStatus, localDayKey, formatMoneyMinor, formatMoneyWholeRupees, parseMoneyMinor, roomFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import type { HotelRoom, HotelStayListItem, PropertyPhotosResponse } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
@@ -372,10 +372,13 @@ function rupeesText(minor: number) {
 
 function RoomRateEditor({ scope, room }: { scope: DeskScope; room: HotelRoom }) {
   const queryClient = useQueryClient();
-  const updateRate = useMutation(hotelMutations.updateRoomRate(queryClient));
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const updateRate = useMutation({
+    ...hotelMutations.updateRoomRate(queryClient),
+    onError: (error) => setFieldError((current) => current ?? serverFieldErrors(error, roomFormFields).fieldErrors.nightlyRateMinor ?? null),
+  });
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
 
   function open() {
     setValue(room.nightlyRateMinor !== null ? rupeesText(room.nightlyRateMinor) : "");
@@ -422,7 +425,7 @@ function RoomRateEditor({ scope, room }: { scope: DeskScope; room: HotelRoom }) 
         error={fieldError ?? undefined}
         autoFocus
       />
-      <ErrorLine message={errorMessage(updateRate.error, "The rate could not be saved.")} />
+      <ErrorLine message={saveRefusalSummary(updateRate.error, { nightlyRateMinor: fieldError ?? undefined }, roomFormFields, "The rate could not be saved.")} />
       <View style={styles.rateActions}>
         <View style={{ flex: 1 }}>
           <Button label="Save" onPress={save} loading={updateRate.isPending} />

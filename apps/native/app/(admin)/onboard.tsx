@@ -1,5 +1,6 @@
 // Onboard a hotel: the organization, its first property and an existing
 // account as the initial owner, in one submit. Lands on the new organization.
+import { onboardingFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { platformOrganizationOnboardingInputSchema, type PlatformUserSearchResult } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -10,28 +11,35 @@ import { organizationHref } from "@/src/components/admin-portfolio";
 import { UserEmailPicker } from "@/src/components/admin-user-picker";
 import { Button, GroupTitle, LargeTitle, Screen, SecondaryHeader, TextField, colors, space, toast, type } from "@/src/design-system";
 import { mutations } from "@/src/lib/api";
-import { errorMessage } from "@/src/lib/format";
 
 type Form = { organizationName: string; organizationSlug: string; propertyName: string; propertySlug: string };
 const emptyForm: Form = { organizationName: "", organizationSlug: "", propertyName: "", propertySlug: "" };
 
-// Zod issue paths ("organization.name") to the field they belong to.
-const fieldByPath: Record<string, keyof Form | "ownerEmail"> = {
-  "organization.name": "organizationName",
-  "organization.slug": "organizationSlug",
-  "property.name": "propertyName",
-  "property.slug": "propertySlug",
-  ownerEmail: "ownerEmail",
+// Errors are keyed by the payload's own paths ("organization.name"), which
+// zod issues and the shared field list both use; each input names its path.
+type ErrorKey = (typeof onboardingFormFields)[number][0];
+const pathByField: Record<keyof Form, ErrorKey> = {
+  organizationName: "organization.name",
+  organizationSlug: "organization.slug",
+  propertyName: "property.name",
+  propertySlug: "property.slug",
 };
 
 export default function OnboardScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const onboard = useMutation(mutations.platformOrganizations.onboard(queryClient));
   const [form, setForm] = useState<Form>(emptyForm);
   const [owner, setOwner] = useState<PlatformUserSearchResult | null>(null);
-  const [errors, setErrors] = useState<Partial<Record<keyof Form | "ownerEmail", string>>>({});
-  const set = (key: keyof Form) => (value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const [errors, setErrors] = useState<Partial<Record<ErrorKey, string>>>({});
+  const onboard = useMutation({
+    ...mutations.platformOrganizations.onboard(queryClient),
+    // A refused field keeps its message until that field is edited.
+    onError: (error) => setErrors((current) => ({ ...current, ...serverFieldErrors(error, onboardingFormFields).fieldErrors })),
+  });
+  const set = (key: keyof Form) => (value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [pathByField[key]]: undefined }));
+  };
 
   function submit() {
     const parsed = platformOrganizationOnboardingInputSchema.safeParse({
@@ -41,12 +49,10 @@ export default function OnboardScreen() {
     });
     if (!parsed.success) {
       const next: typeof errors = {};
-      for (const issue of parsed.error.issues) {
-        const field = fieldByPath[issue.path.join(".")];
-        if (field) next[field] ??= issue.message;
-      }
+      for (const issue of parsed.error.issues) next[issue.path.join(".") as ErrorKey] ??= issue.message;
       if (!owner) next.ownerEmail = "Select an existing user account.";
       setErrors(next);
+      onboard.reset();
       return;
     }
     setErrors({});
@@ -60,7 +66,9 @@ export default function OnboardScreen() {
     });
   }
 
-  const submitError = errorMessage(onboard.error, "The organization could not be created.");
+  // The server collapses nested errors to "organization"/"property", which
+  // have no single input, so those reach the line beside the button instead.
+  const submitError = saveRefusalSummary(onboard.error, errors, onboardingFormFields, "The organization could not be created.");
 
   return (
     <Screen>
@@ -70,15 +78,15 @@ export default function OnboardScreen() {
       <View style={styles.section}>
         <GroupTitle>Organization</GroupTitle>
         <Text style={styles.hint}>The hotel business or ownership group.</Text>
-        <TextField label="Organization name" value={form.organizationName} onChangeText={set("organizationName")} error={errors.organizationName} maxLength={255} autoComplete="organization" placeholder="Example Hotels" enter="next" />
-        <TextField label="Organization slug" value={form.organizationSlug} onChangeText={set("organizationSlug")} error={errors.organizationSlug} maxLength={255} autoCapitalize="none" autoCorrect={false} placeholder="example-hotels" enter="next" />
+        <TextField label="Organization name" value={form.organizationName} onChangeText={set("organizationName")} error={errors["organization.name"]} maxLength={255} autoComplete="organization" placeholder="Example Hotels" enter="next" />
+        <TextField label="Organization slug" value={form.organizationSlug} onChangeText={set("organizationSlug")} error={errors["organization.slug"]} maxLength={255} autoCapitalize="none" autoCorrect={false} placeholder="example-hotels" enter="next" />
       </View>
 
       <View style={styles.section}>
         <GroupTitle>First property</GroupTitle>
         <Text style={styles.hint}>The first physical hotel operated by this organization.</Text>
-        <TextField label="Property name" value={form.propertyName} onChangeText={set("propertyName")} error={errors.propertyName} maxLength={255} placeholder="Example Jaipur" enter="next" />
-        <TextField label="Property slug" value={form.propertySlug} onChangeText={set("propertySlug")} error={errors.propertySlug} maxLength={255} autoCapitalize="none" autoCorrect={false} placeholder="jaipur" enter="done" />
+        <TextField label="Property name" value={form.propertyName} onChangeText={set("propertyName")} error={errors["property.name"]} maxLength={255} placeholder="Example Jaipur" enter="next" />
+        <TextField label="Property slug" value={form.propertySlug} onChangeText={set("propertySlug")} error={errors["property.slug"]} maxLength={255} autoCapitalize="none" autoCorrect={false} placeholder="jaipur" enter="done" />
       </View>
 
       <View style={styles.section}>

@@ -1,3 +1,4 @@
+import { serverFieldErrors, teamMemberFormFields } from "@tattvix/api";
 import type { TeamMember, TeamUser } from "@tattvix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Search, UserPlus } from "lucide-react-native";
@@ -27,6 +28,7 @@ export function TeamMemberForm({
   onToggleAccess,
   saving,
   error,
+  saveError,
 }: {
   organizationSlug: string;
   properties: Property[];
@@ -37,8 +39,13 @@ export function TeamMemberForm({
   onSubmit: (input: { role: TeamRole; propertyIds: number[]; userId?: number; roleChanged: boolean; propertyScopeChanged: boolean }) => void;
   onToggleAccess?: (member: TeamMember) => void;
   saving: boolean;
+  /** The line beside the buttons. */
   error?: string;
+  /** The save mutation's error, so the server's per-control refusals sit under their controls. */
+  saveError?: unknown;
 }) {
+  // Server refusals clear with the next save, as the mutation restarts.
+  const errors = serverFieldErrors(saveError, teamMemberFormFields).fieldErrors;
   const [email, setEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
   const [role, setRole] = useState<TeamRole>(member?.role ?? "MANAGER");
@@ -92,7 +99,7 @@ export function TeamMemberForm({
     >
       <View style={styles.form}>
         {member ? <Text style={styles.selected}>{member.user.email}</Text> : <>
-          <TextField label="Search by email" accessibilityLabel="Search by email" value={email} onChangeText={changeEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" placeholder="person@example.com" editable={!saving && !readOnly} helper="Choose an existing Tattwix account." />
+          <TextField label="Search by email" accessibilityLabel="Search by email" value={email} onChangeText={changeEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" placeholder="person@example.com" editable={!saving && !readOnly} helper="Choose an existing Tattwix account." error={errors.userId} />
           {selectedUser ? <Panel flat><ListRow title={[selectedUser.firstName, selectedUser.lastName].filter(Boolean).join(" ") || selectedUser.email} detail={selectedUser.email} trailing={<Text style={styles.chosen}>Selected</Text>} /></Panel> : null}
           {searchIsCurrent && search.isFetching ? <Text style={styles.muted}>Searching accounts…</Text> : null}
           {searchIsCurrent && search.isError ? <Text accessibilityRole="alert" style={styles.error}>Could not search accounts. Edit the email or try again.</Text> : null}
@@ -101,6 +108,7 @@ export function TeamMemberForm({
         <View style={styles.roleSection}>
           <Text style={styles.label}>Role</Text>
           <PillTabs items={roles} value={role} onChange={(value) => setRole(value as TeamRole)} />
+          {errors.role ? <Text accessibilityRole="alert" style={styles.error}>{errors.role}</Text> : null}
         </View>
         {role === "OWNER" ? <Text style={styles.muted}>{member?.role === "OWNER" && !member.hasAllProperties ? "This legacy owner currently has selected-property access. Changing their role will set a new explicit scope." : "Owners can manage the organization and have access to all current and future properties."}</Text> : <View style={styles.scope}>
           <Text style={styles.label}>Property access</Text>
@@ -109,7 +117,7 @@ export function TeamMemberForm({
             const selected = selectedPropertyIds.has(property.id);
             return <Pressable key={property.id} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} disabled={saving || readOnly} onPress={() => toggleProperty(property.id)}><ListRow title={property.name} trailing={<Text style={selected ? styles.chosen : styles.muted}>{selected ? "Selected" : "Select"}</Text>} /></Pressable>;
           })}</Panel>
-          {!propertyIds.length ? <Text style={styles.error}>Select at least one property for staff.</Text> : null}
+          {!propertyIds.length ? <Text style={styles.error}>Select at least one property for staff.</Text> : errors.propertyIds ? <Text accessibilityRole="alert" style={styles.error}>{errors.propertyIds}</Text> : null}
         </View>}
         {readOnly ? <Text accessibilityRole="alert" style={styles.error}>The subscription has expired. You can review the team, but changes are unavailable.</Text> : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

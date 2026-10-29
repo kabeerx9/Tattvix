@@ -4,7 +4,7 @@
 // fact reads as the action ("Add phone number"), and "Complete profile" opens
 // the form at the first missing detail. Then the identity documents.
 // Mirrors apps/native/app/(guest)/(tabs)/profile.tsx.
-import { firstMissingProfileField, formErrorSummary, getProfileReadiness, getProfileSections, profileFormFields, profileSectionTitles, readinessLine } from "@tattvix/api";
+import { firstMissingProfileField, getProfileReadiness, getProfileSections, profileFormFields, profileSectionTitles, readinessLine, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -19,7 +19,6 @@ import { BandHeader, FactList, Panel, GroupTitle, ProgressRing } from "@/compone
 import { guestProfileMutations } from "@/features/guest-profile/mutations";
 import { guestProfileQueries } from "@/features/guest-profile/queries";
 import { IdentityDocumentsSection } from "@/features/identity-documents/components/identity-documents-section";
-import { ApiError } from "@/lib/api";
 
 import { CountrySelect } from "./country-select";
 
@@ -59,6 +58,7 @@ export function GuestProfilePage() {
       const errors: Record<string, string> = {};
       for (const issue of parsed.error.issues) errors[issue.path.join(".")] ??= issue.message;
       setFieldErrors(errors);
+      updateMutation.reset();
       return;
     }
     setFieldErrors({});
@@ -73,13 +73,11 @@ export function GuestProfilePage() {
   const readiness = getProfileReadiness(data.readiness.missingFields);
   const sections = getProfileSections(data.profile);
   const nextField = firstMissingProfileField(data.readiness.missingFields);
-  const submitError =
-    updateMutation.error instanceof ApiError
-      ? updateMutation.error.message
-      : updateMutation.isError
-        ? "Your profile could not be saved."
-        // A refused Save says why beside the button: the field errors may be scrolled out of view.
-        : formErrorSummary(fieldErrors, profileFormFields);
+  // The server's per-field refusals sit under their inputs like the client's;
+  // they clear with the next submit, as the mutation restarts.
+  const errors = { ...serverFieldErrors(updateMutation.error, profileFormFields).fieldErrors, ...fieldErrors };
+  // A refused Save says why beside the button: the field errors may be scrolled out of view.
+  const submitError = saveRefusalSummary(updateMutation.error, errors, profileFormFields, "Your profile could not be saved.");
 
   return (
     <div className="mx-auto grid max-w-3xl gap-8">
@@ -130,7 +128,7 @@ export function GuestProfilePage() {
       >
         {editing !== null ? (
           <form id={editFormId} className="grid gap-6" onSubmit={onSubmit}>
-            <DetailsFields profile={data.profile} errors={fieldErrors} />
+            <DetailsFields profile={data.profile} errors={errors} />
           </form>
         ) : null}
       </BottomSheet>

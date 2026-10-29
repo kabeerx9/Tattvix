@@ -3,7 +3,7 @@
 // that opens one form holding all the details, focused on that fact; an empty
 // fact reads as the action ("Add phone number"), and "Complete profile" opens
 // the form at the first missing detail. Then the identity documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
-import { firstMissingProfileField, formErrorSummary, getProfileReadiness, getProfileSections, guestProfileKeys, profileFormFields, profileSectionTitles, readinessLine } from "@tattvix/api";
+import { firstMissingProfileField, getProfileReadiness, getProfileSections, guestProfileKeys, profileFormFields, profileSectionTitles, readinessLine, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
@@ -31,7 +31,6 @@ import {
   type,
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
-import { errorMessage } from "@/src/lib/format";
 
 type Form = Omit<GuestProfileInput, "dateOfBirth"> & { dateOfBirth: string };
 type FormKey = keyof Form;
@@ -58,6 +57,8 @@ export default function ProfileScreen() {
       setEditing(null);
       toast("Saved");
     },
+    // The server's per-field refusals sit under their inputs like the client's, and clear as those are edited.
+    onError: (error) => setErrors((current) => ({ ...current, ...serverFieldErrors(error, profileFormFields).fieldErrors })),
   });
 
   if (!profile.data) {
@@ -129,7 +130,7 @@ export default function ProfileScreen() {
         form={form}
         errors={errors}
         saving={save.isPending}
-        saveError={save.error ? errorMessage(save.error, "Your profile could not be saved.") : formErrorSummary(errors, profileFormFields)}
+        saveError={saveRefusalSummary(save.error, errors, profileFormFields, "Your profile could not be saved.")}
         onChange={(key, value) => {
           setForm((current) => (current ? { ...current, [key]: value } : current));
           setErrors((current) => ({ ...current, [key]: undefined }));

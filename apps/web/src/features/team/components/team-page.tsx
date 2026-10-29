@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouteContext, useRouter, useNavigate } from "@tanstack/react-router";
-import { createTeamMutations, refreshLostTeamAccess, propertyScopeLabel, teamMemberName, teamRoleLabels } from "@tattvix/api";
+import { createTeamMutations, refreshLostTeamAccess, propertyScopeLabel, saveRefusalSummary, teamMemberName, teamMemberFormFields, teamRoleLabels } from "@tattvix/api";
 import { ApiError, type TeamAddInput, type TeamMember, type TeamUpdateInput } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
@@ -20,14 +20,18 @@ export function TeamPage({ org }: { org: string }) {
   const [editing, setEditing] = useState<TeamMember | null | undefined>();
   const [change, setChange] = useState<Change | null>(null);
   const mutations = createTeamMutations(teamApi, client, org);
-  const [error, setError] = useState<string | null>(null);
+  // The failed request itself: the form shows its per-field refusals under
+  // the role and property controls, the page and confirm sheet one summary line.
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const setError = (error: unknown) => setSaveError(error);
+  const error = saveRefusalSummary(saveError, {}, teamMemberFormFields, "The team change could not be saved. Please try again.");
   async function completed() {
     setEditing(undefined); setChange(null); setError(null);
     await router.invalidate();
     toast.success("Team access saved");
   }
   function failed(error: unknown) {
-    setError(error instanceof ApiError ? error.message : "The team change could not be saved. Please try again.");
+    setError(error);
     if (error instanceof ApiError && [403,404].includes(error.status)) void refreshLostTeamAccess(client, org).then(() => router.invalidate());
   }
   const add = useMutation({ ...mutations.add, onSuccess: async () => { await mutations.add.onSuccess(); await completed(); }, onError: failed });
@@ -69,7 +73,7 @@ export function TeamPage({ org }: { org: string }) {
       {data.members.filter((m) => m.isActive === active).map((member) => <PanelSection key={member.id}><ListRow title={teamMemberName(member)} badge={<StatusPill tone={active ? "neutral" : "warning"}>{teamRoleLabels[member.role]}</StatusPill>} meta={<><span>{member.user.email}</span><span className="block">{propertyScopeLabel(member,names)}</span></>} trailing={<Button variant="outline" disabled={readOnly} onClick={() => { setError(null); setEditing(member); }}>Edit<span className="sr-only"> {member.user.email}</span></Button>} /></PanelSection>)}
       {!data.members.some((m) => m.isActive === active) ? <PanelSection><p className="text-sm text-muted-foreground">{active ? "No active members." : "No inactive members."}</p></PanelSection> : null}
     </Panel>)}
-    <TeamMemberForm org={org} properties={data.properties} member={editing ?? undefined} open={editing !== undefined} busy={busy} error={change ? null : error} onClose={() => { setEditing(undefined); setError(null); }} onSubmit={submit} onToggle={toggle} />
+    <TeamMemberForm org={org} properties={data.properties} member={editing ?? undefined} open={editing !== undefined} busy={busy} saveError={change ? null : saveError} onClose={() => { setEditing(undefined); setError(null); }} onSubmit={submit} onToggle={toggle} />
     <BottomSheet open={!!change} onOpenChange={(open) => { if (!open && !busy) setChange(null); }} title={change?.title} footer={<div className="flex justify-end gap-3"><Button variant="outline" disabled={busy} onClick={() => setChange(null)}>Cancel</Button><Button disabled={busy} onClick={() => { if (!change) return; if (change.memberId) update.mutate({ memberId: change.memberId, input: change.input }); else if ("userId" in change.input) add.mutate(change.input); }}>{busy ? "Saving..." : "Confirm"}</Button></div>}>
       <p className="text-sm">{change?.description}</p>{error ? <p role="alert" className="mt-3 text-sm text-destructive">{error}</p> : null}
     </BottomSheet>

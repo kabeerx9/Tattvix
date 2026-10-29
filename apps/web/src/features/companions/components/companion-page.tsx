@@ -15,7 +15,7 @@ import { IdentityDocumentsSection } from "@/features/identity-documents/componen
 import { ApiError } from "@/lib/api";
 import { UsersRound } from "lucide-react";
 
-import { CompanionEditorSheet, mutationError } from "./companions-page";
+import { CompanionEditorSheet } from "./companions-page";
 
 export function CompanionPage({ companionId }: { companionId: string }) {
   const queryClient = useQueryClient();
@@ -96,7 +96,7 @@ export function CompanionPage({ companionId }: { companionId: string }) {
         focus={editing || undefined}
         companion={companion}
         isSaving={updateMutation.isPending}
-        submitError={mutationError(updateMutation.error, updateMutation.isError)}
+        saveError={updateMutation.error}
         onSubmit={(input) =>
           updateMutation.mutate(
             { id: companion.id, input },

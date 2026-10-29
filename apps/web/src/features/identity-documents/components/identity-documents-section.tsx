@@ -205,6 +205,7 @@ export function IdentityDocumentsSection({
             isSaving={saver.isSaving}
             progress={saver.progress}
             submitError={saver.submitError}
+            saveError={saver.saveError}
             onSubmit={saver.save}
             onCancel={() =>
               setSheet(current ? { screen: "view", id: current.id } : null)

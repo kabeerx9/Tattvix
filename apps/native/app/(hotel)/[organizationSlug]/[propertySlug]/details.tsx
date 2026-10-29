@@ -4,7 +4,7 @@
 // apps/web/src/features/hotel-details/components/hotel-details-page.tsx.
 import type { PropertyDetails, PropertyDetailsInput } from "@tattvix/contracts";
 import { propertyNameSchema } from "@tattvix/contracts";
-import { createPropertyNameApi, hotelDetailsKeys, propertyNameMutation, propertyNameQuery, propertyPhotoSlots } from "@tattvix/api";
+import { createPropertyNameApi, hotelDetailsFormFields, hotelDetailsKeys, propertyNameMutation, propertyNameQuery, propertyPhotoSlots, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -15,7 +15,6 @@ import { PhotoSlots } from "@/src/components/photo-slots";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { api, apiClient, queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
-import { errorMessage } from "@/src/lib/format";
 import { useHotelPlace } from "@/src/lib/hotel-place";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -70,6 +69,9 @@ export default function HotelDetailsScreen() {
   // The name and the details are separate server copies, so each re-syncs on
   // its own: saving the name must not reset unsaved detail edits.
   const [nameInput, setNameInput] = useState<string | null>(null);
+  // The server's per-field refusals; each clears when its field is edited.
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const clearError = (key: string) => setErrors((current) => (current[key] ? { ...current, [key]: "" } : current));
   useEffect(() => {
     if (details.data) setForm(toForm(details.data));
   }, [details.data]);
@@ -77,10 +79,12 @@ export default function HotelDetailsScreen() {
     if (name.data) setNameInput(name.data.name);
   }, [name.data]);
 
-  const saveName = useMutation(propertyNameMutation(nameApi, queryClient, organizationSlug, propertySlug));
+  const mergeServerErrors = (error: unknown) => setErrors((current) => ({ ...current, ...serverFieldErrors(error, hotelDetailsFormFields).fieldErrors }));
+  const saveName = useMutation({ ...propertyNameMutation(nameApi, queryClient, organizationSlug, propertySlug), onError: mergeServerErrors });
   const save = useMutation({
     mutationFn: (input: PropertyDetailsInput) => api.hotelDetails.update(organizationSlug, propertySlug, input),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: hotelDetailsKeys.property(organizationSlug, propertySlug) }),
+    onError: mergeServerErrors,
   });
 
   if (!details.data || !name.data || !form || nameInput === null) {
@@ -96,14 +100,30 @@ export default function HotelDetailsScreen() {
   const nameValid = propertyNameSchema.safeParse({ name: nameInput }).success;
   const nameChanged = nameInput.trim() !== name.data.name;
   const saving = saveName.isPending || save.isPending;
-  const saveError = saveName.isError ? "The property name could not be saved. Please try again." : errorMessage(save.error, "The hotel details could not be saved.");
-  const set = (key: keyof Form) => (value: string) => setForm((current) => (current ? { ...current, [key]: value } : current));
+  const fieldErrors: Record<string, string | undefined> = {
+    ...errors,
+    ...(nameChanged && !nameValid ? { name: "Enter a property name between 1 and 255 characters." } : {}),
+    ...(phoneInvalid ? { contactPhone: phoneInvalid } : {}),
+    ...(checkInInvalid ? { checkInTime: checkInInvalid } : {}),
+    ...(checkOutInvalid ? { checkOutTime: checkOutInvalid } : {}),
+  };
+  const saveError = saveRefusalSummary(
+    saveName.error ?? save.error,
+    fieldErrors,
+    hotelDetailsFormFields,
+    saveName.isError ? "The property name could not be saved. Please try again." : "The hotel details could not be saved.",
+  );
+  const set = (key: keyof Form) => (value: string) => {
+    clearError(key);
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+  };
 
   // One Save: the name has its own endpoint, so it is sent first and only when it changed.
   async function submit() {
     if (!form || nameInput === null || !timesValid || phoneInvalid || !nameValid) return;
     saveName.reset();
     save.reset();
+    setErrors({});
     try {
       if (nameChanged) await saveName.mutateAsync({ name: nameInput.trim() });
       await save.mutateAsync({
@@ -136,13 +156,13 @@ export default function HotelDetailsScreen() {
           label="Property name"
           enter="next"
           value={nameInput}
-          onChangeText={setNameInput}
+          onChangeText={(value) => { clearError("name"); setNameInput(value); }}
           editable={canManageHotel && !saving}
           maxLength={255}
-          error={nameChanged && !nameValid ? "Enter a property name between 1 and 255 characters." : undefined}
+          error={fieldErrors.name || undefined}
         />
 
-        <TextField label="Address" value={form.address} onChangeText={set("address")} editable={canManageHotel} maxLength={1000} multiline />
+        <TextField label="Address" value={form.address} onChangeText={set("address")} editable={canManageHotel} maxLength={1000} multiline error={fieldErrors.address || undefined} />
         <TextField
           label="Contact phone"
           enter="next"
@@ -151,9 +171,9 @@ export default function HotelDetailsScreen() {
           editable={canManageHotel}
           keyboardType="phone-pad"
           maxLength={32}
-          error={phoneInvalid}
+          error={fieldErrors.contactPhone || undefined}
         />
-        <TextField label="Description" value={form.description} onChangeText={set("description")} editable={canManageHotel} multiline maxLength={2000} />
+        <TextField label="Description" value={form.description} onChangeText={set("description")} editable={canManageHotel} multiline maxLength={2000} error={fieldErrors.description || undefined} />
         <View style={styles.row}>
           <View style={styles.half}>
             <TextField
@@ -164,7 +184,7 @@ export default function HotelDetailsScreen() {
               editable={canManageHotel}
               placeholder="14:00"
               maxLength={5}
-              error={checkInInvalid}
+              error={fieldErrors.checkInTime || undefined}
             />
           </View>
           <View style={styles.half}>
@@ -176,11 +196,11 @@ export default function HotelDetailsScreen() {
               editable={canManageHotel}
               placeholder="11:00"
               maxLength={5}
-              error={checkOutInvalid}
+              error={fieldErrors.checkOutTime || undefined}
             />
           </View>
         </View>
-        <TextField label="Amenities" value={form.amenities} onChangeText={set("amenities")} editable={canManageHotel} multiline helper="One per line" />
+        <TextField label="Amenities" value={form.amenities} onChangeText={set("amenities")} editable={canManageHotel} multiline helper="One per line" error={fieldErrors.amenities || undefined} />
 
         {canManageHotel ? (
           <>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { propertiesForRole, canSaveTeamMember, teamRoleLabels, type TeamRole } from "@tattvix/api";
+import { propertiesForRole, canSaveTeamMember, saveRefusalSummary, serverFieldErrors, teamMemberFormFields, teamRoleLabels, type TeamRole } from "@tattvix/api";
 import type { TeamMember } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -13,9 +13,9 @@ import { teamQueries } from "../api";
 import { teamUserSelection } from "../selection";
 
 type Submission = { userId?: number; role: TeamRole; propertyIds: number[] };
-export function TeamMemberForm({ org, properties, member, open, busy, error, onClose, onSubmit, onToggle }: {
+export function TeamMemberForm({ org, properties, member, open, busy, saveError, onClose, onSubmit, onToggle }: {
   org: string; properties: { id: number; name: string }[]; member?: TeamMember;
-  open: boolean; busy: boolean; error: string | null; onClose: () => void;
+  open: boolean; busy: boolean; saveError: unknown; onClose: () => void;
   onSubmit: (input: Submission) => void; onToggle: (member: TeamMember) => void;
 }) {
   const [{ search, selected }, select] = useReducer(teamUserSelection, { search: "", selected: null });
@@ -31,6 +31,10 @@ export function TeamMemberForm({ org, properties, member, open, busy, error, onC
   const scopeChanged = JSON.stringify([...ids].sort((a,b) => a-b)) !== JSON.stringify([...(member?.propertyIds ?? [])].sort((a,b) => a-b));
   const changed = !member || role !== member.role || (role !== "OWNER" && scopeChanged);
   const valid = changed && canSaveTeamMember(role, propertiesForRole(role, ids), !!member || !!selected);
+  // The page owns the mutation; its refusal lands under the control it names
+  // and the summary line covers the rest.
+  const errors = serverFieldErrors(saveError, teamMemberFormFields).fieldErrors;
+  const error = saveRefusalSummary(saveError, errors, teamMemberFormFields, "The team change could not be saved. Please try again.");
   let empty = "Type at least 3 characters of an email.";
   if (term.length >= 3) empty = users.isFetching || !currentSearch ? "Searching accounts…" : users.isError ? "Could not search accounts. Edit the email or try again." : "No account found. Ask them to register with Tattwix first.";
 
@@ -48,12 +52,14 @@ export function TeamMemberForm({ org, properties, member, open, busy, error, onC
           <ComboboxContent><ComboboxEmpty>{empty}</ComboboxEmpty><ComboboxList>{(user) => <ComboboxItem key={user.id} value={user}><span className="grid gap-1"><span>{user.email}</span><span className="text-xs text-muted-foreground">{[user.firstName,user.lastName].filter(Boolean).join(" ")}</span></span></ComboboxItem>}</ComboboxList></ComboboxContent>
         </Combobox>
         {selected ? <p role="status" className="text-sm text-muted-foreground">Selected: {selected.email}</p> : null}
+        {errors.userId ? <p className="text-xs text-destructive">{errors.userId}</p> : null}
       </div>}
-      <div className="grid gap-2"><Label>Role</Label><Select items={Object.entries(teamRoleLabels).map(([value,label]) => ({value,label}))} value={role} onValueChange={(value) => setRole(value as TeamRole)} disabled={busy}><SelectTrigger aria-label="Role"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(teamRoleLabels).map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+      <div className="grid gap-2"><Label>Role</Label><Select items={Object.entries(teamRoleLabels).map(([value,label]) => ({value,label}))} value={role} onValueChange={(value) => setRole(value as TeamRole)} disabled={busy}><SelectTrigger aria-label="Role" aria-invalid={Boolean(errors.role)}><SelectValue /></SelectTrigger><SelectContent>{Object.entries(teamRoleLabels).map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>{errors.role ? <p className="text-xs text-destructive">{errors.role}</p> : null}</div>
       {role === "OWNER" ? <p className="text-sm text-muted-foreground">Owners can manage everyone in the organization and access all current and future properties.</p> : <fieldset className="grid gap-3"><legend className="mb-3 text-sm font-medium">Property access</legend>
         {member?.hasAllProperties && role === member.role ? <p className="text-sm text-muted-foreground">Currently has all-property access. Saving selected properties replaces that scope.</p> : null}
         {properties.map((property) => <label key={property.id} className="flex items-center gap-3 text-sm"><Checkbox aria-label={property.name} checked={ids.includes(property.id)} disabled={busy} onCheckedChange={(checked) => setIds((current) => checked ? [...current, property.id] : current.filter((id) => id !== property.id))} />{property.name}</label>)}
         {!ids.length ? <p className="text-sm text-muted-foreground">Select at least one property for staff.</p> : null}
+        {errors.propertyIds ? <p className="text-xs text-destructive">{errors.propertyIds}</p> : null}
       </fieldset>}
     </div>
   </BottomSheet>;

@@ -2,6 +2,7 @@
 // the shared contract schema and saves through the companions feature's
 // mutations, so the companion is reusable on the Companions page afterwards.
 
+import { companionFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import {
   companionProfileInputSchema,
   type CompanionProfile,
@@ -19,12 +20,13 @@ const relationships = ["Spouse", "Child", "Parent", "Sibling", "Friend"] as cons
 export function CompanionForm({
   companion,
   isSaving,
-  submitError,
+  saveError,
   onSubmit,
 }: {
   companion: CompanionProfile | null;
   isSaving: boolean;
-  submitError: string | null;
+  /** The save mutation's error, so the server's per-field refusals sit under their inputs. */
+  saveError: unknown;
   onSubmit: (input: CompanionProfileInput) => void;
 }) {
   const [values, setValues] = useState<CompanionProfileInput>({
@@ -34,11 +36,15 @@ export function CompanionForm({
     relationship: companion?.relationship ?? "",
     nationality: companion?.nationality || "IN",
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof CompanionProfileInput, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CompanionProfileInput, string>>>({});
+  // Server refusals clear with the next save, as the mutation restarts; client errors clear on submit.
+  const errors: Partial<Record<keyof CompanionProfileInput, string>> = { ...serverFieldErrors(saveError, companionFormFields).fieldErrors, ...fieldErrors };
+  // A refused Save says why beside the button: the field errors may be scrolled out of view.
+  const submitError = saveRefusalSummary(saveError, errors, companionFormFields, "The companion could not be saved.");
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    const next: typeof errors = {};
+    const next: typeof fieldErrors = {};
     const parsed = companionProfileInputSchema.safeParse(values);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -51,7 +57,7 @@ export function CompanionForm({
     if (!values.dateOfBirth) next.dateOfBirth ??= "Enter their date of birth";
     if (!values.relationship.trim()) next.relationship ??= "Choose how they’re related to you";
     if (!values.nationality.trim()) next.nationality ??= "Enter their nationality";
-    setErrors(next);
+    setFieldErrors(next);
     if (Object.keys(next).length || !parsed.success) return;
     onSubmit(parsed.data);
   }

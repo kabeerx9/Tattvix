@@ -1,4 +1,4 @@
-import { PLATFORM_ROLES, platformMemberName, platformRoleLabel } from "@tattvix/api";
+import { PLATFORM_ROLES, memberFormFields, platformMemberName, platformRoleLabel, propertyFormFields, saveRefusalSummary, serverFieldErrors } from "@tattvix/api";
 import type {
   PlatformMember,
   PlatformPortfolioProperty,
@@ -113,12 +113,9 @@ function PropertiesSection({
     );
   }
 
-  const errorMessage =
-    createMutation.error instanceof ApiError
-      ? createMutation.error.message
-      : createMutation.isError
-        ? "The property could not be created."
-        : null;
+  // Controlled inputs with no client validation: the server's refusal is the only field error.
+  const errors = serverFieldErrors(createMutation.error, propertyFormFields).fieldErrors;
+  const errorMessage = saveRefusalSummary(createMutation.error, errors, propertyFormFields, "The property could not be created.");
 
   return (
     <section className="grid gap-4">
@@ -139,8 +136,7 @@ function PropertiesSection({
             className="grid gap-4 px-5 py-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
             onSubmit={createProperty}
           >
-            <div className="grid gap-2">
-              <Label>Property name</Label>
+            <FormField label="Property name" error={errors.name}>
               <Input
                 required
                 autoFocus
@@ -148,10 +144,10 @@ function PropertiesSection({
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Example Jaipur"
+                aria-invalid={Boolean(errors.name)}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label>Property slug</Label>
+            </FormField>
+            <FormField label="Property slug" error={errors.slug}>
               <Input
                 required
                 maxLength={255}
@@ -161,8 +157,9 @@ function PropertiesSection({
                 value={slug}
                 onChange={(event) => setSlug(event.target.value)}
                 placeholder="jaipur"
+                aria-invalid={Boolean(errors.slug)}
               />
-            </div>
+            </FormField>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Adding..." : "Save property"}
             </Button>
@@ -274,12 +271,8 @@ function MembersSection({
     );
   }
 
-  const addErrorMessage =
-    addMutation.error instanceof ApiError
-      ? addMutation.error.message
-      : addMutation.isError
-        ? "The member could not be added."
-        : null;
+  const addErrors = serverFieldErrors(addMutation.error, memberFormFields).fieldErrors;
+  const addErrorMessage = saveRefusalSummary(addMutation.error, addErrors, memberFormFields, "The member could not be added.");
 
   return (
     <Panel>
@@ -295,22 +288,20 @@ function MembersSection({
           className="grid gap-4 border-b p-5 sm:grid-cols-[1fr_180px_auto] sm:items-end sm:p-6"
           onSubmit={addMember}
         >
-          <div className="grid gap-2">
-            <Label>Account</Label>
+          <FormField label="Account" error={addErrors.email}>
             <UserEmailCombobox
               key={userPickerKey}
               value={user}
               onValueChange={setUser}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label>Role</Label>
+          </FormField>
+          <FormField label="Role" error={addErrors.role}>
             <Select
               items={ROLES.map((roleOption) => ({ value: roleOption, label: roleLabel(roleOption) }))}
               value={role}
               onValueChange={(value) => setRole(value as PlatformMembershipRole)}
             >
-              <SelectTrigger aria-label="New member role">
+              <SelectTrigger aria-label="New member role" aria-invalid={Boolean(addErrors.role)}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -321,7 +312,7 @@ function MembersSection({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
           <Button type="submit" disabled={!user || addMutation.isPending}>
             {addMutation.isPending ? "Adding..." : "Add member"}
           </Button>
@@ -415,3 +406,13 @@ function MemberControls({
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) { return <StatusPill tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Inactive"}</StatusPill>; }
+
+function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      {children}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}

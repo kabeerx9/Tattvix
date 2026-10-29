@@ -1,4 +1,4 @@
-import { defaultTrialExtension, describeSubscriptionEvent, getSubscriptionStatusPill, subscriptionEventLabel } from "@tattvix/api";
+import { defaultTrialExtension, describeSubscriptionEvent, getSubscriptionStatusPill, saveRefusalSummary, serverFieldErrors, subscriptionEventLabel, trialExtensionFormFields } from "@tattvix/api";
 import type { PlatformPricing, PlatformSubscription } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -10,7 +10,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Fact, FactsRow, Panel, PanelHeader, PanelSection, StatusPill } from "@/components/design-system";
-import { ApiError } from "@/lib/api";
 import { formatMoneyWholeRupees } from "@/lib/money";
 
 import { platformOrganizationMutations } from "../mutations";
@@ -117,7 +116,9 @@ function ExtendTrialSheet({
     );
   }
 
-  const error = extend.error instanceof ApiError ? extend.error.message : extend.error ? "The trial could not be extended." : null;
+  // Controlled inputs with no client validation: the server's refusal is the only field error.
+  const errors = serverFieldErrors(extend.error, trialExtensionFormFields).fieldErrors;
+  const error = saveRefusalSummary(extend.error, errors, trialExtensionFormFields, "The trial could not be extended.");
 
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Extend trial">
@@ -131,11 +132,16 @@ function ExtendTrialSheet({
             min={minDate}
             required
             onChange={(event) => setDate(event.target.value)}
+            aria-invalid={Boolean(errors.trialEndsAt)}
           />
-          <p className="text-xs text-muted-foreground">
-            Must be later than the current end
-            {subscription.trialEndsAt ? ` (${formatDate(subscription.trialEndsAt)})` : ""}.
-          </p>
+          {errors.trialEndsAt ? (
+            <p className="text-xs text-destructive">{errors.trialEndsAt}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Must be later than the current end
+              {subscription.trialEndsAt ? ` (${formatDate(subscription.trialEndsAt)})` : ""}.
+            </p>
+          )}
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="extend-trial-note">Reason</Label>
@@ -145,7 +151,9 @@ function ExtendTrialSheet({
             maxLength={500}
             placeholder="Onboarding took an extra week"
             onChange={(event) => setNote(event.target.value)}
+            aria-invalid={Boolean(errors.note)}
           />
+          {errors.note ? <p className="text-xs text-destructive">{errors.note}</p> : null}
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="submit" className="h-12 w-full rounded-xl text-[15px] font-semibold" disabled={extend.isPending || !date}>
