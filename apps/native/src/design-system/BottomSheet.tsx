@@ -1,9 +1,20 @@
 import { X } from "lucide-react-native";
 import { useEffect, useState, type PropsWithChildren, type ReactNode } from "react";
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import { useKeyboardHandler, useReanimatedFocusedInput, useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, {
+  measure,
+  scrollTo,
+  useAnimatedReaction,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useReducedMotion,
+  useScrollOffset,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, motion, radii, shadows, space, type } from "./theme";
@@ -12,12 +23,15 @@ const DISMISS_DISTANCE = 120;
 const DISMISS_VELOCITY = 900;
 // Room kept between the status bar and a sheet's top edge, so it still reads as a sheet.
 const TOP_GAP = 24;
+// Room kept between a revealed field and the edge of the body.
+const REVEAL_GAP = 16;
 
 // Drag-to-dismiss sheet. Enters 240ms easeDrawer, exits 180ms, with a scrim.
 // Reduced motion drops the travel and keeps an opacity fade.
 //
-// The sheet never grows past the room above the keyboard: its body scrolls
-// and the footer stays pinned. `fill` takes that whole room, for long forms,
+// The sheet rides on the keyboard (react-native-keyboard-controller, frame by
+// frame) and never grows past the room above it: the body scrolls, keeps the
+// focused field in view, and the footer stays pinned. `fill` takes that whole room, for long forms,
 // and adds a close button. A body that renders its own list passes
 // `scroll={false}` and lets that list shrink (flexShrink: 1).
 export function BottomSheet({
@@ -46,27 +60,46 @@ export function BottomSheet({
   const progress = useSharedValue(0);
   // Finger travel while dragging, in px, always >= 0.
   const drag = useSharedValue(0);
-  // The sheet rides above the keyboard so a field near the footer stays in view
-  // (the Modal is its own window, so the usual resize does not reach it).
-  const keyboard = useSharedValue(0);
-  // Whole-sheet dragging would swallow the body's scroll, so it only runs while the body fits.
-  const [overflowing, setOverflowing] = useState(false);
-  const [viewport, setViewport] = useState(0);
-  const [content, setContent] = useState(0);
-  useEffect(() => setOverflowing(content > viewport + 1), [content, viewport]);
+  // Negative while the keyboard is up; the Modal is its own window, which the library tracks.
+  const { height: keyboardLift } = useReanimatedKeyboardAnimation();
+  const body = useAnimatedRef<Animated.ScrollView>();
+  const bodyOffset = useScrollOffset(body);
+  const { input, update: refreshInput } = useReanimatedFocusedInput();
 
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", (e) => {
-      keyboard.value = withTiming(e.endCoordinates.height, { duration: motion.duration.enter, easing: motion.easeOut });
-    });
-    const hide = Keyboard.addListener("keyboardDidHide", () => {
-      keyboard.value = withTiming(0, { duration: motion.duration.exit, easing: motion.easeOut });
-    });
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, [keyboard]);
+  // Scrolls the focused field into the body's visible part. Both rects are in window coordinates.
+  const reveal = () => {
+    "worklet";
+    const field = input.value?.layout;
+    const box = measure(body);
+    if (!field || !box) return;
+    const top = box.pageY + REVEAL_GAP;
+    const bottom = box.pageY + box.height - REVEAL_GAP;
+    const fieldBottom = field.absoluteY + field.height;
+    if (fieldBottom > bottom) scrollTo(body, 0, bodyOffset.value + Math.min(fieldBottom - bottom, field.absoluteY - top), true);
+    else if (field.absoluteY < top) scrollTo(body, 0, bodyOffset.value - (top - field.absoluteY), true);
+  };
+  // The field was measured before the sheet lifted, so re-read it once the keyboard settles.
+  const revealAfterLift = () => void refreshInput().then(() => scheduleOnUI(reveal));
+  useKeyboardHandler(
+    {
+      onEnd: (e) => {
+        "worklet";
+        if (e.height > 0) scheduleOnRN(revealAfterLift);
+      },
+    },
+    [],
+  );
+  // Moving to another field with the keyboard already up.
+  useAnimatedReaction(
+    () => input.value?.target,
+    (target, previous) => {
+      if (target !== previous && keyboardLift.value < 0) reveal();
+    },
+  );
+  // Whole-sheet dragging would swallow the body's scroll, so it only runs while the body fits.
+  const [viewport, setViewport] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const overflowing = contentHeight > viewport + 1;
 
   useEffect(() => {
     if (open) {
@@ -86,10 +119,10 @@ export function BottomSheet({
 
   const topLimit = insets.top + (fill ? space.sm : TOP_GAP);
   const sheetStyle = useAnimatedStyle(() => {
-    const room = Math.max(0, height - topLimit - keyboard.value);
+    const room = Math.max(0, height - topLimit + keyboardLift.value);
     const size = fill ? { height: room } : { maxHeight: room };
-    if (reduceMotion) return { ...size, opacity: progress.value, transform: [{ translateY: -keyboard.value }] };
-    return { ...size, transform: [{ translateY: (1 - progress.value) * height + drag.value - keyboard.value }] };
+    if (reduceMotion) return { ...size, opacity: progress.value, transform: [{ translateY: keyboardLift.value }] };
+    return { ...size, transform: [{ translateY: (1 - progress.value) * height + drag.value + keyboardLift.value }] };
   });
 
   const makePan = () => Gesture.Pan()
@@ -128,24 +161,25 @@ export function BottomSheet({
       ) : null}
     </View>
   );
-  const body = scroll ? (
-    <ScrollView
+  const content = scroll ? (
+    <Animated.ScrollView
+      ref={body}
       style={[styles.body, fill && styles.bodyFill]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       bounces={false}
       onLayout={(e) => setViewport(e.nativeEvent.layout.height)}
-      onContentSizeChange={(_, h) => setContent(h)}
+      onContentSizeChange={(_, h) => setContentHeight(h)}
     >
       {children}
-    </ScrollView>
+    </Animated.ScrollView>
   ) : (
     <View style={[styles.body, fill && styles.bodyFill]}>{children}</View>
   );
   const sheet = (
     <Animated.View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.md) + space.xl }, sheetStyle]}>
       {handleOnly ? <GestureDetector gesture={makePan()}>{header}</GestureDetector> : header}
-      {body}
+      {content}
       {footer ? <View style={styles.footer}>{footer}</View> : null}
     </Animated.View>
   );

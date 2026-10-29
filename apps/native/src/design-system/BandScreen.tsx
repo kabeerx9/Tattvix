@@ -3,7 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import type { LucideIcon } from "lucide-react-native";
 import { useCallback, useState, type PropsWithChildren, type ReactNode } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { RefreshControl, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
@@ -50,7 +51,8 @@ export function BandScreen({
   return (
     <View style={styles.root}>
       {focused ? <StatusBar style={pastBand ? "dark" : "light"} /> : null}
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={space.xl}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -83,7 +85,7 @@ export function BandScreen({
           ) : null}
         </LinearGradient>
         <View style={styles.body}>{children}</View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

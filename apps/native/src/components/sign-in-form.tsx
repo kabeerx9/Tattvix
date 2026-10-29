@@ -89,7 +89,7 @@ export function SignInForm() {
         <Text style={styles.hero}>Check your email.</Text>
         <Text style={styles.lede}>We sent a six-digit code to {email.trim()} because this phone is new to your account.</Text>
         <View style={styles.form}>
-          <TextField autoFocus inputMode="numeric" maxLength={6} onChangeText={setCode} placeholder="Six-digit code" value={code} />
+          <TextField autoFocus inputMode="numeric" maxLength={6} enter={verify} onChangeText={setCode} placeholder="Six-digit code" value={code} />
           <Button label="Verify and sign in" onPress={verify} loading={isSubmitting} disabled={code.trim().length < 6} />
           <Button label="Back" variant="ghost" onPress={() => { setCodeStep(false); setCode(""); }} />
         </View>
@@ -110,8 +110,8 @@ export function SignInForm() {
           <Text style={styles.or}>or</Text>
           <View style={styles.line} />
         </View>
-        <TextField autoCapitalize="none" autoComplete="email" inputMode="email" onChangeText={setEmail} placeholder="Email address" value={email} />
-        <TextField autoCapitalize="none" onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
+        <TextField autoCapitalize="none" autoComplete="email" inputMode="email" enter="next" onChangeText={setEmail} placeholder="Email address" value={email} />
+        <TextField autoCapitalize="none" enter={submit} onChangeText={setPassword} placeholder="Password" secureTextEntry value={password} />
         <Button label="Sign in" onPress={submit} loading={isSubmitting} disabled={!isLoaded} />
       </View>
 

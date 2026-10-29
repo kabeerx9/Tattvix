@@ -11,6 +11,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { Splash } from "@/src/design-system/Splash";
 import { Toaster } from "@/src/design-system/Toast";
@@ -35,6 +36,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <KeyboardProvider>
       <ClerkProvider publishableKey={env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
         <QueryClientProvider client={queryClient}>
           <AuthWiring />
@@ -55,6 +57,7 @@ export default function RootLayout() {
           {introDone ? null : <Splash onDone={() => setIntroDone(true)} />}
         </QueryClientProvider>
       </ClerkProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

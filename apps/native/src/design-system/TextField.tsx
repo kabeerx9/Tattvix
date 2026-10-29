@@ -1,5 +1,6 @@
-import { useState, type ComponentRef, type Ref } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
+import { KeyboardController } from "react-native-keyboard-controller";
 
 import { colors, radii, type } from "./theme";
 
@@ -8,8 +9,21 @@ import { colors, radii, type } from "./theme";
 // Focus changes never animate (see design doc, Motion).
 const FOCUS_RING = "rgba(215,15,88,0.55)";
 
+// What the keyboard's return key does: "next" moves to the following field on
+// screen with the keyboard kept up, "done" closes the keyboard, and a function
+// submits the form (pass it on the form's last field).
+type Enter = "next" | "done" | (() => void);
+
+function enterProps(enter: Enter | undefined): TextInputProps {
+  if (!enter) return {};
+  if (enter === "next") return { returnKeyType: "next", submitBehavior: "submit", onSubmitEditing: () => KeyboardController.setFocusTo("next") };
+  if (enter === "done") return { returnKeyType: "done", submitBehavior: "blurAndSubmit" };
+  return { returnKeyType: "done", submitBehavior: "blurAndSubmit", onSubmitEditing: () => enter() };
+}
+
 export function TextField({
   label,
+  enter,
   helper,
   error,
   focused,
@@ -17,8 +31,8 @@ export function TextField({
   onBlur,
   ...input
 }: TextInputProps & {
-  ref?: Ref<ComponentRef<typeof TextInput>>;
   label?: string;
+  enter?: Enter;
   helper?: string;
   error?: string;
   /** Preview override for the gallery. Normally focus follows the input. */
@@ -49,6 +63,7 @@ export function TextField({
             setInputFocused(false);
             onBlur?.(e);
           }}
+          {...enterProps(enter)}
           {...input}
         />
       </View>

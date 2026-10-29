@@ -1,12 +1,13 @@
 import type { PropsWithChildren } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { RefreshControl, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, space } from "./theme";
 
 // The tab bar is part of the Tabs layout, so content never sits under it;
 // the bottom padding only keeps the last row off the edge. Pass `onRefresh`
-// for pull-to-refresh on data screens.
+// for pull-to-refresh on data screens. A focused field scrolls above the keyboard.
 export function Screen({
   children,
   mode = "scroll",
@@ -23,14 +24,15 @@ export function Screen({
   }
   return (
     <SafeAreaView edges={["top"]} style={[styles.root, style]}>
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={space.xl}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.mutedForeground} colors={[colors.foreground]} /> : undefined}
       >
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

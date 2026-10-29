@@ -4,10 +4,14 @@
 import { checkInSteps, stepNumber, type CheckInStep } from "@tattvix/api";
 import { ArrowLeft } from "lucide-react-native";
 import type { PropsWithChildren, ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandLogo, colors, space, type } from "@/src/design-system";
+
+// The pinned footer (one button plus its padding) and a little air, so a focused field clears it.
+const FOOTER_CLEARANCE = 100;
 
 /** Brand bar for the screens outside the numbered steps (welcome, stay status, unavailable). */
 export function CheckInBrandBar() {
@@ -21,26 +25,31 @@ export function CheckInBrandBar() {
   );
 }
 
-/** Full-height page: scrolls the body, keeps the footer pinned. */
+/** Full-height page: scrolls the body, keeps the footer pinned and riding on the keyboard. */
 export function CheckInScaffold({
   header,
   footer,
   children,
 }: PropsWithChildren<{ header?: ReactNode; footer?: ReactNode }>) {
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.page}>
       {header}
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
-      </KeyboardAvoidingView>
+      <KeyboardAwareScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bottomOffset={footer ? FOOTER_CLEARANCE : space.xl}
+      >
+        {children}
+      </KeyboardAwareScrollView>
+      {footer ? (
+        // The safe area's bottom inset sits under the keyboard, so the footer rises by that much less.
+        <KeyboardStickyView offset={{ opened: insets.bottom }}>
+          <View style={styles.footer}>{footer}</View>
+        </KeyboardStickyView>
+      ) : null}
     </SafeAreaView>
   );
 }

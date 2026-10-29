@@ -35,7 +35,6 @@ import {
   space,
   toast,
   type,
-  useFocusChain,
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
@@ -162,7 +161,6 @@ function EditSheet({
   onSave: () => void;
   onClose: () => void;
 }) {
-  const chain = useFocusChain(onSave);
   const text = (key: FormKey, label: string, extra: Partial<ComponentProps<typeof TextField>> = {}) =>
     form ? <TextField label={label} value={form[key]} onChangeText={(value) => onChange(key, value)} error={errors[key]} {...extra} /> : null;
 
@@ -187,25 +185,25 @@ function EditSheet({
         <View style={styles.fields}>
           {section === "personal" ? (
             <>
-              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", ...chain(0) })}
-              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here.", ...chain(1) })}
-              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210", ...chain(2, "dismiss") })}
+              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", enter: "next" })}
+              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here.", enter: "next" })}
+              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210", enter: "done" })}
               <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => onChange("dateOfBirth", value ?? "")} />
               <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={(value) => onChange("nationality", value)} />
             </>
           ) : section === "address" ? (
             <>
-              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address", ...chain(0) })}
-              {text("addressLine2", "Address line 2", { maxLength: 255, ...chain(1) })}
-              {text("city", "City", { maxLength: 120, ...chain(2) })}
-              {text("stateRegion", "State or region", { maxLength: 120, ...chain(3) })}
-              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code", ...chain(4, "dismiss") })}
+              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address", enter: "next" })}
+              {text("addressLine2", "Address line 2", { maxLength: 255, enter: "next" })}
+              {text("city", "City", { maxLength: 120, enter: "next" })}
+              {text("stateRegion", "State or region", { maxLength: 120, enter: "next" })}
+              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code", enter: "done" })}
               <CountryField label="Country" value={form.country} error={errors.country} onChange={(value) => onChange("country", value)} />
             </>
           ) : (
             <>
-              {text("emergencyContactName", "Contact name", { maxLength: 150, ...chain(0) })}
-              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad", ...chain(1, "submit") })}
+              {text("emergencyContactName", "Contact name", { maxLength: 150, enter: "next" })}
+              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad", enter: onSave })}
             </>
           )}
         </View>

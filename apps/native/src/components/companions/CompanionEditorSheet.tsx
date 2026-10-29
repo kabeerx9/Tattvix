@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, TextField, colors, space, toast, type, useFocusChain } from "@/src/design-system";
+import { BottomSheet, Button, TextField, colors, space, toast, type } from "@/src/design-system";
 import { api } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -90,7 +90,6 @@ export function CompanionEditorSheet({
     save.mutate(parsed.data);
   }
 
-  const chain = useFocusChain(submit);
   const field = (key: keyof Form, label: string, extra: Record<string, unknown> = {}) => (
     <TextField label={label} value={form[key]} onChangeText={set(key)} error={errors[key]} {...extra} />
   );
@@ -105,23 +104,23 @@ export function CompanionEditorSheet({
     >
       <Text style={styles.description}>Save the basics now. Hotels only need companion details when they are part of a future check-in.</Text>
       <View style={styles.fields}>
-        {field("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", ...chain(0) })}
-        {field("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name.", ...chain(1) })}
+        {field("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", enter: "next" })}
+        {field("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name.", enter: "next" })}
         {field("dateOfBirth", "Date of birth", {
           placeholder: "YYYY-MM-DD",
           helper: "YYYY-MM-DD",
           keyboardType: "numbers-and-punctuation",
           autoCapitalize: "none",
           maxLength: 10,
-          ...chain(2),
+          enter: "next",
         })}
-        {field("relationship", "Relationship", { maxLength: 100, placeholder: "Spouse", helper: "For example: spouse, child, parent, friend.", ...chain(3) })}
+        {field("relationship", "Relationship", { maxLength: 100, placeholder: "Spouse", helper: "For example: spouse, child, parent, friend.", enter: "next" })}
         {field("nationality", "Nationality", {
           maxLength: 2,
           autoCapitalize: "characters",
           placeholder: "IN",
           helper: "Two-letter country code, such as IN.",
-          ...chain(4, "submit"),
+          enter: submit,
         })}
         {saveError ? (
           <Text accessibilityRole="alert" style={styles.error}>

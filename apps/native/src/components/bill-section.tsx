@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, Card, Spinner, StatusPill, TextField, TextLink, colors, radii, space, toast, type, useFocusChain } from "@/src/design-system";
+import { BottomSheet, Button, Card, Spinner, StatusPill, TextField, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 import type { ManageScope } from "@/src/lib/desk-scope";
 import { errorMessage } from "@/src/lib/format";
@@ -158,8 +158,6 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
     );
   }
 
-  const chain = useFocusChain(submit);
-
   return (
     <BottomSheet
       open={open}
@@ -168,10 +166,10 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
       footer={<Button label={addCharge.isPending ? "Adding" : "Add to bill"} onPress={submit} loading={addCharge.isPending} disabled={!valid} />}
     >
       <View style={styles.sheetStack}>
-        <TextField label="Description" placeholder="Minibar, laundry, late checkout" value={description} onChangeText={setDescription} maxLength={200} {...chain(0)} />
+        <TextField label="Description" placeholder="Minibar, laundry, late checkout" value={description} onChangeText={setDescription} maxLength={200} enter="next" />
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <TextField label="Quantity" inputMode="numeric" value={quantity} onChangeText={setQuantity} maxLength={4} {...chain(1)} />
+            <TextField label="Quantity" inputMode="numeric" value={quantity} onChangeText={setQuantity} maxLength={4} enter="next" />
           </View>
           <View style={{ flex: 2 }}>
             <TextField
@@ -180,7 +178,7 @@ function AddChargeSheet({ scope, stayId, open, onClose }: { scope: ManageScope; 
               inputMode="decimal"
               value={unitPrice}
               onChangeText={setUnitPrice}
-              {...chain(2, "submit")}
+              enter={submit}
               error={unitPrice.trim() && unitPriceMinor === null ? "Enter an amount in rupees" : undefined}
             />
           </View>

@@ -141,6 +141,7 @@ export default function HotelDetailsScreen() {
 
         <TextField
           label="Property name"
+          enter="next"
           value={nameInput}
           onChangeText={setNameInput}
           editable={canManageHotel && !saving}
@@ -151,6 +152,7 @@ export default function HotelDetailsScreen() {
         <TextField label="Address" value={form.address} onChangeText={set("address")} editable={canManageHotel} maxLength={1000} multiline />
         <TextField
           label="Contact phone"
+          enter="next"
           value={form.contactPhone}
           onChangeText={set("contactPhone")}
           editable={canManageHotel}
@@ -163,6 +165,7 @@ export default function HotelDetailsScreen() {
           <View style={styles.half}>
             <TextField
               label="Check-in time"
+              enter="next"
               value={form.checkInTime}
               onChangeText={set("checkInTime")}
               editable={canManageHotel}
@@ -174,6 +177,7 @@ export default function HotelDetailsScreen() {
           <View style={styles.half}>
             <TextField
               label="Check-out time"
+              enter="done"
               value={form.checkOutTime}
               onChangeText={set("checkOutTime")}
               editable={canManageHotel}

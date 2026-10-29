@@ -59,6 +59,7 @@ export function AboutStepFields({ values, errors, onChange }: Props) {
     <View style={styles.fields}>
       <TextField
         label="Legal first name"
+        enter="next"
         value={values.legalFirstName}
         maxLength={150}
         autoCapitalize="words"
@@ -68,6 +69,7 @@ export function AboutStepFields({ values, errors, onChange }: Props) {
       />
       <TextField
         label="Legal last name"
+        enter="next"
         value={values.legalLastName}
         maxLength={150}
         autoCapitalize="words"
@@ -78,6 +80,7 @@ export function AboutStepFields({ values, errors, onChange }: Props) {
       />
       <TextField
         label="Phone number"
+        enter="done"
         value={values.phoneNumber}
         maxLength={32}
         keyboardType="phone-pad"
@@ -107,6 +110,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
     <View style={styles.fields}>
       <TextField
         label="House, street and area"
+        enter="next"
         value={values.addressLine1}
         maxLength={255}
         autoComplete="street-address"
@@ -115,6 +119,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
       />
       <TextField
         label="Landmark or locality (optional)"
+        enter="next"
         value={values.addressLine2}
         maxLength={255}
         error={errors.addressLine2}
@@ -122,6 +127,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
       />
       <TextField
         label="City"
+        enter="next"
         value={values.city}
         maxLength={120}
         error={errors.city}
@@ -131,6 +137,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
         <View style={styles.flex}>
           <TextField
             label="State or region"
+            enter="next"
             value={values.stateRegion}
             maxLength={120}
             error={errors.stateRegion}
@@ -140,6 +147,7 @@ export function AddressStepFields({ values, errors, onChange }: Props) {
         <View style={styles.pin}>
           <TextField
             label="PIN code"
+            enter="done"
             value={values.postalCode}
             maxLength={20}
             keyboardType={values.country === "IN" || values.country === "" ? "number-pad" : "default"}
