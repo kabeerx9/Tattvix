@@ -77,4 +77,11 @@ describe("resolveAppLinkPath", () => {
   it("keeps segments as written, without decoding", () => {
     assert.equal(resolveAppLinkPath("https://tattwix.in/check-in/a%20b"), "/check-in/a%20b");
   });
+
+  it("sends Google sign-in's return link to the landing instead of a missing screen", () => {
+    assert.equal(resolveAppLinkPath("tattwix://sso-callback?rotating_token_nonce=abc"), "/");
+    assert.equal(resolveAppLinkPath("tattwix://sso-callback/"), "/");
+    assert.equal(resolveAppLinkPath("tattwix://oauth-native-callback"), "/");
+    assert.equal(resolveAppLinkPath("tattwix://check-in/abc"), null);
+  });
 });

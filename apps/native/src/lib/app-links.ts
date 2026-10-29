@@ -3,10 +3,14 @@
 // router-facing wrapper in app/+native-intent.tsx only rewrites paths.
 const WEB_HOSTS = new Set(["tattwix.in", "www.tattwix.in"]);
 const HOTEL_LANDING = "/";
+// Where Clerk's Google sign-in returns (tattwix://sso-callback). The auth session
+// reads it; the router must not treat it as a screen, so it lands on the root,
+// which sends a signed-in person to their place.
+const AUTH_CALLBACK_HOSTS = new Set(["sso-callback", "oauth-native-callback"]);
 
 // Returns the route for an incoming URL, `null` when the router should keep its
 // default handling (custom schemes such as tattwix://), or "/" for anything on
-// the web that has no native screen.
+// the web that has no native screen and for the sign-in return link.
 export function resolveAppLinkPath(url: string): string | null {
   let parsed: URL;
   try {
@@ -14,6 +18,7 @@ export function resolveAppLinkPath(url: string): string | null {
   } catch {
     return null;
   }
+  if (parsed.protocol === "tattwix:" && AUTH_CALLBACK_HOSTS.has(parsed.hostname)) return "/";
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
   if (!WEB_HOSTS.has(parsed.hostname)) return "/";
 
