@@ -10,7 +10,7 @@ import Animated, {
   useAnimatedRef,
   useAnimatedStyle,
   useReducedMotion,
-  useScrollOffset,
+  useAnimatedScrollHandler,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -63,7 +63,11 @@ export function BottomSheet({
   // Negative while the keyboard is up; the Modal is its own window, which the library tracks.
   const { height: keyboardLift } = useReanimatedKeyboardAnimation();
   const body = useAnimatedRef<Animated.ScrollView>();
-  const bodyOffset = useScrollOffset(body);
+  // Tracked from the body's own scroll events: a closed sheet has no body to read from.
+  const bodyOffset = useSharedValue(0);
+  const onBodyScroll = useAnimatedScrollHandler((e) => {
+    bodyOffset.value = e.contentOffset.y;
+  });
   const { input, update: refreshInput } = useReanimatedFocusedInput();
 
   // Scrolls the focused field into the body's visible part. Both rects are in window coordinates.
@@ -164,6 +168,8 @@ export function BottomSheet({
   const content = scroll ? (
     <Animated.ScrollView
       ref={body}
+      onScroll={onBodyScroll}
+      scrollEventThrottle={16}
       style={[styles.body, fill && styles.bodyFill]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}

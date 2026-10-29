@@ -94,11 +94,7 @@ export function DocumentEditorSheet({
   const expiryVisible = showsExpiry(form.type, document?.expiryDate);
   const slots = photoSlots(form.type, Boolean(document?.images.back.isUploaded));
   const expiryValid = ISO_DATE.test(form.expiry) && !Number.isNaN(Date.parse(form.expiry));
-  const submitError = save.error
-    ? save.error instanceof IdentityDocumentSaveError
-      ? save.error.message
-      : errorMessage(save.error, "The document could not be saved.")
-    : null;
+  const submitError = save.error ? saveFailureText(save.error) : null;
 
   const set = <K extends keyof Form>(key: K) => (value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -141,6 +137,7 @@ export function DocumentEditorSheet({
         },
         onError: (error) => {
           if (error instanceof IdentityDocumentSaveError) setDraftId(error.document.id);
+          toast(saveFailureText(error));
         },
       },
     );
@@ -177,7 +174,12 @@ export function DocumentEditorSheet({
       fill
       footer={
         <>
-          <Button label="Save" onPress={submit} loading={save.isPending} />
+          {submitError ? (
+            <Text accessibilityRole="alert" style={styles.footerError}>
+              {submitError}
+            </Text>
+          ) : null}
+          <Button label={save.isPending ? "Saving…" : submitError ? "Try again" : "Save"} onPress={submit} loading={save.isPending} />
           <Button label="Cancel" variant="ghost" onPress={onClose} disabled={save.isPending} />
         </>
       }
@@ -261,14 +263,15 @@ export function DocumentEditorSheet({
           />
         ))}
 
-        {submitError ? (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {submitError}
-          </Text>
-        ) : null}
       </View>
     </BottomSheet>
   );
+}
+
+/** A photo failure after the details saved says so: the draft is kept and Save retries the photo. */
+function saveFailureText(error: unknown) {
+  if (error instanceof IdentityDocumentSaveError) return `Details saved. ${error.message}`;
+  return errorMessage(error, "The document could not be saved.") ?? "The document could not be saved.";
 }
 
 function PhotoSlot({
@@ -319,6 +322,7 @@ const styles = StyleSheet.create({
   sectionLabel: { ...type.label, color: colors.subtleForeground },
   hint: { ...type.caption, color: colors.mutedForeground, marginTop: space.sm },
   error: { ...type.caption, color: colors.destructive, marginTop: space.sm },
+  footerError: { ...type.meta, color: colors.destructive },
   fields: { gap: space.lg, marginTop: space.xl },
   maskedRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space.md },
   maskedCopy: { gap: 6 },

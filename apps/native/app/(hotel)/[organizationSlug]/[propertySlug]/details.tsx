@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, ConfirmSheet, LargeTitle, Screen, SecondaryHeader, SectionTitle, Spinner, TextField, TextLink, colors, space, toast, type } from "@/src/design-system";
-import { PhotoSlot, SavingPhoto, useRemovePhoto, useUploadPhoto } from "@/src/components/photo-slots";
+import { PhotoSlot, failureText, slotKey, useRemovePhoto, useUploadPhoto } from "@/src/components/photo-slots";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { api, apiClient, queries } from "@/src/lib/api";
 import { getManageScope } from "@/src/lib/desk-scope";
@@ -124,7 +124,14 @@ export default function HotelDetailsScreen() {
     }
   }
 
+  // The slot a photo change is running on, or last failed on: its progress and error show there.
+  const savingSlot = upload.isPending ? slotKey(upload.variables) : remove.isPending ? slotKey(remove.variables) : null;
+  const failedSlot = upload.isError ? slotKey(upload.variables) : remove.isError ? slotKey(remove.variables) : null;
   const photoError = upload.error ?? remove.error;
+  const slotState = (slot: PropertyPhotoSlot) => {
+    const key = slotKey(slot);
+    return { saving: savingSlot === key, error: failedSlot === key && photoError ? failureText(photoError) : null };
+  };
   const roomTypes = [...new Set((rooms.data?.rooms ?? []).map((room) => room.roomType ?? ""))].sort();
   const photosPending = photos.isPending || rooms.isPending;
   const photosFailed = photos.isError || rooms.isError;
@@ -216,6 +223,7 @@ export default function HotelDetailsScreen() {
                 label="Cover photo"
                 url={photos.data?.cover?.url}
                 disabled={busy}
+                {...slotState({ kind: "COVER" })}
                 onAdd={() => upload.mutate({ kind: "COVER" })}
                 onRemove={() => setRemoveSlot({ kind: "COVER" })}
               />
@@ -225,14 +233,13 @@ export default function HotelDetailsScreen() {
                   label={roomType || "Unnamed room type"}
                   url={roomPhoto(roomType)}
                   disabled={busy}
+                  {...slotState({ kind: "ROOM_TYPE", roomType })}
                   onAdd={() => upload.mutate({ kind: "ROOM_TYPE", roomType })}
                   onRemove={() => setRemoveSlot({ kind: "ROOM_TYPE", roomType })}
                 />
               ))}
             </>
           )}
-          {busy ? <SavingPhoto /> : null}
-          {photoError ? <Text style={styles.error}>{photoError instanceof Error ? photoError.message : "The photo could not be saved."}</Text> : null}
         </View>
       ) : null}
 

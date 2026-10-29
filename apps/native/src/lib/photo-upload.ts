@@ -1,11 +1,14 @@
 // Photo pipeline for the native app: pick, shrink to a JPEG, ask the API for a
-// signed PUT, send the bytes, then tell the API it landed. Shared by property
-// photos and identity document photos. Mirrors apps/web/src/features/property-photos/mutations.ts.
-import type { PropertyPhotoSlot } from "@tattvix/contracts";
+// signed PUT, send the bytes, then tell the API it landed. Each step runs under
+// runUploadStep, so a failure or a stall names its step, status and storage
+// error code. Shared by property photos and identity document photos.
+// Mirrors apps/web/src/features/property-photos/mutations.ts.
+import { runUploadStep } from "@tattvix/api";
+import { ApiError, type PropertyPhotoSlot } from "@tattvix/contracts";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
-import { FileSystemUploadType, uploadAsync } from "expo-file-system/legacy";
+import { FileSystemUploadType, createUploadTask } from "expo-file-system/legacy";
 
 import { api } from "./api";
 
@@ -14,7 +17,9 @@ export const JPEG_QUALITY = 0.85;
 
 /**
  * Opens the library or the camera and returns the picked asset, or null when the
- * person cancels. Throws an Error with a user-facing message when permission is denied.
+ * person cancels. Throws an Error with a user-facing message when camera permission
+ * is denied. The library needs no permission: Android's photo picker hands over
+ * only the photo the person chooses.
  */
 export async function pickImage(source: "library" | "camera"): Promise<ImagePicker.ImagePickerAsset | null> {
   const options: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], quality: 1, allowsMultipleSelection: false };
@@ -27,8 +32,6 @@ export async function pickImage(source: "library" | "camera"): Promise<ImagePick
     return picked.assets[0] ?? null;
   }
 
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) throw new Error("Allow photo access in Settings to add a photo.");
   const picked = await ImagePicker.launchImageLibraryAsync(options);
   if (picked.canceled) return null;
   return picked.assets[0] ?? null;
@@ -42,32 +45,42 @@ export async function pickAndUploadPhoto(organizationSlug: string, propertySlug:
   const asset = await pickImage("library");
   if (!asset) return null;
 
-  const jpeg = await encodeJpeg(asset.uri, asset.width, asset.height);
+  const jpeg = await runUploadStep("prepare", () => encodeJpeg(asset.uri, asset.width, asset.height));
   const contentLength = new File(jpeg).size;
 
-  const { upload } = await api.propertyPhotos.requestUpload(organizationSlug, propertySlug, {
-    ...slot,
-    contentType: "image/jpeg",
-    contentLength,
-  });
+  const { upload } = await runUploadStep("authorize", () =>
+    api.propertyPhotos.requestUpload(organizationSlug, propertySlug, { ...slot, contentType: "image/jpeg", contentLength }),
+  );
 
   await putSignedUpload(upload.url, upload.headers, jpeg);
 
-  return api.propertyPhotos.complete(organizationSlug, propertySlug, slot);
+  return runUploadStep("confirm", () => api.propertyPhotos.complete(organizationSlug, propertySlug, slot));
 }
 
 /**
- * PUTs the bytes to a signed URL. A signed Content-Length is dropped, as the web
- * does: the transport sets it from the body. Throws on any non-2xx response.
+ * PUTs the bytes to a signed URL as the "send" step. A signed Content-Length is
+ * dropped, as the web does: the transport sets it from the body. A non-2xx answer
+ * throws with storage's error code (from its XML body); a stall cancels the upload.
  */
 export async function putSignedUpload(url: string, headers: Record<string, string>, fileUri: string) {
   const sentHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name.toLowerCase() !== "content-length"));
-  const response = await uploadAsync(url, fileUri, {
+  const task = createUploadTask(url, fileUri, {
     httpMethod: "PUT",
     headers: sentHeaders,
     uploadType: FileSystemUploadType.BINARY_CONTENT,
   });
-  if (response.status < 200 || response.status > 299) throw new Error("The photo could not be uploaded.");
+  await runUploadStep(
+    "send",
+    async () => {
+      const response = await task.uploadAsync();
+      if (!response) throw new Error("The upload was cancelled.");
+      if (response.status < 200 || response.status > 299) {
+        throw new ApiError(response.status, "", /<Code>([^<]+)<\/Code>/.exec(response.body ?? "")?.[1] ?? null);
+      }
+    },
+    undefined,
+    () => void task.cancelAsync(),
+  );
 }
 
 /**

@@ -3,6 +3,7 @@
 // `create<Feature>Queries(api)`; apps build them once with their own
 // ApiClient (web: cookie + bearer; native: Clerk getToken) and re-export.
 export { classifyApiError, describeLoadFailure, shouldRetryQuery, type ApiFailure, type LoadFailure } from "./errors";
+export { UPLOAD_STEP_TIMEOUT_MS, UploadStepError, runUploadStep, type UploadStep } from "./upload-steps";
 export { describeHotelIdentityAccess } from "./hotel-identity-access";
 export { checkInKeys, createCheckInApi, createCheckInQueries, type CheckInApi } from "./check-in";
 export {

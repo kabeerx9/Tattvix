@@ -1,7 +1,7 @@
 // Identity document hooks for the native app. Mirrors
 // apps/web/src/features/identity-documents (use-saved-photo, use-document-save, mutations).
 // Identity images are never cached on device: the screens that show them use expo-image cachePolicy "none".
-import { guestProfileKeys, identityDocumentKeys, validateUploadFile } from "@tattvix/api";
+import { guestProfileKeys, identityDocumentKeys, runUploadStep, validateUploadFile } from "@tattvix/api";
 import type { IdentityDocument, IdentityDocumentImageSide, IdentityDocumentInput, IdentityDocumentListResponse } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
@@ -76,14 +76,14 @@ async function uploadPhoto(
   side: IdentityDocumentImageSide,
   photo: PickedPhoto,
 ) {
-  const jpeg = await encodeJpeg(photo.uri, photo.width, photo.height, DOCUMENT_PHOTO_MAX_EDGE, DOCUMENT_PHOTO_QUALITY);
+  const jpeg = await runUploadStep("prepare", () => encodeJpeg(photo.uri, photo.width, photo.height, DOCUMENT_PHOTO_MAX_EDGE, DOCUMENT_PHOTO_QUALITY));
   const file = { type: "image/jpeg", size: new File(jpeg).size };
   const problem = validateUploadFile(file);
   if (problem) throw new Error(problem);
 
-  const { objectKey, url, headers } = await documents.requestUpload(documentId, side, file);
+  const { objectKey, url, headers } = await runUploadStep("authorize", () => documents.requestUpload(documentId, side, file));
   await putSignedUpload(url, headers, jpeg);
-  await documents.completeUpload(documentId, side, objectKey);
+  await runUploadStep("confirm", () => documents.completeUpload(documentId, side, objectKey));
 }
 
 /** Creates or updates the details, then uploads each newly picked photo. Resolves to the saved document. */
