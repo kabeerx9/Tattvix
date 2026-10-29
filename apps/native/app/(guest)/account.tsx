@@ -11,6 +11,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Button, LargeTitle, ListRow, Panel, Screen, colors, space, type } from "@/src/design-system";
 import { AccountSettingsSections } from "@/src/components/account-settings-sections";
 import { NameSheet, PasswordSheet } from "@/src/components/account-sheets";
+import { DeleteAccountRow } from "@/src/components/delete-account";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { useCurrentUser } from "@/src/lib/current-user";
 
@@ -46,6 +47,9 @@ export default function AccountScreen() {
         <AccountSettingsSections user={currentUser.data} />
         <Button label="Help desk" variant="outline" onPress={() => router.push("/support")} />
         <Button label="Sign out" variant="outline" onPress={() => signOut()} />
+        <Panel>
+          <DeleteAccountRow />
+        </Panel>
       </View>
       <NameSheet open={sheet === "name"} onClose={() => setSheet(null)} />
       <PasswordSheet open={sheet === "password"} onClose={() => setSheet(null)} />

@@ -4,16 +4,24 @@ import logging
 from typing import Any, Mapping
 
 from django.utils import timezone
+from rest_framework.exceptions import AuthenticationFailed
 
 from .clerk import get_clerk_client, primary_email_from_clerk_user
 from .models import ClerkUser
 
 logger = logging.getLogger(__name__)
 
+# Anonymised rows carry `deleted:<pk>` instead of their Clerk id (see
+# account_deletion.py); no real Clerk session can present such a subject.
+DELETED_CLERK_ID_PREFIX = "deleted:"
+
 
 def get_or_create_clerk_user(
     *, clerk_id: str, claims: Mapping[str, Any]
 ) -> ClerkUser:
+    if clerk_id.startswith(DELETED_CLERK_ID_PREFIX):
+        # Tombstone ids are minted locally and never belong to a live session.
+        raise AuthenticationFailed("This account has been deleted.")
     defaults = _defaults_from_claims(claims)
     user, created = ClerkUser.objects.get_or_create(
         clerk_id=clerk_id,

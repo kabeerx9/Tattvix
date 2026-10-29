@@ -16,6 +16,9 @@ class ClerkUser(models.Model):
     unsafe_metadata = models.JSONField(default=dict, blank=True)
     raw_data = models.JSONField(default=dict, blank=True)
     last_synced_at = models.DateTimeField(null=True, blank=True)
+    # Set when the person deleted their account: the row stays for hotels'
+    # guest registers (PROTECT FKs) but every personal field is blanked.
+    deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

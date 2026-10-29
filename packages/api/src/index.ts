@@ -23,6 +23,7 @@ export {
 } from "./check-in-steps";
 export { companionKeys, createCompanionQueries, createCompanionsApi, type CompanionsApi } from "./companions";
 export { createCurrentUserApi, createCurrentUserQueries, currentUserKeys, type CurrentUserApi } from "./current-user";
+export { describeAccountDeletionFailure } from "./current-user";
 export {
   EXPIRING_SOON_DAYS,
   MAX_UPLOAD_BYTES,

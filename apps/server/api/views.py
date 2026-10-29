@@ -13,8 +13,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from .account_deletion import AccountStorageUnavailable, delete_account
 from .check_in import purge_expired_shared_identity_images
 from .current_user import build_current_user_payload
+from .models import ClerkUser
 from .object_storage import PrivateObjectStorage
 from .support import build_support_contacts
 from .webhooks import ClerkWebhookError, verify_clerk_webhook
@@ -36,9 +38,18 @@ def health(_request):
     return Response({"status": "ok"})
 
 
-@api_view(["GET"])
+@api_view(["GET", "DELETE"])
 @permission_classes([IsAuthenticated])
 def me(request):
+    if request.method == "DELETE":
+        # Raises OwnerHasHotel (409) or AccountStorageUnavailable (503); the
+        # database is untouched in both cases so the person can simply retry.
+        delete_account(
+            request.user.db_user,
+            storage=PrivateObjectStorage(),
+            delete_clerk_user=True,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
     return Response(build_current_user_payload(request.user.db_user))
 
 
@@ -51,6 +62,26 @@ def clerk_webhook(request):
         event = verify_clerk_webhook(request.body, request.headers)
     except ClerkWebhookError as exc:
         return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    if event.get("type") == "user.deleted":
+        clerk_id = (event.get("data") or {}).get("id")
+        user = ClerkUser.objects.filter(clerk_id=clerk_id).first() if clerk_id else None
+        if user is not None:
+            try:
+                # Clerk has already removed them, so there is no owner refusal
+                # to make; owner memberships are kept and reported instead.
+                delete_account(
+                    user,
+                    storage=PrivateObjectStorage(),
+                    delete_clerk_user=False,
+                    refuse_owner=False,
+                )
+            except AccountStorageUnavailable:
+                # Non-2xx makes Svix retry the event later.
+                return Response(
+                    {"error": "Private document storage is temporarily unavailable."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
     return Response(
         {

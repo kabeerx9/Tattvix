@@ -1,9 +1,16 @@
-import { UserProfile } from "@clerk/react";
-import { Link, createFileRoute, useRouteContext } from "@tanstack/react-router";
-import { getAccountSettings } from "@tattvix/api";
+import { UserProfile, useClerk } from "@clerk/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, createFileRoute, useNavigate, useRouteContext } from "@tanstack/react-router";
+import { createCurrentUserApi, describeAccountDeletionFailure, getAccountSettings } from "@tattvix/api";
 import { Button } from "@tattvix/ui/components/button";
+import { useState } from "react";
 
-import { PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
+import { ConfirmDialog, PageHeader, Panel, PanelHeader, PanelSection } from "@/components/design-system";
+import { apiClient } from "@/lib/api";
+
+// Clerk's own "Delete account" only removes the Clerk user; ours removes the
+// person's data on the server first, so that section is hidden.
+const userProfileAppearance = { elements: { profileSection__danger: { display: "none" } } };
 
 export const Route = createFileRoute("/_auth/settings")({
   component: SettingsPage,
@@ -46,7 +53,52 @@ function SettingsPage() {
           </div>
         </PanelSection>
       </Panel>
-      <UserProfile routing="hash" />
+      <UserProfile routing="hash" appearance={userProfileAppearance} />
+      <DeleteAccountPanel />
     </div>
+  );
+}
+
+function DeleteAccountPanel() {
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const mutation = useMutation({
+    mutationFn: () => createCurrentUserApi(apiClient).deleteAccount(),
+    onSuccess: async () => {
+      setOpen(false);
+      queryClient.clear();
+      await signOut();
+      await navigate({ to: "/login" });
+    },
+  });
+  return (
+    <Panel>
+      <PanelHeader title="Delete account" />
+      <PanelSection>
+        <div className="grid gap-3">
+          <p className="text-sm text-muted-foreground">
+            Removes your profile, companions and ID documents and signs you out everywhere. Hotels you stayed at keep a record of the stay without your name or documents, as the law requires.
+          </p>
+          {mutation.isError ? (
+            <p role="alert" className="text-sm text-destructive">{describeAccountDeletionFailure(mutation.error)}</p>
+          ) : null}
+          <div>
+            <Button variant="destructive" onClick={() => { mutation.reset(); setOpen(true); }}>Delete account</Button>
+          </div>
+        </div>
+      </PanelSection>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={(next) => { if (!mutation.isPending) setOpen(next); }}
+        title="Delete your account?"
+        description="Your profile, companions and ID documents are deleted now and cannot be recovered."
+        confirmLabel="Delete my account"
+        tone="destructive"
+        pending={mutation.isPending}
+        onConfirm={() => mutation.mutate()}
+      />
+    </Panel>
   );
 }
