@@ -11,12 +11,28 @@ export const identityDocumentTypeSchema = z.enum([
 
 export const identityDocumentImageSideSchema = z.enum(["FRONT", "BACK"]);
 
-export const identityDocumentInputSchema = z.object({
+const identityDocumentFieldsSchema = z.object({
   documentType: z.union([z.literal(""), identityDocumentTypeSchema]),
   documentNumber: draftTextSchema(64),
   nameOnDocument: draftTextSchema(300),
   issuingCountry: countryCodeSchema,
   expiryDate: z.iso.date().nullable(),
+});
+
+// The server's Aadhaar rule (mask_aadhaar_number in apps/server/api/models.py):
+// 12 digits, spaces and dashes allowed, or the masked form it hands back.
+const AADHAAR_FULL = /^\d{12}$/;
+const AADHAAR_MASKED = /^XXXX XXXX \d{4}$/;
+
+export function isAadhaarNumber(value: string) {
+  const trimmed = value.trim();
+  return AADHAAR_MASKED.test(trimmed) || AADHAAR_FULL.test(trimmed.replace(/[\s-]/g, ""));
+}
+
+export const identityDocumentInputSchema = identityDocumentFieldsSchema.superRefine((input, context) => {
+  if (input.documentType === "AADHAAR" && input.documentNumber && !isAadhaarNumber(input.documentNumber)) {
+    context.addIssue({ code: "custom", path: ["documentNumber"], message: "Enter the 12-digit Aadhaar number." });
+  }
 });
 
 export const identityDocumentMissingFieldSchema = z.enum([
@@ -35,7 +51,7 @@ export const identityDocumentImageSchema = z.object({
   contentLength: z.number().int().positive().nullable(),
 });
 
-export const identityDocumentSchema = identityDocumentInputSchema.extend({
+export const identityDocumentSchema = identityDocumentFieldsSchema.extend({
   id: z.number().int().positive(),
   requirements: z.object({
     expiryDateRequired: z.boolean(),

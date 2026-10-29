@@ -122,6 +122,7 @@ export {
   type IdentityDocumentUploadFinalizeInput,
   type IdentityDocumentUploadInput,
   type IdentityDocumentUploadResponse,
+  isAadhaarNumber,
 } from "./identity-document";
 export {
   companionProfileInputSchema,

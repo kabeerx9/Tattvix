@@ -6,12 +6,15 @@ export class ApiError extends Error {
   status: number;
   /** Machine-readable error code from the server, e.g. "subscription_expired". */
   code: string | null;
+  /** For a refused form (code "invalid"): each field's message, to show under that field. */
+  fields: Record<string, string>;
 
-  constructor(status: number, message: string, code: string | null = null) {
+  constructor(status: number, message: string, code: string | null = null, fields: Record<string, string> = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.fields = fields;
   }
 }
 
@@ -54,6 +57,7 @@ export function createApiClient(options: ApiClientOptions) {
       response.status,
       parsed.success ? parsed.data.error : response.statusText,
       parsed.success ? parsed.data.code ?? null : null,
+      parsed.success ? parsed.data.fields ?? {} : {},
     );
   }
 

@@ -6,7 +6,7 @@
     "start": "sh scripts/manage.sh runserver 0.0.0.0:3000",
     "build": "sh scripts/manage.sh check",
     "check-types": "sh scripts/manage.sh check",
-    "test": "sh scripts/manage.sh test",
+    "test": "sh scripts/manage.sh test --noinput",
     "migrate": "sh scripts/manage.sh migrate",
     "storage:check": "sh scripts/manage.sh check_object_storage",
     "identity:purge": "sh scripts/manage.sh purge_expired_identity_images",

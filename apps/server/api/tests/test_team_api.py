@@ -147,8 +147,8 @@ class TeamApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 400, response.data)
-        self.assertIn("actorId", response.data)
-        self.assertIn("isActive", response.data)
+        self.assertIn("actorId", response.data["fields"])
+        self.assertIn("isActive", response.data["fields"])
         self.assertFalse(Membership.objects.filter(user=self.manager, organization=self.org).exists())
         response = self.client.post(
             self.url(), {"userId": True, "role": "RECEPTION", "propertyIds": [self.property.id]}, format="json"

@@ -79,4 +79,6 @@ export type Membership = z.infer<typeof membershipSchema>;
 export const apiErrorResponseSchema = z.object({
   error: z.string(),
   code: z.string().optional(),
+  /** A refused form: each field's first message, keyed as the request sent it. */
+  fields: z.record(z.string(), z.string()).optional(),
 });

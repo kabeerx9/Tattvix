@@ -22,6 +22,27 @@ function createMockFetch(
 }
 
 describe("createApiClient", () => {
+  it("keeps a refused form's message and per-field errors", async () => {
+    const client = createApiClient({
+      baseUrl: "https://api.example.com",
+      getToken: async () => null,
+      fetchImpl: createMockFetch(() =>
+        Response.json(
+          { error: "Enter the 12-digit Aadhaar number.", code: "invalid", fields: { documentNumber: "Enter the 12-digit Aadhaar number." } },
+          { status: 400, statusText: "Bad Request" },
+        ),
+      ),
+    });
+
+    await assert.rejects(client.requestJson("/resource", z.object({})), (error: unknown) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.message, "Enter the 12-digit Aadhaar number.");
+      assert.equal(error.code, "invalid");
+      assert.deepEqual(error.fields, { documentNumber: "Enter the 12-digit Aadhaar number." });
+      return true;
+    });
+  });
+
   it("adds Authorization when a token exists", async () => {
     let authHeader: string | null = null;
 

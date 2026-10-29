@@ -350,7 +350,15 @@ class IdentityDocumentApiTests(APITestCase):
                 self.collection_url, self._aadhaar_payload(raw), format="json"
             )
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, raw)
-            self.assertIn("documentNumber", response.data)
+            # The shared error shape: the apps show `error` and put `fields` under each field.
+            self.assertEqual(
+                response.data,
+                {
+                    "error": "Enter the 12-digit Aadhaar number.",
+                    "code": "invalid",
+                    "fields": {"documentNumber": "Enter the 12-digit Aadhaar number."},
+                },
+            )
         self.assertFalse(IdentityDocument.objects.exists())
 
     def test_resaving_masked_aadhaar_number_keeps_it(self):

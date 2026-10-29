@@ -84,3 +84,15 @@ describe("identity document contracts", () => {
     );
   });
 });
+
+it("an Aadhaar number must be 12 digits, or the masked form saved before", () => {
+  const base = { documentType: "AADHAAR" as const, nameOnDocument: "Asha", issuingCountry: "IN", expiryDate: null };
+  const refused = identityDocumentInputSchema.safeParse({ ...base, documentNumber: "123439" });
+  assert.equal(refused.success, false);
+  assert.equal(refused.error?.issues[0]?.message, "Enter the 12-digit Aadhaar number.");
+  assert.deepEqual(refused.error?.issues[0]?.path, ["documentNumber"]);
+  for (const documentNumber of ["1234 5678 9012", "1234-5678-9012", "XXXX XXXX 9012", ""]) {
+    assert.equal(identityDocumentInputSchema.safeParse({ ...base, documentNumber }).success, true, documentNumber);
+  }
+  assert.equal(identityDocumentInputSchema.safeParse({ ...base, documentType: "PASSPORT", documentNumber: "123439" }).success, true);
+});
