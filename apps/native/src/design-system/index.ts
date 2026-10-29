@@ -5,6 +5,7 @@ export { GroupTitle, LargeTitle, PageTitle, SectionTitle, TextLink } from "./Tit
 export { Button, type ButtonVariant } from "./Button";
 export { Spinner } from "./Spinner";
 export { TextField } from "./TextField";
+export { useFocusChain } from "./focus-chain";
 export { Card } from "./Card";
 export { Panel } from "./Panel";
 export { FactRow, ListRow, PanelRow } from "./ListRow";

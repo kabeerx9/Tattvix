@@ -115,6 +115,7 @@ export function DocumentViewerSheet({
             />
           </>
         }
+        scroll={false}
       >
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.status}>
@@ -154,7 +155,7 @@ export function DocumentViewerSheet({
 }
 
 const styles = StyleSheet.create({
-  scroll: { maxHeight: 520 },
+  scroll: { maxHeight: 520, flexShrink: 1 },
   status: { marginBottom: space.md },
   facts: { gap: space.md, paddingBottom: space.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderSoft },
   fact: { gap: 2 },

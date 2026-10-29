@@ -76,7 +76,7 @@ export function PickerSheet({
   const initialIndex = selected ? Math.max(0, options.findIndex((option) => option.value === selected) - 2) : 0;
 
   return (
-    <BottomSheet open={open} onClose={close} title={title} dragHandleOnly>
+    <BottomSheet open={open} onClose={close} title={title} dragHandleOnly scroll={false}>
       {search ? (
         <View style={styles.search}>
           <TextField value={query} onChangeText={setQuery} placeholder="Search" autoCorrect={false} autoCapitalize="none" accessibilityLabel={`Search ${title.toLowerCase()}`} />
@@ -86,7 +86,7 @@ export function PickerSheet({
         data={shown as PickerOption[]}
         keyExtractor={(option) => option.value}
         keyboardShouldPersistTaps="handled"
-        style={{ maxHeight: Math.max(200, height * (search ? 0.42 : 0.5)) }}
+        style={{ maxHeight: Math.max(200, height * (search ? 0.42 : 0.5)), flexShrink: 1 }}
         initialScrollIndex={initialIndex}
         getItemLayout={(_, index) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index })}
         ListEmptyComponent={<Text style={styles.empty}>No matches.</Text>}

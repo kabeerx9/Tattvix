@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentRef, type Ref } from "react";
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 
 import { colors, radii, type } from "./theme";
@@ -17,6 +17,7 @@ export function TextField({
   onBlur,
   ...input
 }: TextInputProps & {
+  ref?: Ref<ComponentRef<typeof TextInput>>;
   label?: string;
   helper?: string;
   error?: string;

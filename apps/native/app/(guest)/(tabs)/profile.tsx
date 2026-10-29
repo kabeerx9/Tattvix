@@ -14,7 +14,7 @@ import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contra
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useState, type ComponentProps } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { IdentityDocumentsSection } from "@/src/components/identity/IdentityDocumentsSection";
 import { CountryField, DateOfBirthField } from "@/src/components/profile-fields/fields";
@@ -35,6 +35,7 @@ import {
   space,
   toast,
   type,
+  useFocusChain,
 } from "@/src/design-system";
 import { api, queries } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
@@ -161,7 +162,7 @@ function EditSheet({
   onSave: () => void;
   onClose: () => void;
 }) {
-  const { height } = useWindowDimensions();
+  const chain = useFocusChain(onSave);
   const text = (key: FormKey, label: string, extra: Partial<ComponentProps<typeof TextField>> = {}) =>
     form ? <TextField label={label} value={form[key]} onChangeText={(value) => onChange(key, value)} error={errors[key]} {...extra} /> : null;
 
@@ -170,7 +171,7 @@ function EditSheet({
       open={section !== null}
       onClose={onClose}
       title={section ? profileSectionTitles[section] : undefined}
-      dragHandleOnly
+      fill
       footer={
         <>
           {saveError ? (
@@ -183,31 +184,31 @@ function EditSheet({
       }
     >
       {form ? (
-        <ScrollView style={{ maxHeight: height * 0.6 }} contentContainerStyle={styles.fields} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.fields}>
           {section === "personal" ? (
             <>
-              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name" })}
-              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here." })}
-              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210" })}
+              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", ...chain(0) })}
+              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here.", ...chain(1) })}
+              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210", ...chain(2, "dismiss") })}
               <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => onChange("dateOfBirth", value ?? "")} />
               <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={(value) => onChange("nationality", value)} />
             </>
           ) : section === "address" ? (
             <>
-              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address" })}
-              {text("addressLine2", "Address line 2", { maxLength: 255 })}
-              {text("city", "City", { maxLength: 120 })}
-              {text("stateRegion", "State or region", { maxLength: 120 })}
-              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code" })}
+              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address", ...chain(0) })}
+              {text("addressLine2", "Address line 2", { maxLength: 255, ...chain(1) })}
+              {text("city", "City", { maxLength: 120, ...chain(2) })}
+              {text("stateRegion", "State or region", { maxLength: 120, ...chain(3) })}
+              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code", ...chain(4, "dismiss") })}
               <CountryField label="Country" value={form.country} error={errors.country} onChange={(value) => onChange("country", value)} />
             </>
           ) : (
             <>
-              {text("emergencyContactName", "Contact name", { maxLength: 150 })}
-              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad" })}
+              {text("emergencyContactName", "Contact name", { maxLength: 150, ...chain(0) })}
+              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad", ...chain(1, "submit") })}
             </>
           )}
-        </ScrollView>
+        </View>
       ) : null}
     </BottomSheet>
   );

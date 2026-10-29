@@ -1,13 +1,13 @@
 // Add or edit a travel companion: legal name, date of birth, relationship and
 // nationality. Mirrors the web's CompanionEditor in
-// apps/web/src/features/companions/components/companions-page.tsx, on a sheet.
+// apps/web/src/features/companions/components/companions-page.tsx, on a full-height sheet.
 import { companionKeys } from "@tattvix/api";
 import { companionProfileInputSchema, type CompanionProfile, type CompanionProfileInput } from "@tattvix/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, TextField, colors, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, TextField, colors, space, toast, type, useFocusChain } from "@/src/design-system";
 import { api } from "@/src/lib/api";
 import { errorMessage } from "@/src/lib/format";
 
@@ -40,7 +40,6 @@ export function CompanionEditorSheet({
   companion?: CompanionProfile | null;
   onSaved?: (companion: CompanionProfile) => void;
 }) {
-  const { height } = useWindowDimensions();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Form>(() => initialForm(companion));
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -91,38 +90,44 @@ export function CompanionEditorSheet({
     save.mutate(parsed.data);
   }
 
+  const chain = useFocusChain(submit);
   const field = (key: keyof Form, label: string, extra: Record<string, unknown> = {}) => (
     <TextField label={label} value={form[key]} onChangeText={set(key)} error={errors[key]} {...extra} />
   );
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={companion ? "Edit companion" : "Add a companion"}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={companion ? "Edit companion" : "Add a companion"}
+      fill
+      footer={<Button label={companion ? "Save changes" : "Add companion"} onPress={submit} loading={save.isPending} />}
+    >
       <Text style={styles.description}>Save the basics now. Hotels only need companion details when they are part of a future check-in.</Text>
-      <ScrollView style={{ maxHeight: height * 0.6 }} contentContainerStyle={styles.fields} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {field("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name" })}
-        {field("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name." })}
+      <View style={styles.fields}>
+        {field("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", ...chain(0) })}
+        {field("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "For a single legal name, repeat the documented name.", ...chain(1) })}
         {field("dateOfBirth", "Date of birth", {
           placeholder: "YYYY-MM-DD",
           helper: "YYYY-MM-DD",
           keyboardType: "numbers-and-punctuation",
           autoCapitalize: "none",
           maxLength: 10,
+          ...chain(2),
         })}
-        {field("relationship", "Relationship", { maxLength: 100, placeholder: "Spouse", helper: "For example: spouse, child, parent, friend." })}
+        {field("relationship", "Relationship", { maxLength: 100, placeholder: "Spouse", helper: "For example: spouse, child, parent, friend.", ...chain(3) })}
         {field("nationality", "Nationality", {
           maxLength: 2,
           autoCapitalize: "characters",
           placeholder: "IN",
           helper: "Two-letter country code, such as IN.",
+          ...chain(4, "submit"),
         })}
         {saveError ? (
           <Text accessibilityRole="alert" style={styles.error}>
             {saveError}
           </Text>
         ) : null}
-      </ScrollView>
-      <View style={styles.footer}>
-        <Button label={companion ? "Save changes" : "Add companion"} onPress={submit} loading={save.isPending} />
       </View>
     </BottomSheet>
   );
@@ -132,5 +137,4 @@ const styles = StyleSheet.create({
   description: { ...type.body, color: colors.mutedForeground, marginBottom: space.lg },
   fields: { gap: space.lg, paddingBottom: space.xs },
   error: { ...type.caption, color: colors.destructive },
-  footer: { marginTop: space.lg },
 });

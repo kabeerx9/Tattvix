@@ -16,9 +16,9 @@ import {
 import { identityDocumentInputSchema, type IdentityDocument, type IdentityDocumentImageSide, type IdentityDocumentType } from "@tattvix/contracts";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, PillTabs, Spinner, TextField, TextLink, colors, radii, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, PillTabs, Spinner, TextField, TextLink, colors, radii, space, toast, type, useFocusChain } from "@/src/design-system";
 import { errorMessage } from "@/src/lib/format";
 import { pickImage } from "@/src/lib/photo-upload";
 import {
@@ -65,7 +65,6 @@ export function DocumentEditorSheet({
   /** Null for a new document. */
   document?: IdentityDocument | null;
 }) {
-  const { height } = useWindowDimensions();
   const save = useSaveDocument(companionId);
   const [form, setForm] = useState<Form>(() => initialForm(document));
   // The saved draft id: set for an edit, and after a partial failure (details saved, a photo failed).
@@ -170,11 +169,15 @@ export function DocumentEditorSheet({
   const expiryStatus = expiryValid && !fieldErrors.expiryDate ? getExpiryStatus(form.expiry) : null;
   const expiryHelper = expiryStatus && "label" in expiryStatus ? expiryStatus.label : undefined;
 
+  // Photos follow the typed fields, so the last one closes the keyboard rather than saving.
+  const chain = useFocusChain();
+
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
       title={isNew ? "Add document" : "Edit document"}
+      fill
       footer={
         <>
           <Button label="Save" onPress={submit} loading={save.isPending} />
@@ -182,7 +185,7 @@ export function DocumentEditorSheet({
         </>
       }
     >
-      <ScrollView style={{ maxHeight: Math.round(height * 0.6) }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
+      <View>
         <Text style={styles.sectionLabel}>Document type</Text>
         <PillTabs items={typeItems} value={form.type} onChange={(key) => set("type")(key as IdentityDocumentType)} />
         {fieldErrors.documentType ? <Text style={styles.error}>{fieldErrors.documentType}</Text> : null}
@@ -204,6 +207,7 @@ export function DocumentEditorSheet({
               onChangeText={set("number")}
               error={fieldErrors.documentNumber}
               {...documentNumberFieldProps(form.type)}
+              {...chain(0)}
             />
           )}
 
@@ -214,6 +218,7 @@ export function DocumentEditorSheet({
             error={fieldErrors.nameOnDocument}
             maxLength={300}
             autoComplete="name"
+            {...chain(1)}
           />
 
           <TextField
@@ -225,6 +230,7 @@ export function DocumentEditorSheet({
             maxLength={2}
             autoCapitalize="characters"
             placeholder="IN"
+            {...chain(2, expiryVisible ? undefined : "dismiss")}
           />
 
           {expiryVisible ? (
@@ -238,6 +244,7 @@ export function DocumentEditorSheet({
               keyboardType="numbers-and-punctuation"
               autoCapitalize="none"
               maxLength={10}
+              {...chain(3, "dismiss")}
             />
           ) : null}
         </View>
@@ -262,7 +269,7 @@ export function DocumentEditorSheet({
             {submitError}
           </Text>
         ) : null}
-      </ScrollView>
+      </View>
     </BottomSheet>
   );
 }

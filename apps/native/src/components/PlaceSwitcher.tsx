@@ -121,8 +121,8 @@ export function PlaceSwitcherSheet({ open, onClose, current }: { open: boolean; 
 
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} dragHandleOnly title={current.kind === "hotel" ? "Menu" : "Switch place"}>
-        <ScrollView style={{ maxHeight: Math.max(120, height - 200) }} keyboardShouldPersistTaps="handled" bounces={false}>
+      <BottomSheet open={open} onClose={onClose} dragHandleOnly scroll={false} title={current.kind === "hotel" ? "Menu" : "Switch place"}>
+        <ScrollView style={{ maxHeight: Math.max(120, height - 200), flexShrink: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
         {current.kind === "hotel" ? <HotelMenuRows placeKey={current.key} onNavigate={onClose} /> : null}
         <PlaceSwitcherRows
           current={current}

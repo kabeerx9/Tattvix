@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { BottomSheet, Button, TextField, colors, space, toast, type } from "@/src/design-system";
+import { BottomSheet, Button, TextField, colors, space, toast, type, useFocusChain } from "@/src/design-system";
 import type { DeskScope } from "@/src/lib/desk-scope";
 import { errorMessage } from "@/src/lib/format";
 import { hotelMutations } from "@/src/lib/hotel-mutations";
@@ -52,6 +52,7 @@ export function AddRoomSheet({ scope, open, onClose }: { scope: DeskScope; open:
     );
   }
 
+  const chain = useFocusChain(save);
   const error = createRoom.isError ? errorMessage(createRoom.error, "The room could not be added.") : null;
 
   return (
@@ -62,15 +63,16 @@ export function AddRoomSheet({ scope, open, onClose }: { scope: DeskScope; open:
       footer={<Button label="Save room" onPress={save} loading={createRoom.isPending} disabled={!canSave} />}
     >
       <View style={styles.stack}>
-        <TextField label="Room number" placeholder="101" value={fields.number} onChangeText={set("number")} autoCapitalize="characters" />
-        <TextField label="Floor" placeholder="1" value={fields.floor} onChangeText={set("floor")} />
-        <TextField label="Room type" placeholder="Deluxe" value={fields.roomType} onChangeText={set("roomType")} />
+        <TextField label="Room number" placeholder="101" value={fields.number} onChangeText={set("number")} autoCapitalize="characters" {...chain(0)} />
+        <TextField label="Floor" placeholder="1" value={fields.floor} onChangeText={set("floor")} {...chain(1)} />
+        <TextField label="Room type" placeholder="Deluxe" value={fields.roomType} onChangeText={set("roomType")} {...chain(2)} />
         <TextField
           label="Nightly rate (INR, optional)"
           placeholder="2500.00"
           inputMode="decimal"
           value={fields.rate}
           onChangeText={set("rate")}
+          {...chain(3, "submit")}
           error={rateInvalid ? "Enter an amount in rupees" : undefined}
         />
         {error ? (

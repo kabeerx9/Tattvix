@@ -171,7 +171,7 @@ export function StaySheet({
   }
 
   return (
-    <BottomSheet open={stayId !== null} onClose={onClose} title={assigning ? "Assign a room" : "Reservation"} footer={footer}>
+    <BottomSheet open={stayId !== null} onClose={onClose} title={assigning ? "Assign a room" : "Reservation"} footer={footer} scroll={false}>
       {stay ? (
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.stack}>
@@ -437,7 +437,7 @@ function RoomRateEditor({ scope, room }: { scope: DeskScope; room: HotelRoom }) 
 
 const styles = StyleSheet.create({
   rateActions: { flexDirection: "row", gap: space.sm },
-  scroll: { maxHeight: 520 },
+  scroll: { maxHeight: 520, flexShrink: 1 },
   stack: { gap: space.xl, paddingTop: space.sm },
   identity: { flexDirection: "row", alignItems: "center", gap: space.lg },
   name: { ...type.cardTitle, color: colors.foreground },
