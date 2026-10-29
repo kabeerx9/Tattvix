@@ -19,6 +19,13 @@ describe("resolveAppLinkPath", () => {
     assert.equal(resolveAppLinkPath("https://tattwix.in.evil.com/hotel/a/b"), "/");
   });
 
+  it("opens a referral link on the register screen with its code, dropping a malformed one", () => {
+    assert.equal(resolveAppLinkPath("https://tattwix.in/register-hotel?ref=AB12CD"), "/(guest)/register-hotel?ref=AB12CD");
+    assert.equal(resolveAppLinkPath("https://tattwix.in/register-hotel"), "/(guest)/register-hotel");
+    assert.equal(resolveAppLinkPath("https://tattwix.in/register-hotel?ref=%3Cx%3E"), "/(guest)/register-hotel");
+    assert.equal(resolveAppLinkPath("https://tattwix.in/register-hotel/extra"), "/");
+  });
+
   it("maps a guest check-in link to its route, ignoring trailing slash, query and hash", () => {
     assert.equal(resolveAppLinkPath("https://tattwix.in/check-in/tok123"), "/check-in/tok123");
     assert.equal(resolveAppLinkPath("https://tattwix.in/check-in/tok123/"), "/check-in/tok123");

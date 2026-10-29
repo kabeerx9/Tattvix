@@ -42,6 +42,11 @@
               "scheme": "https",
               "host": "tattwix.in",
               "pathPrefix": "/hotel"
+            },
+            {
+              "scheme": "https",
+              "host": "tattwix.in",
+              "pathPrefix": "/register-hotel"
             }
           ],
           "category": [

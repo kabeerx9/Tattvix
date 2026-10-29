@@ -3,12 +3,14 @@ import { env } from "@tattvix/env/native";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import { useRouter } from "expo-router";
-import { UserRound } from "lucide-react-native";
+import { KeyRound, UserRound } from "lucide-react-native";
+import { useState } from "react";
 import { getAccountSettings } from "@tattvix/api";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, LargeTitle, ListRow, Panel, Screen, colors, space, type } from "@/src/design-system";
 import { AccountSettingsSections } from "@/src/components/account-settings-sections";
+import { NameSheet, PasswordSheet } from "@/src/components/account-sheets";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { useCurrentUser } from "@/src/lib/current-user";
 
@@ -26,6 +28,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const { user } = useUser();
   const currentUser = useCurrentUser();
+  const [sheet, setSheet] = useState<"name" | "password" | null>(null);
   if (!currentUser.data) {
     if (currentUser.isError) return <RetryScreen onRetry={() => void currentUser.refetch()} retrying={currentUser.isFetching} />;
     return <PendingScreen />;
@@ -37,12 +40,15 @@ export default function AccountScreen() {
       <LargeTitle meta={settings.isOwner ? "Your hotels and personal account." : "Your account and personal preferences."}>{settings.isOwner ? "Hotel owner account" : "Account"}</LargeTitle>
       <View style={styles.section}>
         <Panel>
-          <ListRow icon={UserRound} title={user?.fullName || "Tattwix account"} detail={user?.primaryEmailAddress?.emailAddress} />
+          <ListRow icon={UserRound} title={user?.fullName || "Tattwix account"} detail={user?.primaryEmailAddress?.emailAddress} chevron onPress={() => setSheet("name")} />
+          <ListRow icon={KeyRound} title={user?.passwordEnabled ? "Change password" : "Set a password"} chevron onPress={() => setSheet("password")} />
         </Panel>
         <AccountSettingsSections user={currentUser.data} />
         <Button label="Help desk" variant="outline" onPress={() => router.push("/support")} />
         <Button label="Sign out" variant="outline" onPress={() => signOut()} />
       </View>
+      <NameSheet open={sheet === "name"} onClose={() => setSheet(null)} />
+      <PasswordSheet open={sheet === "password"} onClose={() => setSheet(null)} />
       <Text style={styles.footer} selectable>
         {buildFooter()}
       </Text>

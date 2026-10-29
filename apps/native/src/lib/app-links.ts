@@ -34,6 +34,12 @@ export function resolveAppLinkPath(url: string): string | null {
   if (root === "hotel") {
     return resolveHotelPath(rest);
   }
+  // A referral link (/register-hotel?ref=CODE) keeps its code for the form.
+  if (root === "register-hotel") {
+    if (rest.length) return "/";
+    const ref = parsed.searchParams.get("ref")?.trim();
+    return ref && /^[A-Za-z0-9-]{1,32}$/.test(ref) ? `/(guest)/register-hotel?ref=${ref}` : "/(guest)/register-hotel";
+  }
   return "/";
 }
 
