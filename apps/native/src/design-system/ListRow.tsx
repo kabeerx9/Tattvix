@@ -86,12 +86,21 @@ const styles = StyleSheet.create({
   factIcon: { marginTop: 6 },
   factValue: { ...type.body, color: colors.foreground },
   factEmpty: { color: colors.subtleForeground },
+  factAdd: { ...type.rowTitle, color: colors.primary },
+  factChevron: { alignSelf: "center" },
 });
 
-/** A read-only fact inside a Panel: small label over the value, its icon on the fact's own colour. A null value reads "Not added". */
-export function FactRow({ label, value, icon }: { label: string; value: string | null; icon?: FactIcon }) {
-  return (
-    <View style={[styles.row, styles.fact]} accessible accessibilityLabel={`${label}: ${value ?? "Not added"}`}>
+/**
+ * A fact inside a Panel: small label over the value, its icon on the fact's own colour.
+ * With `onPress` the whole row edits it (chevron), and an empty value reads as the action,
+ * such as "Add phone number"; without it, an empty value reads "Not added".
+ */
+export function FactRow({ label, value, icon, addLabel, onPress }: { label: string; value: string | null; icon?: FactIcon; addLabel?: string; onPress?: () => void }) {
+  const press = usePressFeedback();
+  const empty = value === null;
+  const shown = empty ? (onPress && addLabel ? addLabel : "Not added") : value;
+  const body = (
+    <View style={[styles.row, styles.fact]}>
       {icon ? (
         <View style={styles.factIcon}>
           <SolidIcon icon={factIcons[icon]} tone={factTones[icon]} />
@@ -99,8 +108,28 @@ export function FactRow({ label, value, icon }: { label: string; value: string |
       ) : null}
       <View style={styles.copy}>
         <Text style={styles.detail}>{label}</Text>
-        <Text style={[styles.factValue, value === null && styles.factEmpty]}>{value ?? "Not added"}</Text>
+        <Text style={[styles.factValue, empty && (onPress ? styles.factAdd : styles.factEmpty)]}>{shown}</Text>
       </View>
+      {onPress ? <ChevronRight color={colors.subtleForeground} size={18} strokeWidth={2} style={styles.factChevron} /> : null}
     </View>
+  );
+  if (!onPress) {
+    return (
+      <View accessible accessibilityLabel={`${label}: ${value ?? "Not added"}`}>
+        {body}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={empty ? (addLabel ?? `Add ${label.toLowerCase()}`) : `${label}: ${value}`}
+      accessibilityHint={empty ? undefined : "Edit"}
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+    >
+      <Animated.View style={press.style}>{body}</Animated.View>
+    </Pressable>
   );
 }

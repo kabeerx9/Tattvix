@@ -1,18 +1,11 @@
 // Read view of the guest travel profile, shared by both clients: what each
-// section shows, which fields its edit sheet holds, and check-in readiness.
+// section shows, which field a tap on each fact edits, and check-in readiness.
 import type { CompanionProfile, CompanionProfileMissingField, GuestProfileInput, GuestProfileMissingField } from "@tattvix/contracts";
 
 import { countryName } from "./countries";
 import { formatDate } from "./guest-format";
 
 export type ProfileSectionKey = "personal" | "address" | "emergency";
-
-/** The fields each section's edit sheet holds. */
-export const profileSectionFields: Record<ProfileSectionKey, (keyof GuestProfileInput)[]> = {
-  personal: ["legalFirstName", "legalLastName", "phoneNumber", "dateOfBirth", "nationality"],
-  address: ["addressLine1", "addressLine2", "city", "stateRegion", "postalCode", "country"],
-  emergency: ["emergencyContactName", "emergencyContactPhone"],
-};
 
 export const profileSectionTitles: Record<ProfileSectionKey, string> = {
   personal: "Personal details",
@@ -23,7 +16,15 @@ export const profileSectionTitles: Record<ProfileSectionKey, string> = {
 /** Neutral line icon for a fact; each client maps the name to its own Lucide component. */
 export type FactIcon = "name" | "phone" | "birthday" | "nationality" | "address" | "contact" | "relationship" | "room" | "requested" | "checkedIn" | "checkedOut" | "nights";
 
-export type ProfileFact = { label: string; value: string | null; icon: FactIcon };
+export type ProfileFact = {
+  label: string;
+  value: string | null;
+  icon: FactIcon;
+  /** The form field a tap on this fact opens and focuses. */
+  field?: string;
+  /** What an empty fact says instead of a blank, as an action: "Add phone number". */
+  addLabel?: string;
+};
 
 export type FactTone = "teal" | "blue" | "rose" | "amber" | "green" | "plum" | "slate";
 
@@ -53,10 +54,10 @@ export function getProfileSections(profile: GuestProfileInput): { key: ProfileSe
       key: "personal",
       title: profileSectionTitles.personal,
       facts: [
-        { label: "Legal name", value: joined([profile.legalFirstName, profile.legalLastName], " "), icon: "name" },
-        { label: "Phone", value: joined([profile.phoneNumber], ""), icon: "phone" },
-        { label: "Date of birth", value: profile.dateOfBirth ? formatDate(profile.dateOfBirth) : null, icon: "birthday" },
-        { label: "Nationality", value: country(profile.nationality), icon: "nationality" },
+        { label: "Legal name", value: joined([profile.legalFirstName, profile.legalLastName], " "), icon: "name", field: "legalFirstName", addLabel: "Add your legal name" },
+        { label: "Phone", value: joined([profile.phoneNumber], ""), icon: "phone", field: "phoneNumber", addLabel: "Add phone number" },
+        { label: "Date of birth", value: profile.dateOfBirth ? formatDate(profile.dateOfBirth) : null, icon: "birthday", field: "dateOfBirth", addLabel: "Add date of birth" },
+        { label: "Nationality", value: country(profile.nationality), icon: "nationality", field: "nationality", addLabel: "Add nationality" },
       ],
     },
     {
@@ -74,13 +75,15 @@ export function getProfileSections(profile: GuestProfileInput): { key: ProfileSe
             "\n",
           ),
           icon: "address",
+          field: "addressLine1",
+          addLabel: "Add home address",
         },
       ],
     },
     {
       key: "emergency",
       title: profileSectionTitles.emergency,
-      facts: [{ label: "Contact", value: joined([profile.emergencyContactName, profile.emergencyContactPhone], " · "), icon: "contact" }],
+      facts: [{ label: "Contact", value: joined([profile.emergencyContactName, profile.emergencyContactPhone], " · "), icon: "contact", field: "emergencyContactName", addLabel: "Add emergency contact" }],
     },
   ];
 }
@@ -100,6 +103,18 @@ export const profileMissingFieldLabels: Record<GuestProfileMissingField, string>
 };
 
 const requiredCount = Object.keys(profileMissingFieldLabels).length;
+
+/** The form's fields in the order the form shows them. */
+const profileFormOrder: (keyof GuestProfileInput)[] = [
+  "legalFirstName", "legalLastName", "phoneNumber", "dateOfBirth", "nationality",
+  "addressLine1", "addressLine2", "city", "stateRegion", "postalCode", "country",
+  "emergencyContactName", "emergencyContactPhone",
+];
+
+/** Where "Complete profile" opens the form: the first missing detail, or null when only documents are left. */
+export function firstMissingProfileField(missing: GuestProfileMissingField[]): keyof GuestProfileInput | null {
+  return profileFormOrder.find((field) => (missing as string[]).includes(field)) ?? null;
+}
 
 /** How close the guest is to a one-scan check-in. */
 export function getProfileReadiness(missing: GuestProfileMissingField[]) {
@@ -127,9 +142,9 @@ type CompanionView = Pick<CompanionProfile, "legalFirstName" | "legalLastName" |
 export function getCompanionFacts(companion: CompanionView): ProfileFact[] {
   const born = companion.dateOfBirth ? joined([formatDate(companion.dateOfBirth), companion.isMinor ? "Under 18" : null], " · ") : null;
   return [
-    { label: "Relationship", value: joined([companion.relationship], ""), icon: "relationship" },
-    { label: "Date of birth", value: born, icon: "birthday" },
-    { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null, icon: "nationality" },
+    { label: "Relationship", value: joined([companion.relationship], ""), icon: "relationship", field: "relationship", addLabel: "Add relationship" },
+    { label: "Date of birth", value: born, icon: "birthday", field: "dateOfBirth", addLabel: "Add date of birth" },
+    { label: "Nationality", value: companion.nationality.trim() ? countryName(companion.nationality) : null, icon: "nationality", field: "nationality", addLabel: "Add nationality" },
   ];
 }
 

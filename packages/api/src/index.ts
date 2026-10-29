@@ -122,7 +122,7 @@ export {
   getProfileReadiness,
   getProfileSections,
   profileMissingFieldLabels,
-  profileSectionFields,
+  firstMissingProfileField,
   profileSectionTitles,
   readinessLine,
   type FactIcon,

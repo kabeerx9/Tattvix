@@ -98,14 +98,20 @@ export function mutationError(error: unknown, isError: boolean) {
 export function CompanionEditorSheet({
   open,
   onOpenChange,
+  focus,
   ...editor
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** A field to focus when the sheet opens, from a tapped fact. */
+  focus?: string;
 } & React.ComponentProps<typeof CompanionEditor>) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent
+        className="w-full overflow-y-auto sm:max-w-lg"
+        initialFocus={focus ? () => document.getElementById(`companion-${focus}`) : undefined}
+      >
         <SheetHeader className="pr-12">
           <SheetTitle>{editor.companion ? "Edit companion" : "Add a companion"}</SheetTitle>
         </SheetHeader>
@@ -156,17 +162,17 @@ function CompanionEditor({
   return (
     <form className="grid min-h-0 flex-1 gap-5 px-4 pb-4" onSubmit={handleSubmit}>
       <div className="grid gap-4">
-        <EditorField label="Legal first name" error={fieldErrors.legalFirstName}>
-          <Input name="legalFirstName" defaultValue={companion?.legalFirstName ?? ""} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(fieldErrors.legalFirstName)} />
+        <EditorField label="Legal first name" htmlFor="companion-legalFirstName" error={fieldErrors.legalFirstName}>
+          <Input id="companion-legalFirstName" name="legalFirstName" defaultValue={companion?.legalFirstName ?? ""} maxLength={150} autoComplete="given-name" aria-invalid={Boolean(fieldErrors.legalFirstName)} />
         </EditorField>
-        <EditorField label="Legal last name" error={fieldErrors.legalLastName} hint="With a single legal name, repeat it here.">
-          <Input name="legalLastName" defaultValue={companion?.legalLastName ?? ""} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(fieldErrors.legalLastName)} />
+        <EditorField label="Legal last name" htmlFor="companion-legalLastName" error={fieldErrors.legalLastName} hint="With a single legal name, repeat it here.">
+          <Input id="companion-legalLastName" name="legalLastName" defaultValue={companion?.legalLastName ?? ""} maxLength={150} autoComplete="family-name" aria-invalid={Boolean(fieldErrors.legalLastName)} />
         </EditorField>
-        <EditorField label="Date of birth" error={fieldErrors.dateOfBirth}>
-          <Input name="dateOfBirth" defaultValue={companion?.dateOfBirth ?? ""} type="date" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
+        <EditorField label="Date of birth" htmlFor="companion-dateOfBirth" error={fieldErrors.dateOfBirth}>
+          <Input id="companion-dateOfBirth" name="dateOfBirth" defaultValue={companion?.dateOfBirth ?? ""} type="date" max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(fieldErrors.dateOfBirth)} />
         </EditorField>
-        <EditorField label="Relationship" error={fieldErrors.relationship} hint="For example: spouse, child, parent, friend.">
-          <Input name="relationship" defaultValue={companion?.relationship ?? ""} maxLength={100} placeholder="Spouse" aria-invalid={Boolean(fieldErrors.relationship)} />
+        <EditorField label="Relationship" htmlFor="companion-relationship" error={fieldErrors.relationship} hint="For example: spouse, child, parent, friend.">
+          <Input id="companion-relationship" name="relationship" defaultValue={companion?.relationship ?? ""} maxLength={100} placeholder="Spouse" aria-invalid={Boolean(fieldErrors.relationship)} />
         </EditorField>
         <EditorField label="Nationality" htmlFor="companion-nationality" error={fieldErrors.nationality}>
           <CountrySelect id="companion-nationality" name="nationality" defaultValue={companion?.nationality ?? ""} invalid={Boolean(fieldErrors.nationality)} />

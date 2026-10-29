@@ -13,7 +13,7 @@ import { avatarTone, describeLoadFailure, factTones, type FactIcon } from "@tatt
 import { useQueryClient } from "@tanstack/react-query";
 import { useCanGoBack, useRouter } from "@tanstack/react-router";
 import { Children, useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, FileX, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ChevronRight, FileX, RefreshCw } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
 import { factIcons } from "@/components/fact-icons";
@@ -915,23 +915,54 @@ export function BottomTabBar({ items, label }: { items: BottomTabBarItem[]; labe
   );
 }
 
-/** Read-only facts inside a Panel: small label over each value; null reads "Not added". */
-export function FactList({ facts }: { facts: { label: string; value: string | null; icon?: FactIcon }[] }) {
-  return (
-    <dl className="divide-y divide-border-soft">
-      {facts.map((fact) => {
-        return (
-          <div key={fact.label} className="flex gap-3.5 px-5 py-3.5">
-            {fact.icon ? <SolidIcon icon={factIcons[fact.icon]} tone={factTones[fact.icon]} className="mt-1.5" /> : null}
-            <div className="min-w-0">
-              <dt className="text-sm text-muted-foreground">{fact.label}</dt>
-              <dd className={cn("mt-0.5 text-[15px] whitespace-pre-line [overflow-wrap:anywhere]", fact.value === null && "text-subtle-foreground")}>
-                {fact.value ?? "Not added"}
-              </dd>
-            </div>
-          </div>
-        );
-      })}
-    </dl>
-  );
+type Fact = { label: string; value: string | null; icon?: FactIcon; field?: string; addLabel?: string };
+
+/**
+ * Facts inside a Panel: small label over each value. With `onSelect` each fact is a
+ * button that edits it (chevron), and an empty one reads as the action, such as
+ * "Add phone number"; without it, an empty fact reads "Not added".
+ */
+export function FactList({ facts, onSelect }: { facts: Fact[]; onSelect?: (fact: Fact) => void }) {
+  // A definition list while read-only; a list of buttons once each fact edits.
+  const Term = onSelect ? "span" : "dt";
+  const Value = onSelect ? "span" : "dd";
+  const rows = facts.map((fact) => {
+    const empty = fact.value === null;
+    const content = (
+      <>
+        {fact.icon ? <SolidIcon icon={factIcons[fact.icon]} tone={factTones[fact.icon]} className="mt-1.5" /> : null}
+        <span className="block min-w-0 flex-1">
+          <Term className="block text-sm text-muted-foreground">{fact.label}</Term>
+          <Value
+            className={cn(
+              "mt-0.5 block text-[15px] whitespace-pre-line [overflow-wrap:anywhere]",
+              empty && (onSelect ? "font-semibold text-primary" : "text-subtle-foreground"),
+            )}
+          >
+            {empty ? (onSelect && fact.addLabel ? fact.addLabel : "Not added") : fact.value}
+          </Value>
+        </span>
+        {onSelect ? <ChevronRight aria-hidden className="size-4 self-center text-subtle-foreground" /> : null}
+      </>
+    );
+    if (!onSelect) {
+      return (
+        <div key={fact.label} className="flex gap-3.5 px-5 py-3.5">
+          {content}
+        </div>
+      );
+    }
+    return (
+      <li key={fact.label}>
+        <button
+          type="button"
+          onClick={() => onSelect(fact)}
+          className="flex w-full gap-3.5 px-5 py-3.5 text-left outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
+          {content}
+        </button>
+      </li>
+    );
+  });
+  return onSelect ? <ul className="divide-y divide-border-soft">{rows}</ul> : <dl className="divide-y divide-border-soft">{rows}</dl>;
 }

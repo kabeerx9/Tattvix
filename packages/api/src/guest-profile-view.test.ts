@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { GuestProfileInput } from "@tattvix/contracts";
 
 import { avatarTone, placeInitials, placeTone } from "./guest-format";
-import { companionRowDetail, factTones, getCompanionFacts, getProfileReadiness, getProfileSections, readinessLine } from "./guest-profile-view";
+import { companionRowDetail, factTones, firstMissingProfileField, getCompanionFacts, getProfileReadiness, getProfileSections, readinessLine } from "./guest-profile-view";
 
 const empty: GuestProfileInput = {
   legalFirstName: "", legalLastName: "", phoneNumber: "", dateOfBirth: null, nationality: "",
@@ -25,6 +25,19 @@ test("a filled profile reads as plain facts", () => {
 test("missing values are null so the screen can say they are not added", () => {
   const sections = getProfileSections(empty);
   assert.ok(sections.every((section) => section.facts.every((fact) => fact.value === null)));
+});
+
+test("every profile fact opens a form field and reads as an action when empty", () => {
+  for (const fact of getProfileSections(empty).flatMap((section) => section.facts)) {
+    assert.ok(fact.field && fact.field in empty, fact.label);
+    assert.match(fact.addLabel ?? "", /^Add /);
+  }
+});
+
+test("complete profile starts at the first missing detail in form order", () => {
+  assert.equal(firstMissingProfileField(["country", "phoneNumber", "identityDocuments"]), "phoneNumber");
+  assert.equal(firstMissingProfileField(["identityDocuments"]), null);
+  assert.equal(firstMissingProfileField([]), null);
 });
 
 test("readiness counts what is left", () => {

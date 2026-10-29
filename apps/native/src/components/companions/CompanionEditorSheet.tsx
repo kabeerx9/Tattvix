@@ -33,11 +33,14 @@ export function CompanionEditorSheet({
   open,
   onClose,
   companion,
+  focus,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   companion?: CompanionProfile | null;
+  /** A field to focus when the sheet opens, from a tapped fact. */
+  focus?: string;
   onSaved?: (companion: CompanionProfile) => void;
 }) {
   const queryClient = useQueryClient();
@@ -91,7 +94,7 @@ export function CompanionEditorSheet({
   }
 
   const field = (key: keyof Form, label: string, extra: Record<string, unknown> = {}) => (
-    <TextField label={label} value={form[key]} onChangeText={set(key)} error={errors[key]} {...extra} />
+    <TextField label={label} value={form[key]} onChangeText={set(key)} error={errors[key]} autoFocus={open && focus === key} {...extra} />
   );
 
   return (

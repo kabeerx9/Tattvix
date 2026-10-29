@@ -20,7 +20,8 @@ export default function CompanionScreen() {
   const { companionId } = useLocalSearchParams<{ companionId: string }>();
   const query = useQuery(queries.companions.list());
   const companion = query.data?.companions.find((item) => String(item.id) === companionId) ?? null;
-  const [editing, setEditing] = useState(false);
+  // The field the editor opened on; null while it is closed, "" for the Edit link.
+  const [editing, setEditing] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
   const remove = useMutation({
@@ -65,10 +66,10 @@ export default function CompanionScreen() {
       </View>
 
       <Enter style={styles.section}>
-        <GroupTitle action={<TextLink label="Edit" onPress={() => setEditing(true)} />}>Details</GroupTitle>
+        <GroupTitle action={<TextLink label="Edit" onPress={() => setEditing("")} />}>Details</GroupTitle>
         <Panel>
           {getCompanionFacts(companion).map((fact) => (
-            <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} />
+            <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} addLabel={fact.addLabel} onPress={() => setEditing(fact.field ?? "")} />
           ))}
         </Panel>
       </Enter>
@@ -81,7 +82,7 @@ export default function CompanionScreen() {
         <Button label="Remove companion" variant="destructive" onPress={() => setRemoving(true)} />
       </View>
 
-      <CompanionEditorSheet open={editing} onClose={() => setEditing(false)} companion={companion} />
+      <CompanionEditorSheet open={editing !== null} onClose={() => setEditing(null)} companion={companion} focus={editing ?? undefined} />
       <ConfirmSheet
         open={removing}
         onClose={() => {

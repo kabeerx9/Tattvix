@@ -23,8 +23,8 @@ type DragState = {
 /**
  * Bottom sheet on phones (drag handle, swipe down to dismiss on distance or
  * velocity, rubber-band when pulled up) and a centred dialog from 768px.
- * Escape and the backdrop close it; focus moves in on open and back to the
- * trigger on close; the page behind does not scroll.
+ * Escape and the backdrop close it; focus moves in on open (to the element
+ * with id `initialFocus` when given, else the sheet) and back to the trigger on close; the page behind does not scroll.
  *
  * Styling lives in globals.css (`.bottom-sheet`, `.sheet-backdrop`).
  */
@@ -36,6 +36,7 @@ function BottomSheet({
   children,
   footer,
   className,
+  initialFocus,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -44,6 +45,7 @@ function BottomSheet({
   children: React.ReactNode
   footer?: React.ReactNode
   className?: string
+  initialFocus?: string
 }) {
   const [mounted, setMounted] = React.useState(open)
   const [visible, setVisible] = React.useState(false)
@@ -95,8 +97,11 @@ function BottomSheet({
   }, [mounted, close])
 
   React.useEffect(() => {
-    if (visible) sheetRef.current?.focus({ preventScroll: true })
-  }, [visible])
+    if (!visible) return
+    const target = initialFocus ? document.getElementById(initialFocus) : null
+    if (target) target.focus()
+    else sheetRef.current?.focus({ preventScroll: true })
+  }, [visible, initialFocus])
 
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     // One finger at a time; phones only; the close button stays a button.

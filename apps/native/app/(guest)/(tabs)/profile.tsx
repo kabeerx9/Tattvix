@@ -1,15 +1,9 @@
 // Guest travel profile, read first: a teal band says how ready the guest is
-// for check-in, then each section shows what is saved, and
-// "Edit" opens just that section's fields in a sheet. Then the identity
-// documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
-import {
-  getProfileReadiness,
-  getProfileSections,
-  guestProfileKeys,
-  profileSectionTitles,
-  readinessLine,
-  type ProfileSectionKey,
-} from "@tattvix/api";
+// for check-in, then each section shows what is saved. Every fact is a row
+// that opens one form holding all the details, focused on that fact; an empty
+// fact reads as the action ("Add phone number"), and "Complete profile" opens
+// the form at the first missing detail. Then the identity documents. Mirrors apps/web/src/features/guest-profile/components/guest-profile-page.tsx.
+import { firstMissingProfileField, getProfileReadiness, getProfileSections, guestProfileKeys, profileSectionTitles, readinessLine } from "@tattvix/api";
 import { guestProfileInputSchema, type GuestProfileInput } from "@tattvix/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
@@ -51,7 +45,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { onboarding } = useLocalSearchParams<{ onboarding?: string }>();
   const profile = useQuery(queries.guestProfile.detail());
-  const [editing, setEditing] = useState<ProfileSectionKey | null>(null);
+  // The field the form opened on; null while the form is closed, "" to open it with nothing focused.
+  const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [errors, setErrors] = useState<Partial<Record<FormKey, string>>>({});
 
@@ -70,12 +65,12 @@ export default function ProfileScreen() {
     return <PendingScreen />;
   }
 
-  // Each sheet starts from the saved copy, so a cancelled edit leaves nothing behind.
-  function openEditor(section: ProfileSectionKey) {
+  // The form starts from the saved copy, so a cancelled edit leaves nothing behind.
+  function openEditor(field: string) {
     setForm(toForm(profile.data!.profile));
     setErrors({});
     save.reset();
-    setEditing(section);
+    setEditing(field);
   }
 
   function submit() {
@@ -96,6 +91,7 @@ export default function ProfileScreen() {
 
   const readiness = getProfileReadiness(profile.data.readiness.missingFields);
   const sections = getProfileSections(profile.data.profile);
+  const nextField = firstMissingProfileField(profile.data.readiness.missingFields);
 
   return (
     <BandScreen
@@ -106,14 +102,19 @@ export default function ProfileScreen() {
       refreshing={profile.isFetching && !profile.isPending}
       onRefresh={() => void profile.refetch()}
     >
+      {nextField ? (
+        <View style={styles.next}>
+          <Button label="Complete profile" onPress={() => openEditor(nextField)} />
+        </View>
+      ) : null}
       {onboarding === "identity" ? <Text style={[styles.meta, styles.note]}>Next: add a government ID under Identity documents below.</Text> : null}
 
       {sections.map((section, index) => (
         <Enter key={section.key} index={index + 1} style={styles.section}>
-          <GroupTitle action={<TextLink label={section.facts.every((fact) => fact.value === null) ? "Add" : "Edit"} onPress={() => openEditor(section.key)} />}>{section.title}</GroupTitle>
+          <GroupTitle>{section.title}</GroupTitle>
           <Panel>
             {section.facts.map((fact) => (
-              <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} />
+              <FactRow key={fact.label} label={fact.label} value={fact.value} icon={fact.icon} addLabel={fact.addLabel} onPress={() => openEditor(fact.field ?? "")} />
             ))}
           </Panel>
         </Enter>
@@ -123,8 +124,8 @@ export default function ProfileScreen() {
         <IdentityDocumentsSection />
       </Enter>
 
-      <EditSheet
-        section={editing}
+      <DetailsSheet
+        focus={editing}
         form={form}
         errors={errors}
         saving={save.isPending}
@@ -142,8 +143,8 @@ export default function ProfileScreen() {
   );
 }
 
-function EditSheet({
-  section,
+function DetailsSheet({
+  focus,
   form,
   errors,
   saving,
@@ -152,7 +153,8 @@ function EditSheet({
   onSave,
   onClose,
 }: {
-  section: ProfileSectionKey | null;
+  /** The field to focus; null when closed. */
+  focus: string | null;
   form: Form | null;
   errors: Partial<Record<FormKey, string>>;
   saving: boolean;
@@ -162,13 +164,13 @@ function EditSheet({
   onClose: () => void;
 }) {
   const text = (key: FormKey, label: string, extra: Partial<ComponentProps<typeof TextField>> = {}) =>
-    form ? <TextField label={label} value={form[key]} onChangeText={(value) => onChange(key, value)} error={errors[key]} {...extra} /> : null;
+    form ? <TextField label={label} value={form[key]} onChangeText={(value) => onChange(key, value)} error={errors[key]} autoFocus={focus === key} {...extra} /> : null;
 
   return (
     <BottomSheet
-      open={section !== null}
+      open={focus !== null}
       onClose={onClose}
-      title={section ? profileSectionTitles[section] : undefined}
+      title="Your details"
       fill
       footer={
         <>
@@ -183,29 +185,24 @@ function EditSheet({
     >
       {form ? (
         <View style={styles.fields}>
-          {section === "personal" ? (
-            <>
-              {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", enter: "next" })}
-              {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here.", enter: "next" })}
-              {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210", enter: "done" })}
-              <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => onChange("dateOfBirth", value ?? "")} />
-              <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={(value) => onChange("nationality", value)} />
-            </>
-          ) : section === "address" ? (
-            <>
-              {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address", enter: "next" })}
-              {text("addressLine2", "Address line 2", { maxLength: 255, enter: "next" })}
-              {text("city", "City", { maxLength: 120, enter: "next" })}
-              {text("stateRegion", "State or region", { maxLength: 120, enter: "next" })}
-              {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code", enter: "done" })}
-              <CountryField label="Country" value={form.country} error={errors.country} onChange={(value) => onChange("country", value)} />
-            </>
-          ) : (
-            <>
-              {text("emergencyContactName", "Contact name", { maxLength: 150, enter: "next" })}
-              {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad", enter: onSave })}
-            </>
-          )}
+          <Text accessibilityRole="header" style={styles.formGroup}>{profileSectionTitles.personal}</Text>
+          {text("legalFirstName", "Legal first name", { maxLength: 150, autoComplete: "given-name", enter: "next" })}
+          {text("legalLastName", "Legal last name", { maxLength: 150, autoComplete: "family-name", helper: "With a single legal name, repeat it here.", enter: "next" })}
+          {text("phoneNumber", "Phone number", { maxLength: 32, keyboardType: "phone-pad", placeholder: "+91 98765 43210", enter: "done" })}
+          <DateOfBirthField label="Date of birth" value={form.dateOfBirth || null} error={errors.dateOfBirth} onChange={(value) => onChange("dateOfBirth", value ?? "")} />
+          <CountryField label="Nationality" value={form.nationality} error={errors.nationality} onChange={(value) => onChange("nationality", value)} />
+
+          <Text accessibilityRole="header" style={[styles.formGroup, styles.group]}>{profileSectionTitles.address}</Text>
+          {text("addressLine1", "Address line 1", { maxLength: 255, autoComplete: "street-address", enter: "next" })}
+          {text("addressLine2", "Address line 2", { maxLength: 255, enter: "next" })}
+          {text("city", "City", { maxLength: 120, enter: "next" })}
+          {text("stateRegion", "State or region", { maxLength: 120, enter: "next" })}
+          {text("postalCode", "Postal code", { maxLength: 20, autoComplete: "postal-code", enter: "done" })}
+          <CountryField label="Country" value={form.country} error={errors.country} onChange={(value) => onChange("country", value)} />
+
+          <Text accessibilityRole="header" style={[styles.formGroup, styles.group]}>{profileSectionTitles.emergency}</Text>
+          {text("emergencyContactName", "Contact name", { maxLength: 150, enter: "next" })}
+          {text("emergencyContactPhone", "Contact phone", { maxLength: 32, keyboardType: "phone-pad", enter: onSave })}
         </View>
       ) : null}
     </BottomSheet>
@@ -217,5 +214,9 @@ const styles = StyleSheet.create({
   section: { marginTop: space.xl, gap: space.md },
   meta: { ...type.meta, color: colors.mutedForeground },
   fields: { gap: space.lg, paddingTop: space.lg, paddingBottom: space.sm },
+  group: { marginTop: space.md },
+  // Section headings inside the form line up with the field labels.
+  formGroup: { ...type.rowTitle, color: colors.foreground },
+  next: { marginTop: space.lg },
   error: { ...type.caption, color: colors.destructive },
 });

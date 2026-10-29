@@ -1,4 +1,4 @@
-// One travel companion: their saved details (Edit opens the editor sheet),
+// One travel companion: their saved details (Edit, or tapping a fact, opens the editor sheet),
 // their identity documents, and removing them. Mirrors
 // apps/native/app/(guest)/companions/[companionId].tsx.
 import { companionMissingFieldLabels, getCompanionFacts, personName } from "@tattvix/api";
@@ -22,7 +22,8 @@ export function CompanionPage({ companionId }: { companionId: string }) {
   const navigate = useNavigate();
   const { data } = useSuspenseQuery(companionQueries.list());
   const companion = data.companions.find((item) => String(item.id) === companionId) ?? null;
-  const [editing, setEditing] = useState(false);
+  // The field the editor opened on; null while it is closed, "" for the Edit link.
+  const [editing, setEditing] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const updateMutation = useMutation(companionMutations.update(queryClient));
   const removeMutation = useMutation(companionMutations.remove(queryClient));
@@ -60,7 +61,7 @@ export function CompanionPage({ companionId }: { companionId: string }) {
               type="button"
               onClick={() => {
                 updateMutation.reset();
-                setEditing(true);
+                setEditing("");
               }}
               className="text-sm font-semibold underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -69,7 +70,13 @@ export function CompanionPage({ companionId }: { companionId: string }) {
           }
         />
         <Panel>
-          <FactList facts={getCompanionFacts(companion)} />
+          <FactList
+            facts={getCompanionFacts(companion)}
+            onSelect={(fact) => {
+              updateMutation.reset();
+              setEditing(fact.field ?? "");
+            }}
+          />
         </Panel>
       </section>
 
@@ -82,8 +89,11 @@ export function CompanionPage({ companionId }: { companionId: string }) {
       </div>
 
       <CompanionEditorSheet
-        open={editing}
-        onOpenChange={setEditing}
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        focus={editing || undefined}
         companion={companion}
         isSaving={updateMutation.isPending}
         submitError={mutationError(updateMutation.error, updateMutation.isError)}
@@ -93,7 +103,7 @@ export function CompanionPage({ companionId }: { companionId: string }) {
             {
               onSuccess: () => {
                 toast.success("Saved");
-                setEditing(false);
+                setEditing(null);
               },
             },
           )
