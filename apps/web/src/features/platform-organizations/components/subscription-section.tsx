@@ -1,3 +1,4 @@
+import { defaultTrialExtension, describeSubscriptionEvent, getSubscriptionStatusPill, subscriptionEventLabel } from "@tattvix/api";
 import type { PlatformPricing, PlatformSubscription } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -58,14 +59,9 @@ export function SubscriptionSection({
         <PanelSection className="grid gap-2">
           {subscription.events.map((event) => (
             <p key={event.id} className="text-sm text-muted-foreground">
-              <span className="text-foreground">{eventLabel(event.kind)}</span>
+              <span className="text-foreground">{subscriptionEventLabel(event.kind)}</span>
               {" · "}
-              {event.previousTrialEndsAt
-                ? `${formatDate(event.previousTrialEndsAt)} → ${formatDate(event.newTrialEndsAt)}`
-                : `until ${formatDate(event.newTrialEndsAt)}`}
-              {event.actorEmail ? ` · ${event.actorEmail}` : ""}
-              {event.note ? ` · ${event.note}` : ""}
-              <span className="text-subtle-foreground"> · {formatDate(event.createdAt)}</span>
+              {describeSubscriptionEvent(event, formatDate)}
             </p>
           ))}
         </PanelSection>
@@ -81,16 +77,8 @@ export function SubscriptionSection({
 }
 
 function SubscriptionStatusPill({ subscription }: { subscription: PlatformSubscription }) {
-  switch (subscription.status) {
-    case "PAID":
-      return <StatusPill tone="success">Paid</StatusPill>;
-    case "TRIALING":
-      return <StatusPill tone={subscription.daysLeft <= 14 ? "warning" : "neutral"}>Free trial</StatusPill>;
-    case "EXPIRED":
-      return <StatusPill tone="danger">Trial ended</StatusPill>;
-    default:
-      return <StatusPill tone="danger">No subscription</StatusPill>;
-  }
+  const pill = getSubscriptionStatusPill(subscription);
+  return <StatusPill tone={pill.tone}>{pill.label}</StatusPill>;
 }
 
 function ExtendTrialSheet({
@@ -106,9 +94,7 @@ function ExtendTrialSheet({
 }) {
   const queryClient = useQueryClient();
   const extend = useMutation(platformOrganizationMutations.extendTrial(queryClient));
-  // Default to two weeks past the current end, or past today once expired.
-  const base = subscription.entitled && subscription.trialEndsAt ? new Date(subscription.trialEndsAt) : new Date();
-  const [date, setDate] = useState(() => toDateInput(addDays(base, DEFAULT_EXTENSION_DAYS)));
+  const [date, setDate] = useState(() => toDateInput(defaultTrialExtension(subscription, DEFAULT_EXTENSION_DAYS)));
   const [note, setNote] = useState("");
   const minDate = toDateInput(addDays(new Date(), 1));
 
@@ -168,10 +154,6 @@ function ExtendTrialSheet({
       </form>
     </BottomSheet>
   );
-}
-
-function eventLabel(kind: PlatformSubscription["events"][number]["kind"]) {
-  return kind === "TRIAL_STARTED" ? "Trial started" : "Trial extended";
 }
 
 function addDays(date: Date, days: number) {

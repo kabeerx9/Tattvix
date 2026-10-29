@@ -37,6 +37,14 @@ import {
   createTeamApi,
   createTeamQueries,
 } from "@tattvix/api";
+import {
+  createHotelRegistrationMutations,
+  createPlatformOrganizationMutations,
+  createPlatformOrganizationQueries,
+  createPlatformOrganizationsApi,
+  createPlatformUserQueries,
+  createPlatformUsersApi,
+} from "@tattvix/api";
 import { createApiClient } from "@tattvix/contracts";
 import { env } from "@tattvix/env/native";
 
@@ -72,6 +80,8 @@ export const api = {
   team: createTeamApi(apiClient),
   /** Identity documents are scoped per person: no id = the signed-in guest, an id = one of their companions. */
   identityDocuments: (companionId?: number) => createIdentityDocumentsApi(apiClient, companionId),
+  platformOrganizations: createPlatformOrganizationsApi(apiClient),
+  platformUsers: createPlatformUsersApi(apiClient),
 };
 
 export const queries = {
@@ -92,4 +102,14 @@ export const queries = {
   companions: createCompanionQueries(api.companions),
   team: createTeamQueries(api.team),
   identityDocuments: createIdentityDocumentQueries(api.identityDocuments),
+  /** Platform admin lists search owners by name, email and phone, so they ask for contacts. */
+  platformPortfolioContacts: createPlatformPortfolioQueries(api.platformPortfolio, { includeContacts: true }),
+  platformOrganizations: createPlatformOrganizationQueries(api.platformOrganizations),
+  platformUsers: createPlatformUserQueries(api.platformUsers),
+};
+
+/** Platform-admin writers and the invalidation they share (see packages/api). */
+export const mutations = {
+  platformOrganizations: createPlatformOrganizationMutations(api.platformOrganizations),
+  hotelRegistration: createHotelRegistrationMutations(api.hotelRegistration),
 };

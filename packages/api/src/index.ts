@@ -88,6 +88,7 @@ export {
   hotelRegistrationKeys,
   type HotelRegistrationApi,
 } from "./hotel-registration";
+export { applicantName, createHotelRegistrationMutations, hotelRegistrationStatusFilters, isAlreadyReviewed } from "./hotel-registration";
 export { createHotelReportsApi, createHotelReportsQueries, hotelReportsKeys, type HotelReportsApi } from "./hotel-reports";
 export { createHotelStayQueries, createHotelStaysApi, hotelStayKeys, type HotelStaysApi } from "./hotel-stays";
 export {
@@ -104,6 +105,17 @@ export {
   type PlatformOrganizationsApi,
 } from "./platform-organizations";
 export { createPlatformOversightApi, createPlatformOversightQueries, platformOversightKeys, type PlatformOversightApi } from "./platform-oversight";
+export { AUDIT_ACTIONS, auditActionLabel, auditKindLabel, auditTarget, buildWeeklyCheckInsGrid, type WeeklyCheckInsGridProperty } from "./platform-oversight";
+export {
+  PLATFORM_ROLES,
+  createPlatformOrganizationMutations,
+  defaultTrialExtension,
+  describeSubscriptionEvent,
+  endOfLocalDay,
+  platformMemberName,
+  platformRoleLabel,
+  subscriptionEventLabel,
+} from "./platform-organizations";
 export { createPlatformPortfolioApi, createPlatformPortfolioQueries, platformPortfolioKeys, type PlatformPortfolioApi } from "./platform-portfolio";
 export { createPlatformUserQueries, createPlatformUsersApi, platformUserKeys, type PlatformUsersApi } from "./platform-users";
 export { createPropertyPhotoQueries, createPropertyPhotosApi, propertyPhotosKeys, type PropertyPhotosApi } from "./property-photos";

@@ -1,6 +1,7 @@
 // Shared pieces of the admin portfolio: room-status bar, setup pill, the
 // per-property card used on organization detail, and the room types sheet.
 // Everything here is aggregate data; no guest identity reaches these views.
+import { getSubscriptionPill, roomStatusSummary } from "@tattvix/api";
 import type { PlatformPortfolioProperty, PlatformPortfolioRoomCounts } from "@tattvix/contracts";
 import { BottomSheet } from "@tattvix/ui/components/bottom-sheet";
 import { Button } from "@tattvix/ui/components/button";
@@ -39,29 +40,11 @@ export function SubscriptionPill({
 }: {
   subscription: PlatformPortfolioProperty["organization"]["subscription"];
 }) {
-  switch (subscription.status) {
-    case "PAID":
-      return <StatusPill tone="success">Paid</StatusPill>;
-    case "TRIALING":
-      return (
-        <StatusPill tone={subscription.daysLeft <= 14 ? "warning" : "neutral"}>
-          Trial · {subscription.daysLeft}d
-        </StatusPill>
-      );
-    case "EXPIRED":
-      return <StatusPill tone="danger">Trial ended</StatusPill>;
-    default:
-      return <StatusPill tone="danger">No subscription</StatusPill>;
-  }
+  const pill = getSubscriptionPill(subscription);
+  return <StatusPill tone={pill.tone}>{pill.label}</StatusPill>;
 }
 
-export function roomStatusSummary(rooms: PlatformPortfolioRoomCounts) {
-  if (!rooms.total) return "No rooms yet";
-  return roomStatusSegments
-    .filter((segment) => rooms[segment.key] > 0)
-    .map((segment) => `${rooms[segment.key]} ${segment.label}`)
-    .join(" · ");
-}
+export { roomStatusSummary };
 
 /** One stacked bar for the room mix tonight, with a text legend beside it. */
 export function RoomStatusBar({

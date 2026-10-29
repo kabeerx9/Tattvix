@@ -12,7 +12,8 @@ export function createPlatformPortfolioApi(client: ApiClient) {
       const params = new URLSearchParams();
       if (organizationSlug) params.set("organization", organizationSlug);
       if (includeContacts) params.set("includeContacts", "true");
-      const query = params.size ? `?${params}` : "";
+      // Not `params.size`: React Native's URLSearchParams lacks it, which silently dropped the filter.
+      const query = params.toString() ? `?${params}` : "";
       return client.requestJson(`/api/platform/portfolio/${query}`, platformPortfolioResponseSchema);
     },
   };

@@ -1,3 +1,4 @@
+import { applicantName, hotelRegistrationStatusFilters, isAlreadyReviewed } from "@tattvix/api";
 import {
   hotelRegistrationReviewInputSchema,
   type HotelRegistrationStatus,
@@ -28,11 +29,7 @@ import { StatusBadge } from "./hotel-registration-page";
 import { hotelRegistrationMutations } from "../mutations";
 import { hotelRegistrationQueries } from "../queries";
 
-const statusFilters: { value: HotelRegistrationStatus; label: string }[] = [
-  { value: "PENDING", label: "Pending" },
-  { value: "APPROVED", label: "Approved" },
-  { value: "REJECTED", label: "Rejected" },
-];
+const statusFilters = hotelRegistrationStatusFilters;
 
 export function HotelRegistrationRequestsPage() {
   const queryClient = useQueryClient();
@@ -52,7 +49,7 @@ export function HotelRegistrationRequestsPage() {
         toast.success(decision === "APPROVE" ? "Hotel request approved" : "Hotel request rejected");
       },
       onError: (error) => {
-        if (error instanceof ApiError && error.status === 409) {
+        if (isAlreadyReviewed(error)) {
           setReviewError("This request was already reviewed. The list has been refreshed.");
           void queryClient.invalidateQueries({ queryKey: hotelRegistrationQueries.admin(status).queryKey });
           return;
@@ -88,7 +85,7 @@ function RequestList({ requests, onApprove, onReject, reviewingId }: {
 }) {
   if (!requests.length) return <Panel><EmptyState icon={RefreshCw} title="No requests in this status" description="Choose another status to review earlier decisions." /></Panel>;
   return <Panel><PanelHeader title="Requests" meta={requests.length} />{requests.map((request) => <div key={request.id} className="group grid min-h-11 gap-3 border-t border-border-soft px-5 py-3 first:border-t-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] md:items-center">
-    <div className="flex min-w-0 items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials([request.applicant.firstName, request.applicant.lastName].filter(Boolean).join(" ") || request.applicant.email)}</span><div className="min-w-0"><p className="text-sm font-medium wrap-anywhere">{[request.applicant.firstName, request.applicant.lastName].filter(Boolean).join(" ") || "Unnamed applicant"}</p><p className="mt-1 break-words text-xs text-subtle-foreground">{request.applicant.email}</p><p className="mt-1 text-xs text-subtle-foreground tabular-nums">Submitted {formatDateTime(request.submittedAt)}</p></div></div>
+    <div className="flex min-w-0 items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{getInitials([request.applicant.firstName, request.applicant.lastName].filter(Boolean).join(" ") || request.applicant.email)}</span><div className="min-w-0"><p className="text-sm font-medium wrap-anywhere">{applicantName(request)}</p><p className="mt-1 break-words text-xs text-subtle-foreground">{request.applicant.email}</p><p className="mt-1 text-xs text-subtle-foreground tabular-nums">Submitted {formatDateTime(request.submittedAt)}</p></div></div>
     <div><p className="text-sm font-medium wrap-anywhere">{request.hotelName}</p><p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{request.address}</p><p className="mt-1 text-xs text-subtle-foreground">{request.contactPhone}</p>{request.rejectionReason ? <p className="mt-2 text-xs text-destructive">{request.rejectionReason}</p> : null}</div>
     <div className="grid justify-items-start gap-2 md:justify-items-end"><StatusBadge status={request.status} />{request.status === "PENDING" ? <div className={`flex flex-wrap gap-2 ${rowActionsRevealClassName}`}><Button size="sm" variant="outline" disabled={reviewingId !== null} onClick={() => onReject(request)}><X />Reject</Button><Button size="sm" variant="outline" disabled={reviewingId !== null} onClick={() => onApprove(request.id)}>{reviewingId === request.id ? "Reviewing..." : <><Check />Approve</>}</Button></div> : <span className="text-xs text-subtle-foreground tabular-nums">Reviewed {request.reviewedAt ? formatDateTime(request.reviewedAt) : ""}</span>}</div>
   </div>)}</Panel>;

@@ -1,7 +1,5 @@
-import type {
-  PlatformOversightAuditEntry,
-  PlatformOversightWeeklyCheckInsRow,
-} from "@tattvix/contracts";
+import { AUDIT_ACTIONS, auditActionLabel, auditKindLabel, auditTarget, buildWeeklyCheckInsGrid, type WeeklyCheckInsGridProperty } from "@tattvix/api";
+import type { PlatformOversightAuditEntry } from "@tattvix/contracts";
 import { Button } from "@tattvix/ui/components/button";
 import {
   Select,
@@ -19,19 +17,6 @@ import { Input } from "@tattvix/ui/components/input";
 import { ApiError } from "@/lib/api";
 
 import { platformOversightQueries } from "../queries";
-
-const AUDIT_ACTIONS = [
-  { value: "", label: "All actions" },
-  { value: "DETAILS_VIEWED", label: "Identity details viewed" },
-  { value: "DOCUMENT_VIEWED", label: "Document image viewed" },
-  { value: "STAY_CLOSED", label: "Stay closed" },
-  { value: "CONSENT_REVOKED", label: "Consent revoked" },
-  { value: "PROPERTY_CREATED", label: "Property created" },
-  { value: "MEMBER_ADDED", label: "Member added" },
-  { value: "MEMBER_ROLE_CHANGED", label: "Member role changed" },
-  { value: "MEMBER_DEACTIVATED", label: "Member deactivated" },
-  { value: "MEMBER_REACTIVATED", label: "Member reactivated" },
-] as const;
 
 export function OversightPage() {
   return (
@@ -176,45 +161,6 @@ function WeeklyCheckInsSparkline({ weeks, byWeek, max }: { weeks: string[]; byWe
   );
 }
 
-type WeeklyCheckInsGridProperty = {
-  propertyId: number;
-  propertyName: string;
-  organizationSlug: string;
-  byWeek: Map<string, number>;
-};
-
-function buildWeeklyCheckInsGrid(rows: PlatformOversightWeeklyCheckInsRow[]): {
-  weeks: string[];
-  properties: WeeklyCheckInsGridProperty[];
-  maxCheckIns: number;
-} {
-  const weeks = Array.from(new Set(rows.map((row) => row.weekStart))).sort();
-  const propertiesByKey = new Map<string, WeeklyCheckInsGridProperty>();
-  let maxCheckIns = 0;
-
-  for (const row of rows) {
-    const key = `${row.organizationSlug}-${row.propertyId}`;
-    let property = propertiesByKey.get(key);
-    if (!property) {
-      property = {
-        propertyId: row.propertyId,
-        propertyName: row.propertyName,
-        organizationSlug: row.organizationSlug,
-        byWeek: new Map(),
-      };
-      propertiesByKey.set(key, property);
-    }
-    property.byWeek.set(row.weekStart, row.checkIns);
-    maxCheckIns = Math.max(maxCheckIns, row.checkIns);
-  }
-
-  const properties = Array.from(propertiesByKey.values()).sort((a, b) =>
-    a.propertyName.localeCompare(b.propertyName),
-  );
-
-  return { weeks, properties, maxCheckIns };
-}
-
 function formatWeekStart(weekStart: string) {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -325,18 +271,11 @@ function AuditFeedSection() {
   );
 }
 
-function auditTarget(entry: PlatformOversightAuditEntry) {
-  return `${entry.organizationSlug} · ${entry.kind === "IDENTITY_ACCESS" ? entry.propertyName : entry.target}`;
-}
-
 function KindBadge({ kind }: { kind: PlatformOversightAuditEntry["kind"] }) {
-  return <StatusPill tone="neutral">{kind === "IDENTITY_ACCESS" ? "Identity access" : "Platform admin"}</StatusPill>;
+  return <StatusPill tone="neutral">{auditKindLabel(kind)}</StatusPill>;
 }
 
-function actionLabel(action: string) {
-  const match = AUDIT_ACTIONS.find((option) => option.value === action);
-  return match ? match.label : action;
-}
+const actionLabel = auditActionLabel;
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat(undefined, {

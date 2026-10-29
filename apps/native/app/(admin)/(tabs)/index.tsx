@@ -1,12 +1,15 @@
-// Platform: the Tattwix-wide, read-only view for platform admins. Totals, the
-// hotels that still need setup, every hotel's subscription and weekly check-ins.
-import { formatMoneyWholeRupees, formatPercent, getMissingSetup, getOccupancyTonight, getPortfolioTotals, getSetupStatus } from "@tattvix/api";
+// Platform: the Tattwix-wide overview for platform admins. Totals, what needs
+// attention (billing, quiet hotels, unfinished setup) and weekly check-ins.
+// Every row opens its organization; Oversight is pushed from the title.
+import { formatMoneyWholeRupees, formatPercent, getMissingSetup, getPortfolioAttention, getPortfolioTotals, getSetupStatus } from "@tattvix/api";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter, type Href } from "expo-router";
 import { CalendarDays } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
+import { AttentionGroups, count, organizationHref } from "@/src/components/admin-portfolio";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
-import { EmptyState, Kpi, KpiRow, LargeTitle, ListRow, Panel, Screen, SectionTitle, StatusPill, colors, space, type } from "@/src/design-system";
+import { EmptyState, Kpi, KpiRow, LargeTitle, ListRow, Panel, Screen, SectionTitle, StatusPill, TextLink, colors, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
 
 const MAX_ATTENTION_ROWS = 8;
@@ -15,7 +18,8 @@ const CHECK_IN_WEEKS = 6;
 const weekFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
 
 export default function PlatformScreen() {
-  const portfolio = useQuery(queries.platformPortfolio.list());
+  const router = useRouter();
+  const portfolio = useQuery(queries.platformPortfolioContacts.list());
   const checkIns = useQuery(queries.platformOversight.weeklyCheckIns({ weeks: CHECK_IN_WEEKS }));
 
   const core = [portfolio, checkIns];
@@ -28,14 +32,17 @@ export default function PlatformScreen() {
 
   const properties = portfolio.data.properties;
   const totals = getPortfolioTotals(properties);
+  const attention = getPortfolioAttention(properties);
   const byName = [...properties].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
-  const attention = byName.map((property) => ({ property, status: getSetupStatus(property) })).filter(({ status }) => status.tone !== "success");
+  const setup = byName.map((property) => ({ property, status: getSetupStatus(property) })).filter(({ status }) => status.tone !== "success");
   const weeks = weeklyTotals(checkIns.data.rows);
+  const openOrganization = (slug: string) => router.push(organizationHref(slug));
 
   return (
     <Screen refreshing={core.some((query) => query.isFetching && !query.isPending)} onRefresh={refetchAll}>
       <LargeTitle
         meta={`${count(totals.properties, "property", "properties")} · ${count(totals.organizations, "organization", "organizations")}`}
+        action={<TextLink label="Oversight" onPress={() => router.push("/(admin)/oversight" as Href)} />}
       >
         Platform
       </LargeTitle>
@@ -55,46 +62,38 @@ export default function PlatformScreen() {
         </KpiRow>
       </View>
 
-      <View style={styles.section}>
-        <SectionTitle>Needs attention</SectionTitle>
-        {attention.length ? (
-          <Panel>
-            {attention.slice(0, MAX_ATTENTION_ROWS).map(({ property, status }) => {
-              const missing = getMissingSetup(property);
-              const organization = property.organization.name;
-              return (
-                <ListRow
-                  key={property.id}
-                  title={property.name}
-                  detail={missing.length ? `${organization} · missing ${missing.join(", ")}` : `${organization} · switched off`}
-                  trailing={<StatusPill tone={status.tone}>{status.label}</StatusPill>}
-                />
-              );
-            })}
-          </Panel>
-        ) : (
-          <Panel>
-            <ListRow title="All hotels are live" />
-          </Panel>
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <SectionTitle>Hotels</SectionTitle>
-        <Panel>
-          {byName.map((property) => {
-            const { subscription } = property.organization;
-            return (
-              <ListRow
-                key={property.id}
-                title={property.name}
-                detail={`${property.organization.name} · ${formatPercent(getOccupancyTonight(property))} tonight · ${count(property.rooms.total, "room", "rooms")}`}
-                trailing={subscription.entitled ? <StatusPill tone="success">Active</StatusPill> : <StatusPill tone="warning">{titleCase(subscription.status)}</StatusPill>}
-              />
-            );
-          })}
-        </Panel>
-      </View>
+      {properties.length ? (
+        <View style={styles.section}>
+          <SectionTitle meta={attention.billing.length + attention.stale.length ? String(attention.billing.length + attention.stale.length) : "All clear"}>Needs attention</SectionTitle>
+          <AttentionGroups attention={attention} onOpenOrganization={openOrganization} />
+          <View style={styles.group}>
+            <View>
+              <Text style={styles.groupTitle}>Setup</Text>
+              <Text style={styles.groupHint}>Hotels still missing rooms, rates, an address or a cover photo.</Text>
+            </View>
+            {setup.length ? (
+              <Panel>
+                {setup.slice(0, MAX_ATTENTION_ROWS).map(({ property, status }) => {
+                  const missing = getMissingSetup(property);
+                  const organization = property.organization.name;
+                  return (
+                    <ListRow
+                      key={property.id}
+                      title={property.name}
+                      detail={missing.length ? `${organization} · missing ${missing.join(", ")}` : `${organization} · switched off`}
+                      trailing={<StatusPill tone={status.tone}>{status.label}</StatusPill>}
+                      chevron
+                      onPress={() => openOrganization(property.organization.slug)}
+                    />
+                  );
+                })}
+              </Panel>
+            ) : (
+              <Text style={styles.groupEmpty}>All hotels are live.</Text>
+            )}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <SectionTitle>Check-ins by week</SectionTitle>
@@ -124,16 +123,12 @@ function weekLabel(weekStart: string) {
   return `Week of ${weekFormat.format(new Date(`${weekStart}T12:00:00`))}`;
 }
 
-function count(value: number, one: string, many: string) {
-  return `${value} ${value === 1 ? one : many}`;
-}
-
-function titleCase(value: string) {
-  return value.charAt(0) + value.slice(1).toLowerCase();
-}
-
 const styles = StyleSheet.create({
   kpis: { marginTop: space.xl, gap: space.md },
-  section: { marginTop: space.xxxl, gap: space.md },
+  section: { marginTop: space.xxxl, gap: space.lg },
+  group: { gap: space.md },
+  groupTitle: { ...type.rowTitle, color: colors.foreground },
+  groupHint: { ...type.caption, color: colors.subtleForeground, marginTop: 2 },
+  groupEmpty: { ...type.meta, color: colors.mutedForeground },
   count: { ...type.body, color: colors.foreground, fontVariant: ["tabular-nums"] },
 });

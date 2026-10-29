@@ -1,3 +1,4 @@
+import { PLATFORM_ROLES, platformMemberName, platformRoleLabel } from "@tattvix/api";
 import type {
   PlatformMember,
   PlatformPortfolioProperty,
@@ -30,7 +31,9 @@ import { platformOrganizationMutations } from "../mutations";
 import { platformOrganizationQueries } from "../queries";
 import { SubscriptionSection } from "./subscription-section";
 
-const ROLES: PlatformMembershipRole[] = ["OWNER", "MANAGER", "RECEPTION"];
+const ROLES = PLATFORM_ROLES;
+const memberName = platformMemberName;
+const roleLabel = platformRoleLabel;
 
 export function OrganizationDetailPage({
   organizationSlug,
@@ -374,10 +377,6 @@ function MembersSection({
   );
 }
 
-function memberName(member: PlatformMember) {
-  return [member.user.firstName, member.user.lastName].filter(Boolean).join(" ") || member.user.email;
-}
-
 function MemberControls({
   member,
   disabled,
@@ -416,11 +415,3 @@ function MemberControls({
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) { return <StatusPill tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Inactive"}</StatusPill>; }
-
-function roleLabel(role: PlatformMembershipRole) {
-  return {
-    OWNER: "Owner",
-    MANAGER: "Manager",
-    RECEPTION: "Reception",
-  }[role];
-}
