@@ -23,6 +23,7 @@ export default function GuestLayout() {
       <Stack.Screen name="companions/[companionId]" />
       <Stack.Screen name="account" />
       <Stack.Screen name="referrals" />
+      <Stack.Screen name="register-hotel" />
     </Stack>
   );
 }

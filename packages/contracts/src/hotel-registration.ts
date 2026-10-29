@@ -2,13 +2,14 @@ import { z } from "zod";
 import { optionalReferralCodeSchema } from "./referrals";
 
 export const hotelRegistrationStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
-const requiredText = (max: number) => z.string().trim().min(1).max(max);
+const requiredText = (max: number, label: string) =>
+  z.string().trim().min(1, `Enter the ${label}.`).max(max, `Keep the ${label} under ${max} characters.`);
 
 export const hotelRegistrationInputSchema = z.object({
   referralCode: optionalReferralCodeSchema,
-  hotelName: requiredText(255),
-  address: requiredText(1000),
-  contactPhone: requiredText(32).regex(/^\+?[0-9\s-]+$/, "Enter a valid contact phone number.").refine(
+  hotelName: requiredText(255, "hotel name"),
+  address: requiredText(1000, "hotel address"),
+  contactPhone: requiredText(32, "contact phone").regex(/^\+?[0-9\s-]+$/, "Enter a valid contact phone number.").refine(
     (phone) => { const digits = phone.replace(/[^0-9]/g, "").length; return digits >= 7 && digits <= 20; },
     "Enter a phone number with 7 to 20 digits.",
   ),

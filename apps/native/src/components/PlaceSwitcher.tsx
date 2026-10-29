@@ -1,6 +1,5 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { placeInitials, placeTone } from "@tattvix/api";
-import { env } from "@tattvix/env/native";
 import { useRouter, type Href } from "expo-router";
 import { BarChart3, Building2, LifeBuoy, LogOut, QrCode, Settings, ShieldCheck, Star, UserRound } from "lucide-react-native";
 import { useState } from "react";
@@ -10,7 +9,7 @@ import { useCurrentUser } from "@/src/lib/current-user";
 import { writeLastPlace } from "@/src/lib/last-place";
 import { describeHotelPlace, getHotelPlaces, hotelHref, isPlatformAdmin } from "@/src/lib/workspace";
 import { SectionTitle, space } from "@/src/design-system";
-import { Linking, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 
 export type SwitcherCurrent = { kind: "guest" } | { kind: "hotel"; key: string } | { kind: "admin" };
 
@@ -68,10 +67,11 @@ export function PlaceSwitcherRows({ current, onNavigate, onSignOut }: { current:
         <ListRow
           icon={Building2}
           title="List your hotel"
-          detail="Submit your hotel for approval on the web"
+          detail="Submit your hotel for approval"
+          chevron
           onPress={() => {
             onNavigate?.();
-            void Linking.openURL(`${env.EXPO_PUBLIC_WEB_URL}/register-hotel`);
+            router.push("/(guest)/register-hotel" as Href);
           }}
         />
       ) : null}

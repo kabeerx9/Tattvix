@@ -21,6 +21,8 @@ test("hotel request trims hotel details and rejects caller-supplied authority", 
     assert.equal(hotelRegistrationInputSchema.safeParse({ hotelName: "Hotel", address: "Address", contactPhone: "+919876543210", [field]: "forged" }).success, false);
   }
   assert.equal(hotelRegistrationInputSchema.safeParse({ hotelName: " ", address: "Address", contactPhone: "abc" }).success, false);
+  const blank = hotelRegistrationInputSchema.safeParse({ hotelName: "", address: "", contactPhone: "" });
+  assert.deepEqual(blank.error?.issues.map((issue) => issue.message).slice(0, 2), ["Enter the hotel name.", "Enter the hotel address."]);
 });
 
 test("rejection requires a reason and approval does not", () => {
