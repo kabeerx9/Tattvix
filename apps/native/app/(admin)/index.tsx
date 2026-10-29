@@ -2,11 +2,9 @@
 // hotels that still need setup, every hotel's subscription and weekly check-ins.
 import { formatMoneyWholeRupees, formatPercent, getMissingSetup, getOccupancyTonight, getPortfolioTotals, getSetupStatus } from "@tattvix/api";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Menu } from "lucide-react-native";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { CalendarDays } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { PlaceSwitcherSheet } from "@/src/components/PlaceSwitcher";
 import { PendingScreen, RetryScreen } from "@/src/components/status-screens";
 import { EmptyState, Kpi, KpiRow, LargeTitle, ListRow, Panel, Screen, SectionTitle, StatusPill, colors, space, type } from "@/src/design-system";
 import { queries } from "@/src/lib/api";
@@ -19,7 +17,6 @@ const weekFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "sh
 export default function PlatformScreen() {
   const portfolio = useQuery(queries.platformPortfolio.list());
   const checkIns = useQuery(queries.platformOversight.weeklyCheckIns({ weeks: CHECK_IN_WEEKS }));
-  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const core = [portfolio, checkIns];
   const refetchAll = () => core.forEach((query) => void query.refetch());
@@ -39,11 +36,6 @@ export default function PlatformScreen() {
     <Screen refreshing={core.some((query) => query.isFetching && !query.isPending)} onRefresh={refetchAll}>
       <LargeTitle
         meta={`${count(totals.properties, "property", "properties")} · ${count(totals.organizations, "organization", "organizations")}`}
-        action={
-          <Pressable accessibilityRole="button" accessibilityLabel="Switch place" hitSlop={12} onPress={() => setSwitcherOpen(true)}>
-            <Menu color={colors.foreground} size={24} strokeWidth={1.6} />
-          </Pressable>
-        }
       >
         Platform
       </LargeTitle>
@@ -116,8 +108,6 @@ export default function PlatformScreen() {
           <EmptyState icon={CalendarDays} text="No check-ins yet" />
         )}
       </View>
-
-      <PlaceSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} current={{ kind: "admin" }} />
     </Screen>
   );
 }
